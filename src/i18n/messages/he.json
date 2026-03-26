@@ -1,0 +1,99 @@
+{
+  "home": {
+    "title": "מערכת הזמנות לעסקים",
+    "description": "תשתית MVP עם תמיכה בריבוי שפות ואימות SMS."
+  },
+  "register": {
+    "title": "יצירת חשבון עסקי",
+    "fields": {
+      "businessName": "שם העסק",
+      "email": "אימייל",
+      "phoneNumber": "מספר טלפון",
+      "password": "סיסמה"
+    },
+    "placeholders": {
+      "businessName": "הזן שם עסק",
+      "email": "name@company.com",
+      "phoneNumber": "+972501234567",
+      "password": "לפחות 8 תווים עם אותיות גדולות/קטנות ומספר"
+    },
+    "actions": {
+      "submit": "הרשמה",
+      "submitting": "נרשם..."
+    },
+    "messages": {
+      "success": "ההרשמה הצליחה, בדוק את ה-SMS שלך לקבלת קוד אימות",
+      "genericError": "ההרשמה נכשלה. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב.",
+      "developmentHint": "מצב פיתוח: קוד האימות מודפס בקונסול השרת."
+    },
+    "errors": {
+      "businessNameRequired": "שם העסק הוא שדה חובה.",
+      "emailRequired": "אימייל הוא שדה חובה.",
+      "emailInvalid": "יש להזין כתובת אימייל תקינה.",
+      "phoneRequired": "מספר טלפון הוא שדה חובה.",
+      "phoneInvalid": "יש להזין מספר טלפון תקין.",
+      "passwordRequired": "סיסמה היא שדה חובה.",
+      "passwordInvalid": "הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה ומספר."
+    }
+  }
+  ,
+  "verify": {
+    "title": "אימות טלפון",
+    "fields": {
+      "verificationCode": "קוד אימות"
+    },
+    "placeholders": {
+      "verificationCode": "קוד בן 6 ספרות"
+    },
+    "actions": {
+      "submit": "אימות",
+      "submitting": "מאמת..."
+    },
+    "messages": {
+      "success": "האימות הצליח, כעת ניתן להתחבר",
+      "genericError": "האימות נכשל. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב.",
+      "missingPhoneNumber": "חסר מספר טלפון. בצע הרשמה מחדש או פתח את הדף עם ‎?phoneNumber=+972....‎",
+      "developmentHint": "מצב פיתוח: קוד האימות מודפס בקונסול השרת."
+    },
+    "errors": {
+      "codeRequired": "קוד אימות הוא שדה חובה.",
+      "codeInvalid": "יש להזין קוד תקין בן 6 ספרות."
+    }
+  }
+  ,
+  "login": {
+    "title": "התחברות",
+    "fields": {
+      "identifier": "אימייל או מספר טלפון",
+      "password": "סיסמה"
+    },
+    "placeholders": {
+      "identifier": "name@company.com או ‎+9725....‎",
+      "password": "הסיסמה שלך"
+    },
+    "actions": {
+      "submit": "התחבר",
+      "submitting": "מתחבר..."
+    },
+    "messages": {
+      "success": "ההתחברות הצליחה",
+      "genericError": "ההתחברות נכשלה. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב."
+    },
+    "errors": {
+      "required": "יש להזין אימייל/טלפון וסיסמה."
+    }
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "actions": {
+      "logout": "התנתק"
+    },
+    "messages": {
+      "welcome": "אתה מחובר.",
+      "loading": "טוען..."
+    }
+  }
+}

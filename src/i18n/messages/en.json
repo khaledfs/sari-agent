@@ -1,0 +1,99 @@
+{
+  "home": {
+    "title": "B2B Ordering System",
+    "description": "MVP foundation with multilingual and SMS verification support."
+  },
+  "register": {
+    "title": "Create your business account",
+    "fields": {
+      "businessName": "Business name",
+      "email": "Email",
+      "phoneNumber": "Phone number",
+      "password": "Password"
+    },
+    "placeholders": {
+      "businessName": "Enter business name",
+      "email": "name@company.com",
+      "phoneNumber": "+972501234567",
+      "password": "At least 8 chars, upper/lower/number"
+    },
+    "actions": {
+      "submit": "Register",
+      "submitting": "Registering..."
+    },
+    "messages": {
+      "success": "Registration successful, check your SMS for verification code",
+      "genericError": "Registration failed. Please try again.",
+      "networkError": "Network error. Please try again.",
+      "developmentHint": "Development mode: verification code is printed in the server console."
+    },
+    "errors": {
+      "businessNameRequired": "Business name is required.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "phoneRequired": "Phone number is required.",
+      "phoneInvalid": "Enter a valid phone number.",
+      "passwordRequired": "Password is required.",
+      "passwordInvalid": "Password must be at least 8 characters and include uppercase, lowercase, and a number."
+    }
+  }
+  ,
+  "verify": {
+    "title": "Verify your phone",
+    "fields": {
+      "verificationCode": "Verification code"
+    },
+    "placeholders": {
+      "verificationCode": "6-digit code"
+    },
+    "actions": {
+      "submit": "Verify",
+      "submitting": "Verifying..."
+    },
+    "messages": {
+      "success": "Verification successful, you can now login",
+      "genericError": "Verification failed. Please try again.",
+      "networkError": "Network error. Please try again.",
+      "missingPhoneNumber": "Missing phone number context. Please register again or open this page with ?phoneNumber=+972....",
+      "developmentHint": "Development mode: verification code is printed in the server console."
+    },
+    "errors": {
+      "codeRequired": "Verification code is required.",
+      "codeInvalid": "Enter a valid 6-digit code."
+    }
+  }
+  ,
+  "login": {
+    "title": "Login",
+    "fields": {
+      "identifier": "Email or phone number",
+      "password": "Password"
+    },
+    "placeholders": {
+      "identifier": "name@company.com or +9725....",
+      "password": "Your password"
+    },
+    "actions": {
+      "submit": "Login",
+      "submitting": "Logging in..."
+    },
+    "messages": {
+      "success": "Login successful",
+      "genericError": "Login failed. Please try again.",
+      "networkError": "Network error. Please try again."
+    },
+    "errors": {
+      "required": "Email/phone and password are required."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "actions": {
+      "logout": "Logout"
+    },
+    "messages": {
+      "welcome": "You are logged in.",
+      "loading": "Loading..."
+    }
+  }
+}

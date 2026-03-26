@@ -1,0 +1,99 @@
+{
+  "home": {
+    "title": "نظام طلبات B2B",
+    "description": "بنية MVP مع دعم تعدد اللغات والتحقق عبر الرسائل النصية."
+  },
+  "register": {
+    "title": "إنشاء حساب الأعمال",
+    "fields": {
+      "businessName": "اسم النشاط التجاري",
+      "email": "البريد الإلكتروني",
+      "phoneNumber": "رقم الهاتف",
+      "password": "كلمة المرور"
+    },
+    "placeholders": {
+      "businessName": "أدخل اسم النشاط التجاري",
+      "email": "name@company.com",
+      "phoneNumber": "+972501234567",
+      "password": "8 أحرف على الأقل مع كبير/صغير ورقم"
+    },
+    "actions": {
+      "submit": "تسجيل",
+      "submitting": "جارٍ التسجيل..."
+    },
+    "messages": {
+      "success": "تم التسجيل بنجاح، تحقق من رسالة SMS للحصول على رمز التحقق",
+      "genericError": "فشل التسجيل. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "developmentHint": "وضع التطوير: يتم طباعة رمز التحقق في سجل الخادم."
+    },
+    "errors": {
+      "businessNameRequired": "اسم النشاط التجاري مطلوب.",
+      "emailRequired": "البريد الإلكتروني مطلوب.",
+      "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
+      "phoneRequired": "رقم الهاتف مطلوب.",
+      "phoneInvalid": "أدخل رقم هاتف صالحًا.",
+      "passwordRequired": "كلمة المرور مطلوبة.",
+      "passwordInvalid": "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم."
+    }
+  }
+  ,
+  "verify": {
+    "title": "التحقق من الهاتف",
+    "fields": {
+      "verificationCode": "رمز التحقق"
+    },
+    "placeholders": {
+      "verificationCode": "رمز مكوّن من 6 أرقام"
+    },
+    "actions": {
+      "submit": "تحقق",
+      "submitting": "جارٍ التحقق..."
+    },
+    "messages": {
+      "success": "تم التحقق بنجاح، يمكنك الآن تسجيل الدخول",
+      "genericError": "فشل التحقق. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "missingPhoneNumber": "رقم الهاتف غير متوفر. يرجى التسجيل مرة أخرى أو فتح الصفحة مع ‎?phoneNumber=+972....‎",
+      "developmentHint": "وضع التطوير: يتم طباعة رمز التحقق في سجل الخادم."
+    },
+    "errors": {
+      "codeRequired": "رمز التحقق مطلوب.",
+      "codeInvalid": "أدخل رمزًا صالحًا مكوّنًا من 6 أرقام."
+    }
+  }
+  ,
+  "login": {
+    "title": "تسجيل الدخول",
+    "fields": {
+      "identifier": "البريد الإلكتروني أو رقم الهاتف",
+      "password": "كلمة المرور"
+    },
+    "placeholders": {
+      "identifier": "name@company.com أو ‎+9725....‎",
+      "password": "كلمة المرور"
+    },
+    "actions": {
+      "submit": "دخول",
+      "submitting": "جارٍ تسجيل الدخول..."
+    },
+    "messages": {
+      "success": "تم تسجيل الدخول بنجاح",
+      "genericError": "فشل تسجيل الدخول. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى."
+    },
+    "errors": {
+      "required": "البريد/الهاتف وكلمة المرور مطلوبة."
+    }
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "actions": {
+      "logout": "تسجيل الخروج"
+    },
+    "messages": {
+      "welcome": "تم تسجيل دخولك.",
+      "loading": "جارٍ التحميل..."
+    }
+  }
+}
