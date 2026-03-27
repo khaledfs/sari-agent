@@ -9,13 +9,15 @@
       "businessName": "اسم النشاط التجاري",
       "email": "البريد الإلكتروني",
       "phoneNumber": "رقم الهاتف",
-      "password": "كلمة المرور"
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور"
     },
     "placeholders": {
       "businessName": "أدخل اسم النشاط التجاري",
       "email": "name@company.com",
       "phoneNumber": "+972501234567",
-      "password": "8 أحرف على الأقل مع كبير/صغير ورقم"
+      "password": "8 أحرف على الأقل مع كبير/صغير ورقم",
+      "confirmPassword": "أعد إدخال كلمة المرور"
     },
     "actions": {
       "submit": "تسجيل",
@@ -34,7 +36,9 @@
       "phoneRequired": "رقم الهاتف مطلوب.",
       "phoneInvalid": "أدخل رقم هاتف صالحًا.",
       "passwordRequired": "كلمة المرور مطلوبة.",
-      "passwordInvalid": "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم."
+      "passwordInvalid": "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم.",
+      "confirmPasswordRequired": "تأكيد كلمة المرور مطلوب.",
+      "confirmPasswordMismatch": "كلمتا المرور غير متطابقتين."
     }
   }
   ,
@@ -70,7 +74,7 @@
       "password": "كلمة المرور"
     },
     "placeholders": {
-      "identifier": "name@company.com أو ‎+9725....‎",
+      "identifier": "name@company.com أو ‎053.... / +9725....‎",
       "password": "كلمة المرور"
     },
     "actions": {
@@ -95,5 +99,61 @@
       "welcome": "تم تسجيل دخولك.",
       "loading": "جارٍ التحميل..."
     }
+  },
+  "products": {
+    "title": "المنتجات",
+    "subtitle": "تصفح المنتجات النشطة المتاحة للطلب.",
+    "fields": {
+      "price": "السعر",
+      "sku": "SKU",
+      "defaultUnit": "وحدة"
+    },
+    "actions": {
+      "addToCart": "أضف إلى السلة",
+      "adding": "جارٍ الإضافة…"
+    },
+    "messages": {
+      "loading": "جارٍ تحميل المنتجات...",
+      "empty": "لا توجد منتجات نشطة.",
+      "fetchError": "فشل تحميل المنتجات.",
+      "addError": "تعذّرت الإضافة إلى السلة."
+    }
+  },
+  "cart": {
+    "title": "السلة",
+    "empty": "سلتك فارغة.",
+    "total": "الإجمالي",
+    "quantity": "الكمية",
+    "remove": "إزالة",
+    "added": "تمت الإضافة إلى السلة.",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "loading": "جارٍ تحميل السلة…",
+    "goToCart": "عرض السلة",
+    "backToProducts": "العودة إلى المنتجات",
+    "sku": "SKU",
+    "unitPrice": "سعر الوحدة",
+    "lineTotal": "إجمالي السطر",
+    "increase": "زيادة الكمية",
+    "decrease": "تقليل الكمية",
+    "clearCart": "إفراغ السلة"
+  },
+  "orders": {
+    "title": "الطلبات",
+    "empty": "لا توجد طلبات بعد.",
+    "total": "الإجمالي",
+    "status": "الحالة",
+    "createdAt": "التاريخ",
+    "placeOrder": "تأكيد الطلب",
+    "placingOrder": "جارٍ إرسال الطلب…",
+    "details": "تفاصيل الطلب",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "success": "تم إرسال الطلب.",
+    "loading": "جارٍ تحميل الطلبات…",
+    "backToCart": "العودة إلى السلة",
+    "backToList": "العودة إلى الطلبات",
+    "items": "العناصر",
+    "quantity": "الكمية",
+    "itemPrice": "سعر الوحدة",
+    "lineTotal": "إجمالي السطر"
   }
 }

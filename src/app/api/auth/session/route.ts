@@ -8,13 +8,22 @@ export async function GET() {
     const store = await cookies();
     const token = store.get("authToken")?.value;
     if (!token) {
-      return NextResponse.json({ authenticated: false }, { status: 200 });
+      return NextResponse.json(
+        { success: true, data: { authenticated: false } },
+        { status: 200 }
+      );
     }
 
     const payload = verifyAuthToken(token);
-    return NextResponse.json({ authenticated: true, payload }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: { authenticated: true, payload } },
+      { status: 200 }
+    );
   } catch {
-    return NextResponse.json({ authenticated: false }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: { authenticated: false } },
+      { status: 200 }
+    );
   }
 }
 

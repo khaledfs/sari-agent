@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import {
   isStrongPassword,
   isValidEmail,
+  normalizeIsraeliPhoneNumber,
   normalizePhoneNumber,
 } from "@/lib/validators";
 import { UserModel } from "@/models/user.model";
@@ -106,7 +107,7 @@ export async function loginWithPassword(input: { identifier: string; password: s
   const isEmail = identifier.includes("@");
   const query = isEmail
     ? { email: identifier.toLowerCase() }
-    : { phoneNumber: normalizePhoneNumber(identifier) };
+    : { phoneNumber: normalizeIsraeliPhoneNumber(identifier) };
 
   const user = await UserModel.findOne(query).lean();
   if (!user) {

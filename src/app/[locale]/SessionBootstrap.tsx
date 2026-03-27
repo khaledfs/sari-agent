@@ -15,18 +15,20 @@ export function SessionBootstrap({ locale }: { locale: string }) {
     (async () => {
       try {
         const res = await fetch("/api/auth/session", { method: "GET" });
-        const json = (await res.json()) as { authenticated?: boolean };
+        const json = (await res.json()) as {
+          data?: { authenticated?: boolean };
+        };
+        const authenticated = json.data?.authenticated === true;
 
-        if (json.authenticated) {
+        if (authenticated) {
           if (pathname === loginPath || pathname === homePath) {
             router.replace(dashboardPath);
           }
           return;
         }
 
-        if (pathname === dashboardPath) {
-          router.replace(loginPath);
-        }
+        // Logged-out users on dashboard are handled by `dashboard/layout.tsx` (no flash of page content).
+        // Keep SessionBootstrap focused on redirecting authenticated users away from login/home.
       } catch {
         // ignore
       }

@@ -9,13 +9,15 @@
       "businessName": "שם העסק",
       "email": "אימייל",
       "phoneNumber": "מספר טלפון",
-      "password": "סיסמה"
+      "password": "סיסמה",
+      "confirmPassword": "אימות סיסמה"
     },
     "placeholders": {
       "businessName": "הזן שם עסק",
       "email": "name@company.com",
       "phoneNumber": "+972501234567",
-      "password": "לפחות 8 תווים עם אותיות גדולות/קטנות ומספר"
+      "password": "לפחות 8 תווים עם אותיות גדולות/קטנות ומספר",
+      "confirmPassword": "הזן שוב את הסיסמה"
     },
     "actions": {
       "submit": "הרשמה",
@@ -34,7 +36,9 @@
       "phoneRequired": "מספר טלפון הוא שדה חובה.",
       "phoneInvalid": "יש להזין מספר טלפון תקין.",
       "passwordRequired": "סיסמה היא שדה חובה.",
-      "passwordInvalid": "הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה ומספר."
+      "passwordInvalid": "הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה ומספר.",
+      "confirmPasswordRequired": "אימות סיסמה הוא שדה חובה.",
+      "confirmPasswordMismatch": "הסיסמאות אינן תואמות."
     }
   }
   ,
@@ -70,7 +74,7 @@
       "password": "סיסמה"
     },
     "placeholders": {
-      "identifier": "name@company.com או ‎+9725....‎",
+      "identifier": "name@company.com או ‎053.... / +9725....‎",
       "password": "הסיסמה שלך"
     },
     "actions": {
@@ -95,5 +99,61 @@
       "welcome": "אתה מחובר.",
       "loading": "טוען..."
     }
+  },
+  "products": {
+    "title": "מוצרים",
+    "subtitle": "עיון במוצרים פעילים הזמינים להזמנה.",
+    "fields": {
+      "price": "מחיר",
+      "sku": "מק\"ט",
+      "defaultUnit": "יחידה"
+    },
+    "actions": {
+      "addToCart": "הוסף לעגלה",
+      "adding": "מוסיף…"
+    },
+    "messages": {
+      "loading": "טוען מוצרים...",
+      "empty": "לא נמצאו מוצרים פעילים.",
+      "fetchError": "טעינת המוצרים נכשלה.",
+      "addError": "לא ניתן להוסיף לעגלה."
+    }
+  },
+  "cart": {
+    "title": "עגלה",
+    "empty": "העגלה ריקה.",
+    "total": "סה\"כ",
+    "quantity": "כמות",
+    "remove": "הסר",
+    "added": "נוסף לעגלה.",
+    "error": "משהו השתבש. נסה שוב.",
+    "loading": "טוען עגלה…",
+    "goToCart": "לעגלה",
+    "backToProducts": "חזרה למוצרים",
+    "sku": "מק\"ט",
+    "unitPrice": "מחיר ליחידה",
+    "lineTotal": "סה\"כ שורה",
+    "increase": "הגדל כמות",
+    "decrease": "הקטן כמות",
+    "clearCart": "רוקן עגלה"
+  },
+  "orders": {
+    "title": "הזמנות",
+    "empty": "אין הזמנות עדיין.",
+    "total": "סה\"כ",
+    "status": "סטטוס",
+    "createdAt": "תאריך",
+    "placeOrder": "בצע הזמנה",
+    "placingOrder": "שולח הזמנה…",
+    "details": "פרטי הזמנה",
+    "error": "משהו השתבש. נסה שוב.",
+    "success": "ההזמנה נשלחה.",
+    "loading": "טוען הזמנות…",
+    "backToCart": "חזרה לעגלה",
+    "backToList": "חזרה להזמנות",
+    "items": "פריטים",
+    "quantity": "כמות",
+    "itemPrice": "מחיר ליחידה",
+    "lineTotal": "סה\"כ שורה"
   }
 }

@@ -12,3 +12,13 @@ export function isValidEmail(email: string) {
 export function normalizePhoneNumber(phoneNumber: string) {
   return phoneNumber.replace(/\s+/g, "");
 }
+
+export function normalizeIsraeliPhoneNumber(phoneNumber: string) {
+  const s = normalizePhoneNumber(phoneNumber).trim();
+  if (!s) return "";
+
+  if (s.startsWith("+")) return s;
+  if (s.startsWith("972")) return `+${s}`;
+  if (s.startsWith("0")) return `+972${s.slice(1)}`;
+  return `+972${s}`;
+}

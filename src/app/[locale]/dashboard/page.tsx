@@ -1,29 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
   const router = useRouter();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/session", { method: "GET" });
-        const json = (await res.json()) as { authenticated?: boolean };
-        if (!json.authenticated) {
-          router.replace("./login");
-          return;
-        }
-        setReady(true);
-      } catch {
-        router.replace("./login");
-      }
-    })();
-  }, [router]);
 
   async function logout() {
     try {
@@ -37,14 +19,6 @@ export default function DashboardPage() {
       // ignore
     }
     router.replace("./login");
-  }
-
-  if (!ready) {
-    return (
-      <main style={{ padding: "1.25rem", maxWidth: "720px", margin: "0 auto", width: "100%" }}>
-        <p>{t("messages.loading")}</p>
-      </main>
-    );
   }
 
   return (

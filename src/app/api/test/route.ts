@@ -1,6 +1,6 @@
-import { connectDB } from "@/lib/db";
+import { pingDatabase } from "@/services/health.service";
 
 export async function GET() {
-  await connectDB();
+  await pingDatabase();
   return Response.json({ success: true });
 }

@@ -8,6 +8,7 @@ type RegisterForm = {
   email: string;
   phoneNumber: string;
   password: string;
+  confirmPassword: string;
 };
 
 type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
@@ -64,6 +65,12 @@ function validateRegisterForm(values: RegisterForm, t: ReturnType<typeof useTran
     errors.password = t("errors.passwordInvalid");
   }
 
+  if (!values.confirmPassword) {
+    errors.confirmPassword = t("errors.confirmPasswordRequired");
+  } else if (values.password !== values.confirmPassword) {
+    errors.confirmPassword = t("errors.confirmPasswordMismatch");
+  }
+
   return errors;
 }
 
@@ -74,6 +81,7 @@ export default function RegisterPage() {
     email: "",
     phoneNumber: "+972",
     password: "",
+    confirmPassword: "",
   });
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [apiError, setApiError] = useState<string>("");
@@ -99,12 +107,19 @@ export default function RegisterPage() {
       return;
     }
 
+    const registerPayload = {
+      businessName: normalizedValues.businessName,
+      email: normalizedValues.email,
+      phoneNumber: normalizedValues.phoneNumber,
+      password: normalizedValues.password,
+    };
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(normalizedValues),
+        body: JSON.stringify(registerPayload),
       });
 
       const payload = (await response.json()) as {
@@ -190,6 +205,20 @@ export default function RegisterPage() {
             style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
           />
           {errors.password ? <small style={{ color: "crimson" }}>{errors.password}</small> : null}
+        </label>
+
+        <label>
+          <span>{t("fields.confirmPassword")}</span>
+          <input
+            type="password"
+            value={values.confirmPassword}
+            onChange={(e) => updateField("confirmPassword", e.target.value)}
+            placeholder={t("placeholders.confirmPassword")}
+            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
+          />
+          {errors.confirmPassword ? (
+            <small style={{ color: "crimson" }}>{errors.confirmPassword}</small>
+          ) : null}
         </label>
 
         <button type="submit" disabled={isSubmitting} style={{ padding: "0.65rem 1rem" }}>

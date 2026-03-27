@@ -24,8 +24,10 @@ export default function LoginPage() {
     (async () => {
       try {
         const res = await fetch("/api/auth/session", { method: "GET" });
-        const json = (await res.json()) as { authenticated?: boolean };
-        if (json.authenticated) {
+        const json = (await res.json()) as {
+          data?: { authenticated?: boolean };
+        };
+        if (json.data?.authenticated) {
           router.replace("./dashboard");
         }
       } catch {

@@ -9,13 +9,15 @@
       "businessName": "Business name",
       "email": "Email",
       "phoneNumber": "Phone number",
-      "password": "Password"
+      "password": "Password",
+      "confirmPassword": "Confirm password"
     },
     "placeholders": {
       "businessName": "Enter business name",
       "email": "name@company.com",
       "phoneNumber": "+972501234567",
-      "password": "At least 8 chars, upper/lower/number"
+      "password": "At least 8 chars, upper/lower/number",
+      "confirmPassword": "Re-enter your password"
     },
     "actions": {
       "submit": "Register",
@@ -34,7 +36,9 @@
       "phoneRequired": "Phone number is required.",
       "phoneInvalid": "Enter a valid phone number.",
       "passwordRequired": "Password is required.",
-      "passwordInvalid": "Password must be at least 8 characters and include uppercase, lowercase, and a number."
+      "passwordInvalid": "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+      "confirmPasswordRequired": "Confirm password is required.",
+      "confirmPasswordMismatch": "Passwords do not match."
     }
   }
   ,
@@ -70,7 +74,7 @@
       "password": "Password"
     },
     "placeholders": {
-      "identifier": "name@company.com or +9725....",
+      "identifier": "name@company.com or 053.... / +9725....",
       "password": "Your password"
     },
     "actions": {
@@ -95,5 +99,61 @@
       "welcome": "You are logged in.",
       "loading": "Loading..."
     }
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Browse active products available for ordering.",
+    "fields": {
+      "price": "Price",
+      "sku": "SKU",
+      "defaultUnit": "unit"
+    },
+    "actions": {
+      "addToCart": "Add to cart",
+      "adding": "Adding…"
+    },
+    "messages": {
+      "loading": "Loading products...",
+      "empty": "No active products found.",
+      "fetchError": "Failed to load products.",
+      "addError": "Could not add to cart."
+    }
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "total": "Total",
+    "quantity": "Qty",
+    "remove": "Remove",
+    "added": "Added to cart.",
+    "error": "Something went wrong. Try again.",
+    "loading": "Loading cart…",
+    "goToCart": "View cart",
+    "backToProducts": "Back to products",
+    "sku": "SKU",
+    "unitPrice": "Unit price",
+    "lineTotal": "Line total",
+    "increase": "Increase quantity",
+    "decrease": "Decrease quantity",
+    "clearCart": "Clear cart"
+  },
+  "orders": {
+    "title": "Orders",
+    "empty": "No orders yet.",
+    "total": "Total",
+    "status": "Status",
+    "createdAt": "Date",
+    "placeOrder": "Place order",
+    "placingOrder": "Placing order…",
+    "details": "Order details",
+    "error": "Something went wrong. Try again.",
+    "success": "Order placed.",
+    "loading": "Loading orders…",
+    "backToCart": "Back to cart",
+    "backToList": "Back to orders",
+    "items": "Items",
+    "quantity": "Qty",
+    "itemPrice": "Unit price",
+    "lineTotal": "Line total"
   }
 }
