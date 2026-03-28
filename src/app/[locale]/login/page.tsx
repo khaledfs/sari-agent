@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type LoginForm = {
   identifier: string;
@@ -11,6 +11,7 @@ type LoginForm = {
 
 export default function LoginPage() {
   const t = useTranslations("login");
+  const locale = useLocale();
   const router = useRouter();
 
   const [values, setValues] = useState<LoginForm>({ identifier: "", password: "" });
@@ -28,13 +29,13 @@ export default function LoginPage() {
           data?: { authenticated?: boolean };
         };
         if (json.data?.authenticated) {
-          router.replace("./dashboard");
+          router.replace(`/${locale}/dashboard`);
         }
       } catch {
         // ignore
       }
     })();
-  }, [router]);
+  }, [router, locale]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,7 +67,7 @@ export default function LoginPage() {
         }
 
         setSuccessMessage(t("messages.success"));
-        router.replace("./dashboard");
+        router.replace(`/${locale}/dashboard`);
         return;
       }
 

@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { DashboardNav } from "@/components/dashboard-nav";
+
+import "./dashboard-ui.css";
+
 type Phase = "checking" | "allowed" | "denied";
 
 /**
@@ -45,9 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (phase === "checking") {
     return (
-      <main style={{ padding: "1.25rem", maxWidth: "720px", margin: "0 auto", width: "100%" }}>
-        <p>{t("messages.loading")}</p>
-      </main>
+      <div className="ds-dash-shell">
+        <main className="ds-page">
+          <p className="ds-text-muted">{t("messages.loading")}</p>
+        </main>
+      </div>
     );
   }
 
@@ -55,5 +61,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="ds-dash-shell">
+      <DashboardNav />
+      {children}
+    </div>
+  );
 }

@@ -12,8 +12,15 @@ type OrderSummary = {
   createdAt: string;
 };
 
+function orderStatusBadgeClass(status: string) {
+  const s = status.toLowerCase();
+  if (s === "pending") return "ds-badge ds-badge--unpaid";
+  return "ds-badge ds-badge--neutral";
+}
+
 export default function OrdersPage() {
   const t = useTranslations("orders");
+  const tNav = useTranslations("dashboard.nav");
   const locale = useLocale();
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,42 +68,39 @@ export default function OrdersPage() {
   }
 
   return (
-    <main style={{ width: "100%", maxWidth: "640px", margin: "0 auto", padding: "1rem" }}>
-      <div style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-        <h1 style={{ fontSize: "1.35rem", fontWeight: 700, flex: "1 1 auto" }}>{t("title")}</h1>
-        <Link href={`/${locale}/dashboard/cart`} style={{ fontSize: "0.95rem", color: "#2563eb" }}>
-          {t("backToCart")}
-        </Link>
+    <main className="ds-page">
+      <div className="ds-header-row">
+        <h1 className="ds-page-title">{t("title")}</h1>
+        <div className="ds-header-actions">
+          <Link href={`/${locale}/dashboard`} className="ds-link">
+            {tNav("home")}
+          </Link>
+          <Link href={`/${locale}/dashboard/cart`} className="ds-link">
+            {t("backToCart")}
+          </Link>
+        </div>
       </div>
 
-      {loading ? <p>{t("loading")}</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {loading ? <p className="ds-text-muted">{t("loading")}</p> : null}
+      {error ? <p className="ds-error">{error}</p> : null}
 
-      {!loading && !error && orders.length === 0 ? <p style={{ color: "#666" }}>{t("empty")}</p> : null}
+      {!loading && !error && orders.length === 0 ? <p className="ds-text-muted">{t("empty")}</p> : null}
 
       {!loading && orders.length > 0 ? (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.65rem" }}>
+        <ul className="ds-list">
           {orders.map((o) => (
             <li key={o.id}>
-              <Link
-                href={`/${locale}/dashboard/orders/${o.id}`}
-                style={{
-                  display: "block",
-                  border: "1px solid #ddd",
-                  borderRadius: "10px",
-                  padding: "0.75rem",
-                  textDecoration: "none",
-                  color: "inherit",
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{formatDate(o.createdAt)}</div>
-                <div style={{ marginTop: "0.25rem", fontSize: "0.95rem" }}>
-                  {t("total")}: {o.total}
+              <Link href={`/${locale}/dashboard/orders/${o.id}`} className="ds-card ds-card--clickable">
+                <div className="ds-order-row">
+                  <div className="ds-order-meta">
+                    <div className="ds-order-date">{formatDate(o.createdAt)}</div>
+                    <div className="ds-text-small ds-order-total-line">
+                      <strong>{t("total")}:</strong> {o.total}
+                    </div>
+                  </div>
+                  <span className={orderStatusBadgeClass(o.status)}>{o.status}</span>
                 </div>
-                <div style={{ marginTop: "0.2rem", fontSize: "0.9rem", color: "#555" }}>
-                  {t("status")}: {o.status}
-                </div>
-                <div style={{ marginTop: "0.35rem", fontSize: "0.9rem", color: "#2563eb" }}>{t("details")} →</div>
+                <div className="ds-details-cta">{t("details")} →</div>
               </Link>
             </li>
           ))}

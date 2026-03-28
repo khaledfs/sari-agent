@@ -98,6 +98,18 @@
     "messages": {
       "welcome": "אתה מחובר.",
       "loading": "טוען..."
+    },
+    "nav": {
+      "home": "בית",
+      "products": "מוצרים",
+      "cart": "עגלה",
+      "orders": "הזמנות",
+      "profile": "פרופיל",
+      "invoices": "חשבוניות"
+    },
+    "hub": {
+      "title": "לוח הבקרה שלך",
+      "subtitle": "בחר מקטע למטה או מהקישורים למעלה."
     }
   },
   "products": {
@@ -155,5 +167,36 @@
     "quantity": "כמות",
     "itemPrice": "מחיר ליחידה",
     "lineTotal": "סה\"כ שורה"
+  },
+  "account": {
+    "title": "חשבון עסקי",
+    "businessProfile": "פרופיל עסק",
+    "businessName": "שם העסק",
+    "phoneNumber": "טלפון",
+    "email": "אימייל",
+    "accountSummary": "סיכום חשבון",
+    "balance": "יתרה",
+    "totalDebt": "סה\"כ חוב",
+    "lastPaymentDate": "תשלום אחרון",
+    "paymentsOverview": "סקירת תשלומים",
+    "paymentDate": "תאריך",
+    "paymentAmount": "סכום",
+    "loading": "טוען…",
+    "error": "משהו השתבש. נסה שוב.",
+    "noPayments": "אין תשלומים להצגה."
+  },
+  "invoices": {
+    "title": "חשבוניות",
+    "invoiceNumber": "מספר חשבונית",
+    "date": "תאריך",
+    "dueDate": "תאריך יעד",
+    "amount": "סכום",
+    "status": "סטטוס",
+    "paid": "שולם",
+    "unpaid": "לא שולם",
+    "overdue": "באיחור",
+    "loading": "טוען חשבוניות…",
+    "empty": "אין חשבוניות להצגה.",
+    "error": "משהו השתבש. נסה שוב."
   }
 }

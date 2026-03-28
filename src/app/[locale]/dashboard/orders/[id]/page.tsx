@@ -22,6 +22,12 @@ type OrderDetail = {
   createdAt: string;
 };
 
+function orderStatusBadgeClass(status: string) {
+  const s = status.toLowerCase();
+  if (s === "pending") return "ds-badge ds-badge--unpaid";
+  return "ds-badge ds-badge--neutral";
+}
+
 export default function OrderDetailPage() {
   const t = useTranslations("orders");
   const locale = useLocale();
@@ -83,57 +89,50 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <main style={{ width: "100%", maxWidth: "640px", margin: "0 auto", padding: "1rem" }}>
-      <div style={{ marginBottom: "1rem" }}>
-        <Link href={`/${locale}/dashboard/orders`} style={{ fontSize: "0.95rem", color: "#2563eb" }}>
+    <main className="ds-page">
+      <div className="ds-profile-section">
+        <Link href={`/${locale}/dashboard/orders`} className="ds-link">
           ← {t("backToList")}
         </Link>
       </div>
 
-      {loading ? <p>{t("loading")}</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {loading ? <p className="ds-text-muted ds-mt-sm">{t("loading")}</p> : null}
+      {error ? <p className="ds-error ds-mt-sm">{error}</p> : null}
 
       {!loading && order ? (
-        <>
-          <h1 style={{ fontSize: "1.35rem", fontWeight: 700 }}>{t("details")}</h1>
-          <p style={{ marginTop: "0.5rem", color: "#444" }}>
-            {t("createdAt")}: {formatDate(order.createdAt)}
-          </p>
-          <p style={{ marginTop: "0.25rem" }}>
-            {t("status")}: {order.status}
-          </p>
+        <div className="ds-stack ds-content-after-title">
+          <div className="ds-card ds-stack ds-stack--tight">
+            <div className="ds-order-row">
+              <h1 className="ds-page-title ds-m-0">{t("details")}</h1>
+              <span className={orderStatusBadgeClass(order.status)}>{order.status}</span>
+            </div>
+            <p className="ds-text-small">
+              <strong>{t("createdAt")}:</strong> {formatDate(order.createdAt)}
+            </p>
+          </div>
 
-          <h2 style={{ fontSize: "1.05rem", fontWeight: 600, marginTop: "1rem" }}>{t("items")}</h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.6rem" }}>
+          <h2 className="ds-section-title">{t("items")}</h2>
+          <ul className="ds-list">
             {order.items.map((item, index) => (
-              <li
-                key={`${item.productId}-${index}`}
-                style={{
-                  border: "1px solid #eee",
-                  borderRadius: "8px",
-                  padding: "0.65rem",
-                  display: "grid",
-                  gap: "0.25rem",
-                }}
-              >
-                <strong>{item.name}</strong>
-                <span style={{ fontSize: "0.95rem" }}>
-                  {t("quantity")}: {item.quantity}
-                </span>
-                <span style={{ fontSize: "0.95rem" }}>
-                  {t("itemPrice")}: {item.price}
-                </span>
-                <span style={{ fontSize: "0.95rem" }}>
-                  {t("lineTotal")}: {item.lineTotal}
-                </span>
+              <li key={`${item.productId}-${index}`} className="ds-card ds-stack ds-stack--tight">
+                <p className="ds-product-name">{item.name}</p>
+                <p className="ds-text-small">
+                  <strong>{t("quantity")}:</strong> {item.quantity}
+                </p>
+                <p className="ds-text-small">
+                  <strong>{t("itemPrice")}:</strong> {item.price}
+                </p>
+                <p className="ds-text-small">
+                  <strong>{t("lineTotal")}:</strong> {item.lineTotal}
+                </p>
               </li>
             ))}
           </ul>
 
-          <p style={{ marginTop: "1rem", fontWeight: 600 }}>
-            {t("total")}: {order.total}
-          </p>
-        </>
+          <div className="ds-totals-strip">
+            <strong>{t("total")}:</strong> {order.total}
+          </div>
+        </div>
       ) : null}
     </main>
   );

@@ -98,6 +98,18 @@
     "messages": {
       "welcome": "You are logged in.",
       "loading": "Loading..."
+    },
+    "nav": {
+      "home": "Home",
+      "products": "Products",
+      "cart": "Cart",
+      "orders": "Orders",
+      "profile": "Profile",
+      "invoices": "Invoices"
+    },
+    "hub": {
+      "title": "Your dashboard",
+      "subtitle": "Open a section below or use the links at the top."
     }
   },
   "products": {
@@ -155,5 +167,36 @@
     "quantity": "Qty",
     "itemPrice": "Unit price",
     "lineTotal": "Line total"
+  },
+  "account": {
+    "title": "Business account",
+    "businessProfile": "Business profile",
+    "businessName": "Business name",
+    "phoneNumber": "Phone",
+    "email": "Email",
+    "accountSummary": "Account summary",
+    "balance": "Balance",
+    "totalDebt": "Total debt",
+    "lastPaymentDate": "Last payment",
+    "paymentsOverview": "Payments overview",
+    "paymentDate": "Date",
+    "paymentAmount": "Amount",
+    "loading": "Loading…",
+    "error": "Something went wrong. Try again.",
+    "noPayments": "No payments to show."
+  },
+  "invoices": {
+    "title": "Invoices",
+    "invoiceNumber": "Invoice #",
+    "date": "Date",
+    "dueDate": "Due date",
+    "amount": "Amount",
+    "status": "Status",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "overdue": "Overdue",
+    "loading": "Loading invoices…",
+    "empty": "No invoices to show.",
+    "error": "Something went wrong. Try again."
   }
 }

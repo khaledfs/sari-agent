@@ -98,6 +98,18 @@
     "messages": {
       "welcome": "تم تسجيل دخولك.",
       "loading": "جارٍ التحميل..."
+    },
+    "nav": {
+      "home": "الرئيسية",
+      "products": "المنتجات",
+      "cart": "السلة",
+      "orders": "الطلبات",
+      "profile": "الملف",
+      "invoices": "الفواتير"
+    },
+    "hub": {
+      "title": "لوحة التحكم",
+      "subtitle": "اختر قسمًا أدناه أو من الروابط أعلى الصفحة."
     }
   },
   "products": {
@@ -155,5 +167,36 @@
     "quantity": "الكمية",
     "itemPrice": "سعر الوحدة",
     "lineTotal": "إجمالي السطر"
+  },
+  "account": {
+    "title": "حساب العمل",
+    "businessProfile": "ملف العمل",
+    "businessName": "اسم العمل",
+    "phoneNumber": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "accountSummary": "ملخص الحساب",
+    "balance": "الرصيد",
+    "totalDebt": "إجمالي الدين",
+    "lastPaymentDate": "آخر دفعة",
+    "paymentsOverview": "نظرة على المدفوعات",
+    "paymentDate": "التاريخ",
+    "paymentAmount": "المبلغ",
+    "loading": "جارٍ التحميل…",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "noPayments": "لا توجد مدفوعات لعرضها."
+  },
+  "invoices": {
+    "title": "الفواتير",
+    "invoiceNumber": "رقم الفاتورة",
+    "date": "التاريخ",
+    "dueDate": "تاريخ الاستحقاق",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "paid": "مدفوعة",
+    "unpaid": "غير مدفوعة",
+    "overdue": "متأخرة",
+    "loading": "جارٍ تحميل الفواتير…",
+    "empty": "لا توجد فواتير لعرضها.",
+    "error": "حدث خطأ. حاول مرة أخرى."
   }
 }

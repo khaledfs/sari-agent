@@ -28,6 +28,7 @@ type CartData = {
 export default function CartPage() {
   const t = useTranslations("cart");
   const tOrders = useTranslations("orders");
+  const tNav = useTranslations("dashboard.nav");
   const locale = useLocale();
   const router = useRouter();
   const [cart, setCart] = useState<CartData | null>(null);
@@ -164,64 +165,59 @@ export default function CartPage() {
   }
 
   return (
-    <main style={{ width: "100%", maxWidth: "640px", margin: "0 auto", padding: "1rem" }}>
-      <div style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-        <h1 style={{ fontSize: "1.35rem", fontWeight: 700, flex: "1 1 auto" }}>{t("title")}</h1>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.65rem", alignItems: "center" }}>
-          <Link href={`/${locale}/dashboard/products`} style={{ fontSize: "0.95rem", color: "#2563eb" }}>
+    <main className="ds-page">
+      <div className="ds-header-row">
+        <h1 className="ds-page-title">{t("title")}</h1>
+        <div className="ds-header-actions">
+          <Link href={`/${locale}/dashboard`} className="ds-link">
+            {tNav("home")}
+          </Link>
+          <Link href={`/${locale}/dashboard/products`} className="ds-link">
             {t("backToProducts")}
           </Link>
-          <Link href={`/${locale}/dashboard/orders`} style={{ fontSize: "0.95rem", color: "#2563eb" }}>
+          <Link href={`/${locale}/dashboard/orders`} className="ds-link">
             {tOrders("title")}
           </Link>
         </div>
       </div>
 
-      {loading ? <p>{t("loading")}</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {loading ? <p className="ds-text-muted">{t("loading")}</p> : null}
+      {error ? <p className="ds-error">{error}</p> : null}
 
-      {!loading && cart && cart.items.length === 0 ? (
-        <p style={{ color: "#666" }}>{t("empty")}</p>
-      ) : null}
+      {!loading && cart && cart.items.length === 0 ? <p className="ds-text-muted">{t("empty")}</p> : null}
 
       {!loading && cart && cart.items.length > 0 ? (
         <>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.75rem" }}>
+          <ul className="ds-list">
             {cart.items.map((line) => (
-              <li
-                key={line.productId}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: "10px",
-                  padding: "0.75rem",
-                  display: "grid",
-                  gap: "0.35rem",
-                }}
-              >
-                <strong>{line.product.name}</strong>
-                <span style={{ color: "#666", fontSize: "0.9rem" }}>
+              <li key={line.productId} className="ds-card ds-stack ds-stack--tight">
+                <p className="ds-product-name">{line.product.name}</p>
+                <p className="ds-text-caption">
                   {t("sku")}: {line.product.sku}
-                </span>
-                <span>
-                  {t("unitPrice")}: {line.product.price} / {line.product.unit || "—"}
-                </span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-                  <span>{t("quantity")}:</span>
+                </p>
+                <p className="ds-text-small">
+                  <strong>{t("unitPrice")}:</strong> {line.product.price} /{" "}
+                  {line.product.unit || "—"}
+                </p>
+                <div className="ds-qty-row">
+                  <span className="ds-text-small">
+                    <strong>{t("quantity")}:</strong>
+                  </span>
                   <button
                     type="button"
                     disabled={busyId === line.productId}
+                    className="ds-icon-btn"
                     onClick={() => updateQty(line.productId, line.quantity - 1)}
-                    style={{ padding: "0.35rem 0.65rem", minWidth: "2.25rem" }}
                     aria-label={t("decrease")}
                   >
                     −
                   </button>
-                  <span style={{ minWidth: "1.5rem", textAlign: "center" }}>{line.quantity}</span>
+                  <span className="ds-qty-value">{line.quantity}</span>
                   <button
                     type="button"
                     disabled={busyId === line.productId}
+                    className="ds-icon-btn"
                     onClick={() => updateQty(line.productId, line.quantity + 1)}
-                    style={{ padding: "0.35rem 0.65rem", minWidth: "2.25rem" }}
                     aria-label={t("increase")}
                   >
                     +
@@ -229,42 +225,35 @@ export default function CartPage() {
                   <button
                     type="button"
                     disabled={busyId === line.productId}
+                    className="ds-btn ds-btn--danger ds-push-end"
                     onClick={() => removeItem(line.productId)}
-                    style={{ marginInlineStart: "auto", color: "crimson", background: "none", border: "none", textDecoration: "underline", cursor: "pointer" }}
                   >
                     {t("remove")}
                   </button>
                 </div>
-                <span>
-                  {t("lineTotal")}: {line.lineTotal}
-                </span>
+                <p className="ds-text-small">
+                  <strong>{t("lineTotal")}:</strong> {line.lineTotal}
+                </p>
               </li>
             ))}
           </ul>
-          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid #eee", fontWeight: 600 }}>
-            {t("total")}: {cart.cartTotal}
+          <div className="ds-totals-strip">
+            <strong>{t("total")}:</strong> {cart.cartTotal}
           </div>
-          <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+          <div className="ds-actions-row">
             <button
               type="button"
               disabled={placeOrderBusy || clearBusy}
+              className="ds-btn ds-btn--primary ds-btn--block"
               onClick={placeOrder}
-              style={{
-                padding: "0.55rem 0.9rem",
-                borderRadius: "8px",
-                border: "1px solid #15803d",
-                background: placeOrderBusy ? "#e8f5e9" : "#15803d",
-                color: placeOrderBusy ? "#1b4332" : "#fff",
-                cursor: placeOrderBusy ? "wait" : "pointer",
-              }}
             >
               {placeOrderBusy ? tOrders("placingOrder") : tOrders("placeOrder")}
             </button>
             <button
               type="button"
               disabled={clearBusy || placeOrderBusy}
+              className="ds-btn ds-btn--secondary ds-btn--block"
               onClick={clearAll}
-              style={{ padding: "0.5rem 0.75rem" }}
             >
               {t("clearCart")}
             </button>

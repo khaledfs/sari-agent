@@ -65,6 +65,11 @@ This file captures everything implemented so far and how it was implemented, so 
   - `src/models/order.model.ts`
   - fields: `userId`, `items[]` (snapshot: `productId`, `name`, `price`, `quantity` min `1`), `total`, `status` (default `pending`), timestamps (`createdAt`, …)
   - item snapshots preserve history if products change later
+- Customer account model (business layer, separate from `User` auth document):
+  - `src/models/customer-account.model.ts`
+  - one document per user: unique index on `userId`
+  - fields: `businessName`, `phoneNumber`, `email`, `balance` (default `0`), `totalDebt` (default `0`), `lastPaymentDate`, timestamps
+  - no business logic in schema
 
 ## 4) Services and auth flow
 
@@ -97,6 +102,11 @@ This file captures everything implemented so far and how it was implemented, so 
 - `src/services/order.service.ts`
   - `createOrderFromCart(userId)` — snapshot from `getCartByUserId`, rejects empty cart, writes `Order`, then `clearCart`; **deletes the new order** if `clearCart` fails (no orphan order with uncleared cart)
   - `getOrdersByUser`, `getOrderById` (owner-only; same “not found” message for privacy)
+- `src/services/account.service.ts`
+  - `getAccountByUser(userId)` — load `CustomerAccount` or **create** from `User` with mock `totalDebt` / `lastPaymentDate` for MVP
+  - `getMockPaymentsByUser(userId)` — in-memory mock payment rows (`date`, `amount`), ready to replace with real source; route maps account + payments to JSON shape
+- `src/services/financial.service.ts`
+  - `getMockInvoicesByUser(userId)` — mock invoices (`id`, `invoiceNumber`, `date`, `dueDate`, `amount`, `status`: paid | unpaid | overdue); replace with real billing later
 
 ## 5) API routes
 
@@ -137,6 +147,8 @@ This file captures everything implemented so far and how it was implemented, so 
   - `src/app/api/products/seed/route.ts`
   - inserts 5–10 mock products if missing.
 
+**MVP / production gap — product write APIs:** `POST /api/products`, `PUT /api/products/[id]`, and `POST /api/products/seed` do **not** call `getAuthenticatedUserId()` or any role check. Any caller can create/update products or trigger seed. **`GET /api/products`** returns only **`isActive: true`** products from MongoDB (real data once seeded or created). **`GET /api/products/[id]`** returns the document if the id exists (including inactive) — useful for admin-style use later, but currently unauthenticated.
+
 ### Cart API
 
 - `GET /api/cart`
@@ -175,6 +187,21 @@ This file captures everything implemented so far and how it was implemented, so 
   - returns single order for owner only; otherwise `404` with `Order not found.`
 - Auth: `getAuthenticatedUserId()` (cookie/JWT), no `userId` from client.
 
+### Account API (business profile / mock summary)
+
+- `GET /api/account`
+  - `src/app/api/account/route.ts`
+  - returns `{ success, data: { profile, summary, payments } }` for authenticated user only
+  - calls `getAccountByUser` + `getMockPaymentsByUser` from `src/services/account.service.ts` (response shape assembled in route)
+  - unauthenticated → `401`
+
+### Account invoices (mock financial V2)
+
+- `GET /api/account/invoices`
+  - `src/app/api/account/invoices/route.ts`
+  - `{ success, data: { invoices } }` from `getMockInvoicesByUser` in `src/services/financial.service.ts`
+  - unauthenticated → `401`
+
 ## 6) Frontend pages and behavior
 
 - Register page:
@@ -197,7 +224,8 @@ This file captures everything implemented so far and how it was implemented, so 
   - `src/app/[locale]/login/page.tsx`
   - fields: identifier (email/phone), password
   - posts to `/api/auth/login`
-  - saves returned token to `localStorage` (cookie remains main server session source)
+  - **Server session:** login route sets **`authToken` httpOnly cookie** (7d); all protected APIs use `getAuthenticatedUserId()` from that cookie.
+  - **Client:** also saves the same JWT to `localStorage` under `authToken` (optional/redundant for current MVP — **fetch calls do not attach this header**; cookie is the real auth source). Logout on the dashboard hub clears `localStorage` and `POST /api/auth/logout` clears the cookie.
   - auto redirects to dashboard on success.
 - Dashboard page:
   - `src/app/[locale]/dashboard/page.tsx`
@@ -229,6 +257,19 @@ This file captures everything implemented so far and how it was implemented, so 
 - Dashboard Order detail:
   - `src/app/[locale]/dashboard/orders/[id]/page.tsx`
   - `GET /api/orders/[id]`
+- Dashboard Profile / business account (MVP single screen):
+  - `src/app/[locale]/dashboard/profile/page.tsx`
+  - `GET /api/account` — business profile, account summary (balance, debt, last payment), mock payments list
+- Dashboard Invoices (mock list):
+  - `src/app/[locale]/dashboard/invoices/page.tsx`
+  - `GET /api/account/invoices`
+- **Dashboard navigation:**
+  - `src/components/dashboard-nav.tsx` — top link row (Home, Products, Cart, Orders, Profile, Invoices), shown on all dashboard routes via `src/app/[locale]/dashboard/layout.tsx`
+  - Dashboard home (`/dashboard`) — hub grid + logout; login redirects to `/{locale}/dashboard` explicitly
+- **Dashboard styling (shared UI):**
+  - `src/app/[locale]/dashboard/dashboard-ui.css` — plain CSS design tokens and `ds-*` classes (shell, typography, cards, nav tabs, hub grid, buttons, invoice/order badges). Imported only from `dashboard/layout.tsx`.
+  - Uses **logical properties** (`margin-inline`, `padding-inline`, etc.) for RTL.
+  - `.ds-dash-shell` sets **readable text color**, **white background**, and **`color-scheme: light`** on the dashboard subtree so content stays legible when the OS uses dark mode and the root `body` applies a light foreground color.
 - Session bootstrap:
   - `src/app/[locale]/SessionBootstrap.tsx`
   - injected in locale layout
@@ -237,7 +278,7 @@ This file captures everything implemented so far and how it was implemented, so 
     - **logged-out users hitting dashboard URLs are not redirected here** (avoids duplicate logic); see dashboard layout below.
 - **Dashboard auth gate (no flash of protected content):**
   - `src/app/[locale]/dashboard/layout.tsx` (client)
-  - calls `GET /api/auth/session` and **does not render child routes** (`cart`, `products`, `orders`, …) until authenticated
+  - calls `GET /api/auth/session` and **does not render child routes** (`cart`, `products`, `orders`, `profile`, …) until authenticated
   - prevents a brief flash of e.g. cart UI before redirect to login (which happened when protection lived only in `useEffect` in `SessionBootstrap`)
 
 ## 7) Phone number logic (important)
@@ -339,7 +380,15 @@ This file captures everything implemented so far and how it was implemented, so 
 - Namespace `orders` in `en.json`, `he.json`, `ar.json`
 - Includes: `title`, `empty`, `total`, `status`, `createdAt`, `placeOrder`, `placingOrder`, `details`, `error`, `success`, `loading`, `backToCart`, `backToList`, `items`, `quantity`, `itemPrice`, `lineTotal`
 
-## 13) Resume checklist for next session
+## 13) Account i18n
+
+- Namespace `account` in `en.json`, `he.json`, `ar.json` — profile, summary, payments, loading/error/noPayments
+
+## 14) Invoices i18n
+
+- Namespace `invoices` in `en.json`, `he.json`, `ar.json` — title, paid/unpaid/overdue labels, date/dueDate/amount, loading/empty/error, navigation strings as needed
+
+## 15) Resume checklist for next session
 
 1. `npm run dev`
 2. Ensure `.env.local` has `MONGODB_URI`, `JWT_SECRET`, `SMS_MODE=development`
@@ -361,6 +410,8 @@ This file captures everything implemented so far and how it was implemented, so 
    - refresh cart page and verify persistence
    - **place order** from cart → lands on `/{locale}/dashboard/orders` → cart empty when returning to cart
    - open order detail → line items + totals; wrong `id` or another user’s order → `404` / no leak
+   - `/{locale}/dashboard/profile` → `GET /api/account` shows profile + summary + mock payments; first visit creates `CustomerAccount` if missing
+   - `/{locale}/dashboard/invoices` → `GET /api/account/invoices` returns **mock** invoice rows (paid/unpaid/overdue); not tied to real orders yet
    - verify logged-out visit to `/{locale}/dashboard/*` shows **no flash** of protected page (loading shell, then login)
    - `GET /api/cart`, `GET /api/orders`, `GET /api/orders/[id]` without cookie → `401`
    - logout

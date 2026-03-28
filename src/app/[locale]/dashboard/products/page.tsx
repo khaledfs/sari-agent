@@ -16,6 +16,7 @@ type Product = {
 export default function ProductsPage() {
   const t = useTranslations("products");
   const tCart = useTranslations("cart");
+  const tNav = useTranslations("dashboard.nav");
   const locale = useLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,74 +88,58 @@ export default function ProductsPage() {
   }, [t]);
 
   return (
-    <main style={{ width: "100%", maxWidth: "860px", margin: "0 auto", padding: "1rem" }}>
-      <header style={{ marginBottom: "1rem" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "baseline", justifyContent: "space-between" }}>
-          <div>
-            <h1 style={{ fontSize: "1.4rem", fontWeight: 700 }}>{t("title")}</h1>
-            <p style={{ color: "#666", marginTop: "0.25rem" }}>{t("subtitle")}</p>
-          </div>
-          <Link href={`/${locale}/dashboard/cart`} style={{ fontSize: "0.95rem", color: "#2563eb" }}>
+    <main className="ds-page">
+      <header className="ds-header-row">
+        <div>
+          <h1 className="ds-page-title">{t("title")}</h1>
+          <p className="ds-page-subtitle">{t("subtitle")}</p>
+        </div>
+        <div className="ds-header-actions">
+          <Link href={`/${locale}/dashboard`} className="ds-link">
+            {tNav("home")}
+          </Link>
+          <Link href={`/${locale}/dashboard/cart`} className="ds-link">
             {tCart("goToCart")}
           </Link>
         </div>
       </header>
 
-      {loading ? <p>{t("messages.loading")}</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {loading ? <p className="ds-text-muted">{t("messages.loading")}</p> : null}
+      {error ? <p className="ds-error">{error}</p> : null}
 
-      {!loading && !error && products.length === 0 ? (
-        <p>{t("messages.empty")}</p>
-      ) : null}
+      {!loading && !error && products.length === 0 ? <p className="ds-text-muted">{t("messages.empty")}</p> : null}
 
       {!loading && !error && products.length > 0 ? (
-        <section style={{ display: "grid", gap: "0.75rem" }}>
+        <ul className="ds-list">
           {products.map((product) => (
-            <article
-              key={product._id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: "10px",
-                padding: "0.75rem",
-                display: "grid",
-                gap: "0.35rem",
-              }}
-            >
-              <strong style={{ fontSize: "1rem" }}>{product.name}</strong>
-              <span style={{ color: "#444" }}>
-                {t("fields.price")}: {product.price} / {product.unit || t("fields.defaultUnit")}
-              </span>
-              <span style={{ color: "#777" }}>
+            <li key={product._id} className="ds-card ds-stack ds-stack--tight">
+              <p className="ds-product-name">{product.name}</p>
+              <p className="ds-text-small">
+                <strong>{t("fields.price")}:</strong> {product.price} /{" "}
+                {product.unit || t("fields.defaultUnit")}
+              </p>
+              <p className="ds-text-caption">
                 {t("fields.sku")}: {product.sku}
-              </span>
-              <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+              </p>
+              <div className="ds-stack ds-stack--tight ds-mt-sm">
                 <button
                   type="button"
                   disabled={addingId === product._id}
+                  className="ds-btn ds-btn--primary ds-btn--block"
                   onClick={() => addToCart(product._id)}
-                  style={{
-                    padding: "0.55rem 0.8rem",
-                    borderRadius: "8px",
-                    border: "1px solid #2563eb",
-                    background: addingId === product._id ? "#e8eefc" : "#2563eb",
-                    color: addingId === product._id ? "#1e3a5f" : "#fff",
-                    textAlign: "center",
-                    cursor: addingId === product._id ? "wait" : "pointer",
-                  }}
                 >
                   {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
                 </button>
                 {addedId === product._id ? (
-                  <span style={{ fontSize: "0.9rem", color: "#15803d" }} role="status">
+                  <span className="ds-success-text" role="status">
                     {tCart("added")}
                   </span>
                 ) : null}
               </div>
-            </article>
+            </li>
           ))}
-        </section>
+        </ul>
       ) : null}
     </main>
   );
 }
-
