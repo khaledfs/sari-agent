@@ -1,26 +1,351 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════
+   Sari B2B — Global Design Tokens & Base Styles
+   Brand: Sari Ahmad Hassan 2001 Ltd.
+   Primary: Rich Gold (#A67C00)
+   ═══════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafaf8;
+  --foreground: #1a1814;
+  --surface: #ffffff;
+  --surface-2: #f7f6f3;
+  --surface-3: #eeece6;
+
+  --brand: #a67c00;
+  --brand-hover: #8b6800;
+  --brand-light: #c9a23d;
+  --brand-lighter: #fdf6e3;
+  --brand-bg: #fdf8ec;
+
+  --accent: #b8860b;
+  --accent-soft: rgba(166, 124, 0, 0.08);
+
+  --text-primary: #1a1814;
+  --text-secondary: #4a4639;
+  --text-muted: #8a8477;
+  --text-on-brand: #ffffff;
+
+  --border: #e8e4dc;
+  --border-strong: #d4cfc4;
+  --border-brand: rgba(166, 124, 0, 0.25);
+
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+
+  --shadow-sm: 0 1px 2px rgba(26, 24, 20, 0.05);
+  --shadow: 0 1px 3px rgba(26, 24, 20, 0.08), 0 1px 2px rgba(26, 24, 20, 0.04);
+  --shadow-md: 0 4px 12px rgba(26, 24, 20, 0.08), 0 2px 4px rgba(26, 24, 20, 0.04);
+  --shadow-lg: 0 8px 24px rgba(26, 24, 20, 0.1), 0 4px 8px rgba(26, 24, 20, 0.04);
+  --shadow-brand: 0 4px 14px rgba(166, 124, 0, 0.15);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --transition-fast: 120ms ease;
+  --transition: 200ms ease;
+  --transition-slow: 320ms ease;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-light: var(--brand-light);
+  --color-brand-lighter: var(--brand-lighter);
+  --color-brand-bg: var(--brand-bg);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-on-brand: var(--text-on-brand);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ——— Base Reset & Defaults ——— */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ——— Typography ——— */
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+a {
+  color: var(--brand);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--brand-hover);
+}
+
+/* ——— Form Elements ——— */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+textarea,
+select {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+label > input,
+label > textarea,
+label > select {
+  margin-block-start: 0.35rem;
+}
+
+/* ——— Buttons ——— */
+
+button,
+[type="button"],
+[type="submit"],
+[type="reset"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.4;
+  color: var(--text-on-brand);
+  background: var(--brand);
+  border: 1.5px solid var(--brand);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform 80ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:hover:not(:disabled),
+[type="submit"]:hover:not(:disabled) {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+  box-shadow: var(--shadow-brand);
+}
+
+button:active:not(:disabled),
+[type="submit"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:focus-visible,
+[type="submit"]:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+button:disabled,
+[type="submit"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ——— Utility: Auth Page Shell ——— */
+
+.auth-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem 1.25rem;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at top, var(--brand-bg) 0%, transparent 60%),
+    var(--background);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 2.25rem 2rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-logo {
+  display: block;
+  margin: 0 auto 1.75rem;
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 1.5rem;
+  margin: 0 0 0.35rem;
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1.75rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-submit {
+  margin-block-start: 0.5rem;
+  width: 100%;
+}
+
+.auth-error {
+  color: var(--danger);
+  font-size: 0.8125rem;
+  margin: 0.2rem 0 0;
+}
+
+.auth-message-success {
+  text-align: center;
+  color: var(--success);
+  font-weight: 600;
+  margin: 1rem 0 0;
+  font-size: 0.9375rem;
+}
+
+.auth-message-error {
+  text-align: center;
+  color: var(--danger);
+  margin: 1rem 0 0;
+  font-size: 0.9375rem;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-block-start: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.auth-footer a {
+  font-weight: 600;
+}
+
+/* ——— Scrollbar (Webkit) ——— */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ——— Selection ——— */
+
+::selection {
+  background: var(--brand-lighter);
+  color: var(--text-primary);
 }

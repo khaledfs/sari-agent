@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "B2B Ordering MVP",
-  description: "Scalable B2B ordering system foundation",
+  title: "Sari Ahmad Hassan | B2B Ordering",
+  description: "Sari Ahmad Hassan 2001 Ltd. — B2B ordering platform",
 };
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
