@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 type VerifyForm = {
   verificationCode: string;
@@ -73,7 +74,6 @@ export default function VerifyPage() {
 
       const payload = (await response.json()) as { success?: boolean; message?: string };
 
-      // Runtime check: require both HTTP 200 and {success: true}
       if (response.status === 200 && payload.success === true) {
         setSuccessMessage(t("messages.success"));
         if (process.env.NODE_ENV === "development") {
@@ -94,36 +94,38 @@ export default function VerifyPage() {
   }
 
   return (
-    <main style={{ padding: "1.5rem", maxWidth: "520px", margin: "0 auto", width: "100%" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>{t("title")}</h1>
+    <main className="auth-shell">
+      <div className="auth-card">
+        <Image src="/logo.png" alt="Sari" width={200} height={56} className="auth-logo" style={{ width: "auto", height: "56px" }} priority />
+        <h1 className="auth-title">{t("title")}</h1>
+        <p className="auth-subtitle">{t("subtitle") || "\u00A0"}</p>
 
-      <form onSubmit={onSubmit} noValidate style={{ display: "grid", gap: "0.75rem" }}>
-        <label>
-          <span>{t("fields.verificationCode")}</span>
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="\\d{6}" 
-            type="text"
-            value={values.verificationCode}
-            onChange={(e) => {
-              setValues({ verificationCode: e.target.value });
-              setFieldError("");
-            }}
-            placeholder={t("placeholders.verificationCode")}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-          />
-          {fieldError ? <small style={{ color: "crimson" }}>{fieldError}</small> : null}
-        </label>
+        <form onSubmit={onSubmit} noValidate className="auth-form">
+          <label>
+            <span>{t("fields.verificationCode")}</span>
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\\d{6}"
+              type="text"
+              value={values.verificationCode}
+              onChange={(e) => {
+                setValues({ verificationCode: e.target.value });
+                setFieldError("");
+              }}
+              placeholder={t("placeholders.verificationCode")}
+            />
+            {fieldError ? <p className="auth-error">{fieldError}</p> : null}
+          </label>
 
-        <button type="submit" disabled={!canSubmit} style={{ padding: "0.65rem 1rem" }}>
-          {isSubmitting ? t("actions.submitting") : t("actions.submit")}
-        </button>
-      </form>
+          <button type="submit" disabled={!canSubmit} className="auth-submit">
+            {isSubmitting ? t("actions.submitting") : t("actions.submit")}
+          </button>
+        </form>
 
-      {successMessage ? <p style={{ marginTop: "1rem", color: "green" }}>{successMessage}</p> : null}
-      {apiError ? <p style={{ marginTop: "1rem", color: "crimson" }}>{apiError}</p> : null}
+        {successMessage ? <p className="auth-message-success">{successMessage}</p> : null}
+        {apiError ? <p className="auth-message-error">{apiError}</p> : null}
+      </div>
     </main>
   );
 }
-

@@ -5,6 +5,10 @@
   },
   "register": {
     "title": "Create your business account",
+    "subtitle": "Fill in the details below to get started",
+    "links": {
+      "login": "Already have an account? Log in"
+    },
     "fields": {
       "businessName": "Business name",
       "email": "Email",
@@ -44,6 +48,7 @@
   ,
   "verify": {
     "title": "Verify your phone",
+    "subtitle": "Enter the 6-digit code sent to your phone",
     "fields": {
       "verificationCode": "Verification code"
     },
@@ -69,6 +74,7 @@
   ,
   "login": {
     "title": "Login",
+    "subtitle": "Sign in to your business account",
     "fields": {
       "identifier": "Email or phone number",
       "password": "Password"
@@ -88,6 +94,9 @@
     },
     "errors": {
       "required": "Email/phone and password are required."
+    },
+    "links": {
+      "register": "Don't have an account? Register"
     }
   },
   "dashboard": {
@@ -109,7 +118,16 @@
     },
     "hub": {
       "title": "Your dashboard",
-      "subtitle": "Open a section below or use the links at the top."
+      "subtitle": "Open a section below or use the links at the top.",
+      "welcome": "Welcome back",
+      "welcomeSubtitle": "Manage your orders, products, and account from here.",
+      "desc": {
+        "products": "Browse & order",
+        "cart": "Review items",
+        "orders": "Track history",
+        "profile": "Account details",
+        "invoices": "Billing & payments"
+      }
     }
   },
   "products": {

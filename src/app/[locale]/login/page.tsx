@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import Image from "next/image";
+import Link from "next/link";
 
 type LoginForm = {
   identifier: string;
@@ -21,7 +23,6 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // If we already have a valid cookie-session, go to dashboard
     (async () => {
       try {
         const res = await fetch("/api/auth/session", { method: "GET" });
@@ -58,7 +59,6 @@ export default function LoginPage() {
 
       const payload = (await response.json()) as { success?: boolean; token?: string; message?: string };
 
-      // Runtime checks
       if (response.status === 200 && payload.success === true && payload.token) {
         try {
           localStorage.setItem("authToken", payload.token);
@@ -80,50 +80,47 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ padding: "1.25rem", maxWidth: "520px", margin: "0 auto", width: "100%" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>{t("title")}</h1>
+    <main className="auth-shell">
+      <div className="auth-card">
+        <Image src="/logo.png" alt="Sari" width={200} height={56} className="auth-logo" style={{ width: "auto", height: "56px" }} priority />
+        <h1 className="auth-title">{t("title")}</h1>
+        <p className="auth-subtitle">{t("subtitle") || "\u00A0"}</p>
 
-      <form onSubmit={onSubmit} noValidate style={{ display: "grid", gap: "0.75rem" }}>
-        <label>
-          <span>{t("fields.identifier")}</span>
-          <input
-            type="text"
-            value={values.identifier}
-            onChange={(e) => setValues((p) => ({ ...p, identifier: e.target.value }))}
-            placeholder={t("placeholders.identifier")}
-            style={{ display: "block", width: "100%", padding: "0.6rem", marginTop: "0.25rem" }}
-          />
-        </label>
+        <form onSubmit={onSubmit} noValidate className="auth-form">
+          <label>
+            <span>{t("fields.identifier")}</span>
+            <input
+              type="text"
+              value={values.identifier}
+              onChange={(e) => setValues((p) => ({ ...p, identifier: e.target.value }))}
+              placeholder={t("placeholders.identifier")}
+            />
+          </label>
 
-        <label>
-          <span>{t("fields.password")}</span>
-          <input
-            type="password"
-            value={values.password}
-            onChange={(e) => setValues((p) => ({ ...p, password: e.target.value }))}
-            placeholder={t("placeholders.password")}
-            style={{ display: "block", width: "100%", padding: "0.6rem", marginTop: "0.25rem" }}
-          />
-        </label>
+          <label>
+            <span>{t("fields.password")}</span>
+            <input
+              type="password"
+              value={values.password}
+              onChange={(e) => setValues((p) => ({ ...p, password: e.target.value }))}
+              placeholder={t("placeholders.password")}
+            />
+          </label>
 
-        {fieldError ? <small style={{ color: "crimson" }}>{fieldError}</small> : null}
+          {fieldError ? <p className="auth-error">{fieldError}</p> : null}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          style={{
-            padding: "0.75rem 1rem",
-            width: "100%",
-            maxWidth: "520px",
-          }}
-        >
-          {isSubmitting ? t("actions.submitting") : t("actions.submit")}
-        </button>
-      </form>
+          <button type="submit" disabled={isSubmitting} className="auth-submit">
+            {isSubmitting ? t("actions.submitting") : t("actions.submit")}
+          </button>
+        </form>
 
-      {successMessage ? <p style={{ marginTop: "1rem", color: "green" }}>{successMessage}</p> : null}
-      {apiError ? <p style={{ marginTop: "1rem", color: "crimson" }}>{apiError}</p> : null}
+        {successMessage ? <p className="auth-message-success">{successMessage}</p> : null}
+        {apiError ? <p className="auth-message-error">{apiError}</p> : null}
+
+        <p className="auth-footer">
+          <Link href={`/${locale}/register`}>{t("links.register") || "Create an account"}</Link>
+        </p>
+      </div>
     </main>
   );
 }
-

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 import { DashboardNav } from "@/components/dashboard-nav";
 
@@ -63,7 +64,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="ds-dash-shell">
-      <DashboardNav />
+      <div style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center" }}>
+        <Image src="/logo.png" alt="Sari" width={120} height={34} style={{ height: "30px", width: "auto", objectFit: "contain" }} priority />
+      </div>
+      <div className="ds-nav-border">
+        <DashboardNav />
+      </div>
       {children}
     </div>
   );

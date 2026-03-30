@@ -4,9 +4,52 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
-type HubLink = {
+const ProductsIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+);
+
+const CartIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="21" r="1" />
+    <circle cx="20" cy="21" r="1" />
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+  </svg>
+);
+
+const OrdersIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+
+const ProfileIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const InvoicesIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="18" rx="2" />
+    <line x1="8" y1="7" x2="16" y2="7" />
+    <line x1="8" y1="11" x2="16" y2="11" />
+    <line x1="8" y1="15" x2="12" y2="15" />
+  </svg>
+);
+
+type HubItem = {
   href: string;
   navKey: "products" | "cart" | "orders" | "profile" | "invoices";
+  icon: React.FC;
 };
 
 export default function DashboardPage() {
@@ -15,12 +58,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const locale = useLocale();
 
-  const hubLinks: HubLink[] = [
-    { href: `/${locale}/dashboard/products`, navKey: "products" },
-    { href: `/${locale}/dashboard/cart`, navKey: "cart" },
-    { href: `/${locale}/dashboard/orders`, navKey: "orders" },
-    { href: `/${locale}/dashboard/profile`, navKey: "profile" },
-    { href: `/${locale}/dashboard/invoices`, navKey: "invoices" },
+  const hubItems: HubItem[] = [
+    { href: `/${locale}/dashboard/products`, navKey: "products", icon: ProductsIcon },
+    { href: `/${locale}/dashboard/cart`, navKey: "cart", icon: CartIcon },
+    { href: `/${locale}/dashboard/orders`, navKey: "orders", icon: OrdersIcon },
+    { href: `/${locale}/dashboard/profile`, navKey: "profile", icon: ProfileIcon },
+    { href: `/${locale}/dashboard/invoices`, navKey: "invoices", icon: InvoicesIcon },
   ];
 
   async function logout() {
@@ -39,21 +82,26 @@ export default function DashboardPage() {
 
   return (
     <main className="ds-page">
-      <header className="ds-page-header">
-        <h1 className="ds-page-title">{t("hub.title")}</h1>
-        <p className="ds-page-subtitle">{t("hub.subtitle")}</p>
-      </header>
+      <div className="ds-welcome-banner">
+        <h1 className="ds-welcome-title">{t("hub.welcome")}</h1>
+        <p className="ds-welcome-subtitle">{t("hub.welcomeSubtitle")}</p>
+      </div>
 
       <div className="ds-hub-grid">
-        {hubLinks.map((item) => (
-          <Link key={item.href} href={item.href} className="ds-hub-card">
-            {tNav(item.navKey)}
-          </Link>
-        ))}
+        {hubItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link key={item.href} href={item.href} className="ds-hub-card">
+              <span className="ds-hub-icon"><Icon /></span>
+              <span className="ds-hub-label">{tNav(item.navKey)}</span>
+              <span className="ds-hub-desc">{t(`hub.desc.${item.navKey}`)}</span>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="ds-logout-wrap">
-        <button type="button" className="ds-btn ds-btn--secondary ds-btn--block" onClick={logout}>
+        <button type="button" className="ds-btn ds-btn--secondary" onClick={logout}>
           {t("actions.logout")}
         </button>
       </div>

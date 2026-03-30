@@ -1,16 +1,16 @@
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 export default function LocalizedHomePage() {
   const t = useTranslations("home");
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 px-6 dark:bg-black">
-      <section className="w-full max-w-2xl rounded-xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
-        <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {t("title")}
-        </h1>
-        <p className="mt-4 text-zinc-600 dark:text-zinc-300">{t("description")}</p>
-      </section>
+    <main className="auth-shell">
+      <div className="auth-card" style={{ maxWidth: "540px" }}>
+        <Image src="/logo.png" alt="Sari" width={220} height={60} className="auth-logo" style={{ width: "auto", height: "60px" }} priority />
+        <h1 className="auth-title">{t("title")}</h1>
+        <p className="auth-subtitle">{t("description")}</p>
+      </div>
     </main>
   );
 }

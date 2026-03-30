@@ -2,6 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
+import Image from "next/image";
+import Link from "next/link";
 
 type RegisterForm = {
   businessName: string;
@@ -14,7 +17,6 @@ type RegisterForm = {
 type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// Israel country code: +972
 const PHONE_ISRAEL_E164_REGEX = /^\+972\d{8,10}$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -23,7 +25,6 @@ function normalizePhoneNumberIsrael(raw: string) {
   if (!s) return "";
 
   if (s.startsWith("+")) {
-    // If already international, keep as-is (we will validate it below).
     return s;
   }
 
@@ -31,12 +32,10 @@ function normalizePhoneNumberIsrael(raw: string) {
     return `+${s}`;
   }
 
-  // Common local formatting: mobile/landline starts with `0`, e.g. 0523456789 -> +972523456789
   if (s.startsWith("0")) {
     return `+972${s.slice(1)}`;
   }
 
-  // Fallback: assume missing country code and prepend +972
   return `+972${s}`;
 }
 
@@ -76,6 +75,7 @@ function validateRegisterForm(values: RegisterForm, t: ReturnType<typeof useTran
 
 export default function RegisterPage() {
   const t = useTranslations("register");
+  const locale = useLocale();
   const [values, setValues] = useState<RegisterForm>({
     businessName: "",
     email: "",
@@ -127,7 +127,6 @@ export default function RegisterPage() {
         message?: string;
       };
 
-      // Runtime check: require both HTTP 200 and {success: true}
       if (response.status === 200 && payload.success === true) {
         setSuccessMessage(t("messages.success"));
         try {
@@ -136,7 +135,7 @@ export default function RegisterPage() {
             normalizedValues.phoneNumber
           );
         } catch {
-          // Ignore storage errors (privacy mode, blocked storage, etc.)
+          // Ignore storage errors
         }
         if (process.env.NODE_ENV === "development") {
           console.info(t("messages.developmentHint"));
@@ -153,84 +152,80 @@ export default function RegisterPage() {
   }
 
   return (
-    <main style={{ padding: "1.5rem", maxWidth: "520px", margin: "0 auto", width: "100%" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>
-        {t("title")}
-      </h1>
+    <main className="auth-shell">
+      <div className="auth-card">
+        <Image src="/logo.png" alt="Sari" width={200} height={56} className="auth-logo" style={{ width: "auto", height: "56px" }} priority />
+        <h1 className="auth-title">{t("title")}</h1>
+        <p className="auth-subtitle">{t("subtitle") || "\u00A0"}</p>
 
-      <form onSubmit={onSubmit} noValidate style={{ display: "grid", gap: "0.75rem" }}>
-        <label>
-          <span>{t("fields.businessName")}</span>
-          <input
-            type="text"
-            value={values.businessName}
-            onChange={(e) => updateField("businessName", e.target.value)}
-            placeholder={t("placeholders.businessName")}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-          />
-          {errors.businessName ? <small style={{ color: "crimson" }}>{errors.businessName}</small> : null}
-        </label>
+        <form onSubmit={onSubmit} noValidate className="auth-form">
+          <label>
+            <span>{t("fields.businessName")}</span>
+            <input
+              type="text"
+              value={values.businessName}
+              onChange={(e) => updateField("businessName", e.target.value)}
+              placeholder={t("placeholders.businessName")}
+            />
+            {errors.businessName ? <p className="auth-error">{errors.businessName}</p> : null}
+          </label>
 
-        <label>
-          <span>{t("fields.email")}</span>
-          <input
-            type="email"
-            value={values.email}
-            onChange={(e) => updateField("email", e.target.value)}
-            placeholder={t("placeholders.email")}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-          />
-          {errors.email ? <small style={{ color: "crimson" }}>{errors.email}</small> : null}
-        </label>
+          <label>
+            <span>{t("fields.email")}</span>
+            <input
+              type="email"
+              value={values.email}
+              onChange={(e) => updateField("email", e.target.value)}
+              placeholder={t("placeholders.email")}
+            />
+            {errors.email ? <p className="auth-error">{errors.email}</p> : null}
+          </label>
 
-        <label>
-          <span>{t("fields.phoneNumber")}</span>
-          <input
-            type="tel"
-            value={values.phoneNumber}
-            onChange={(e) => updateField("phoneNumber", e.target.value)}
-            placeholder={t("placeholders.phoneNumber")}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-          />
-          {errors.phoneNumber ? <small style={{ color: "crimson" }}>{errors.phoneNumber}</small> : null}
-        </label>
+          <label>
+            <span>{t("fields.phoneNumber")}</span>
+            <input
+              type="tel"
+              value={values.phoneNumber}
+              onChange={(e) => updateField("phoneNumber", e.target.value)}
+              placeholder={t("placeholders.phoneNumber")}
+            />
+            {errors.phoneNumber ? <p className="auth-error">{errors.phoneNumber}</p> : null}
+          </label>
 
-        <label>
-          <span>{t("fields.password")}</span>
-          <input
-            type="password"
-            value={values.password}
-            onChange={(e) => updateField("password", e.target.value)}
-            placeholder={t("placeholders.password")}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-          />
-          {errors.password ? <small style={{ color: "crimson" }}>{errors.password}</small> : null}
-        </label>
+          <label>
+            <span>{t("fields.password")}</span>
+            <input
+              type="password"
+              value={values.password}
+              onChange={(e) => updateField("password", e.target.value)}
+              placeholder={t("placeholders.password")}
+            />
+            {errors.password ? <p className="auth-error">{errors.password}</p> : null}
+          </label>
 
-        <label>
-          <span>{t("fields.confirmPassword")}</span>
-          <input
-            type="password"
-            value={values.confirmPassword}
-            onChange={(e) => updateField("confirmPassword", e.target.value)}
-            placeholder={t("placeholders.confirmPassword")}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
-          />
-          {errors.confirmPassword ? (
-            <small style={{ color: "crimson" }}>{errors.confirmPassword}</small>
-          ) : null}
-        </label>
+          <label>
+            <span>{t("fields.confirmPassword")}</span>
+            <input
+              type="password"
+              value={values.confirmPassword}
+              onChange={(e) => updateField("confirmPassword", e.target.value)}
+              placeholder={t("placeholders.confirmPassword")}
+            />
+            {errors.confirmPassword ? <p className="auth-error">{errors.confirmPassword}</p> : null}
+          </label>
 
-        <button type="submit" disabled={isSubmitting} style={{ padding: "0.65rem 1rem" }}>
-          {isSubmitting ? t("actions.submitting") : t("actions.submit")}
-        </button>
-      </form>
+          <button type="submit" disabled={isSubmitting} className="auth-submit">
+            {isSubmitting ? t("actions.submitting") : t("actions.submit")}
+          </button>
+        </form>
 
-      {successMessage ? (
-        <p style={{ marginTop: "1rem", color: "green" }}>{successMessage}</p>
-      ) : null}
+        {successMessage ? <p className="auth-message-success">{successMessage}</p> : null}
+        {apiError ? <p className="auth-message-error">{apiError}</p> : null}
 
-      {apiError ? <p style={{ marginTop: "1rem", color: "crimson" }}>{apiError}</p> : null}
+        <p className="auth-footer">
+          <Link href={`/${locale}/login`}>{t("links.login") || "Already have an account? Log in"}</Link>
+        </p>
+      </div>
     </main>
   );
 }
