@@ -281,6 +281,83 @@
   gap: 0.4rem;
 }
 
+.ds-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* Default dashboard grid: 2-up on mobile for MVP catalog browsing */
+.ds-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ds-product-card {
+  padding: 0.85rem;
+}
+
+.ds-product-media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-2);
+  overflow: hidden;
+}
+
+.ds-product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ds-product-media-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(166, 124, 0, 0.14) 0%, transparent 55%),
+    linear-gradient(180deg, var(--ds-surface-2) 0%, var(--ds-surface-3) 100%);
+}
+
+.ds-product-body {
+  margin-block-start: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.ds-product-name--sm {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.ds-product-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.ds-thumb {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-2);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.ds-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .ds-list {
   list-style: none;
   padding: 0;
@@ -507,10 +584,67 @@
   gap: 0.5rem;
 }
 
+@media (max-width: 520px) {
+  /* Ensure qty controls never wrap on mobile */
+  .ds-qty-row {
+    flex-wrap: wrap;
+  }
+  .ds-qty-controls {
+    flex-wrap: nowrap;
+  }
+}
+
+.ds-qty-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.ds-qty-controls > * {
+  flex: 0 0 auto;
+}
+
 .ds-qty-value {
   min-width: 1.75rem;
   text-align: center;
   font-weight: 600;
+}
+
+input.ds-qty-input {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  max-width: 2.5rem;
+  padding: 0;
+  border-radius: var(--ds-radius);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+  text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: 1;
+}
+
+input.ds-qty-input::-webkit-outer-spin-button,
+input.ds-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input.ds-qty-input:focus {
+  outline: 2px solid var(--ds-primary);
+  outline-offset: 2px;
+}
+
+input.ds-qty-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .ds-totals-strip {

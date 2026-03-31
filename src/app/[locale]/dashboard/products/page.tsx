@@ -10,6 +10,7 @@ type Product = {
   sku: string;
   price: number;
   unit: string;
+  imageUrl?: string;
   isActive: boolean;
 };
 
@@ -110,17 +111,32 @@ export default function ProductsPage() {
       {!loading && !error && products.length === 0 ? <p className="ds-text-muted">{t("messages.empty")}</p> : null}
 
       {!loading && !error && products.length > 0 ? (
-        <ul className="ds-list">
+        <ul className="ds-grid ds-grid--2">
           {products.map((product) => (
-            <li key={product._id} className="ds-card ds-stack ds-stack--tight">
-              <p className="ds-product-name">{product.name}</p>
-              <p className="ds-text-small">
-                <strong>{t("fields.price")}:</strong> {product.price} /{" "}
-                {product.unit || t("fields.defaultUnit")}
-              </p>
-              <p className="ds-text-caption">
-                {t("fields.sku")}: {product.sku}
-              </p>
+            <li key={product._id} className="ds-card ds-product-card">
+              <div className="ds-product-media" aria-hidden="true">
+                {product.imageUrl ? (
+                  // MVP-simple: use <img> so we don't need Next remote image config.
+                  <img
+                    src={product.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="ds-product-media-fallback" />
+                )}
+              </div>
+              <div className="ds-product-body">
+                <p className="ds-product-name ds-product-name--sm">{product.name}</p>
+                <p className="ds-text-small">
+                  <strong>{t("fields.price")}:</strong> {product.price} /{" "}
+                  {product.unit || t("fields.defaultUnit")}
+                </p>
+                <p className="ds-text-caption">
+                  {t("fields.sku")}: {product.sku}
+                </p>
+              </div>
               <div className="ds-stack ds-stack--tight ds-mt-sm">
                 <button
                   type="button"
