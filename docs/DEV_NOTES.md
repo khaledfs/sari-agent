@@ -105,6 +105,10 @@ This file captures everything implemented so far and how it was implemented, so 
 - `src/services/account.service.ts`
   - `getAccountByUser(userId)` — load `CustomerAccount` or **create** from `User` with mock `totalDebt` / `lastPaymentDate` for MVP
   - `getMockPaymentsByUser(userId)` — in-memory mock payment rows (`date`, `amount`), ready to replace with real source; route maps account + payments to JSON shape
+- `src/services/product-import.service.ts`
+  - dev/demo importer: fetches and parses `sarihassan.com` category listing HTML (server-side `fetch` + `cheerio`)
+  - extracts `name`, `sku` (from `data-product_sku`), `price`, `imageUrl`, and infers `unit`/`packageSize` from the product name when possible
+  - upserts into MongoDB by `sku`, skipping incomplete/invalid rows instead of failing the full import
 - `src/services/financial.service.ts`
   - `getMockInvoicesByUser(userId)` — mock invoices (`id`, `invoiceNumber`, `date`, `dueDate`, `amount`, `status`: paid | unpaid | overdue); replace with real billing later
 
@@ -146,6 +150,11 @@ This file captures everything implemented so far and how it was implemented, so 
   - `POST /api/products/seed`
   - `src/app/api/products/seed/route.ts`
   - inserts 5–10 mock products if missing.
+- Import from live site (dev/demo only):
+  - `POST /api/products/import-from-site`
+  - `src/app/api/products/import-from-site/route.ts`
+  - scrapes a controlled list of `sarihassan.com` category pages (currently only `flours`, 1 page) and upserts into `Product` by `sku`
+  - returns `{ created, updated, skipped }` summary; route is disabled in `NODE_ENV=production` and requires an authenticated cookie session
 
 **MVP / production gap — product write APIs:** `POST /api/products`, `PUT /api/products/[id]`, and `POST /api/products/seed` do **not** call `getAuthenticatedUserId()` or any role check. Any caller can create/update products or trigger seed. **`GET /api/products`** returns only **`isActive: true`** products from MongoDB (real data once seeded or created). **`GET /api/products/[id]`** returns the document if the id exists (including inactive) — useful for admin-style use later, but currently unauthenticated.
 
@@ -227,6 +236,7 @@ This file captures everything implemented so far and how it was implemented, so 
   - **Server session:** login route sets **`authToken` httpOnly cookie** (7d); all protected APIs use `getAuthenticatedUserId()` from that cookie.
   - **Client:** also saves the same JWT to `localStorage` under `authToken` (optional/redundant for current MVP — **fetch calls do not attach this header**; cookie is the real auth source). Logout on the dashboard hub clears `localStorage` and `POST /api/auth/logout` clears the cookie.
   - auto redirects to dashboard on success.
+  - **Auth page branding + shared styling:** login/register/verify use `<main className="auth-shell">` + `<div className="auth-card">` and display the brand logo via `next/image` (`/logo.png`). The centered card, gradient background, and form spacing/styles come from `src/app/globals.css` (the `.auth-shell`, `.auth-card`, `.auth-logo`, `.auth-title`, `.auth-subtitle`, `.auth-form`, etc. rules).
 - Dashboard page:
   - `src/app/[locale]/(customer)/dashboard/page.tsx`
   - protected by `src/app/[locale]/(customer)/dashboard/layout.tsx` (session gate before child routes render)
@@ -234,17 +244,18 @@ This file captures everything implemented so far and how it was implemented, so 
 - Dashboard Products page:
   - `src/app/[locale]/(customer)/dashboard/products/page.tsx`
   - fetches `/api/products` and renders a **mobile-first** list
-  - displays `name`, `price`, `unit`, and `sku`
+  - displays products as **image cards** (2-column grid): **big image**, then `name`, `price/unit`, and `sku`
   - includes working “Add to cart” action (`POST /api/cart` with quantity `1`)
   - includes per-item loading state and short success feedback
   - includes link to `/{locale}/dashboard/cart`.
 - Dashboard Cart page:
   - `src/app/[locale]/(customer)/dashboard/cart/page.tsx`
   - fetches `/api/cart` for authenticated user cart
-  - renders list with `name`, `sku`, unit price, quantity, and line total
+  - renders list with `name`, `sku`, unit price, quantity, line total (and product thumbnail when `imageUrl` exists)
   - renders cart total
   - supports:
     - increase/decrease quantity (`PUT /api/cart`)
+    - **keyboard quantity edit** via a compact inline field between `-` and `+` (commit on blur/Enter); implemented to behave consistently on iPhone (uses `type=\"text\"` + `inputMode=\"numeric\"` to avoid iOS number-input layout issues)
     - remove item (`DELETE /api/cart`)
     - clear cart (`POST /api/cart/clear`)
     - place order (`POST /api/orders`) → redirect to `/{locale}/dashboard/orders`
@@ -266,6 +277,7 @@ This file captures everything implemented so far and how it was implemented, so 
 - **Dashboard navigation:**
   - `src/components/dashboard-nav.tsx` — top link row (Home, Products, Cart, Orders, Profile, Invoices), shown on all dashboard routes via `src/app/[locale]/(customer)/dashboard/layout.tsx`
   - Dashboard home (`/dashboard`) — hub grid + logout; login redirects to `/{locale}/dashboard` explicitly
+  - `src/app/[locale]/dashboard/layout.tsx` also renders the brand logo (`/logo.png`) above the nav tabs.
 - **Dashboard styling (shared UI):**
   - `src/app/[locale]/(customer)/dashboard/dashboard-ui.css` — plain CSS design tokens and `ds-*` classes (shell, typography, cards, nav tabs, hub grid, buttons, invoice/order badges). Imported only from `dashboard/layout.tsx`.
   - Uses **logical properties** (`margin-inline`, `padding-inline`, etc.) for RTL.

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+type QtyDraftById = Record<string, string | undefined>;
+
 type CartLineItem = {
   productId: string;
   quantity: number;
@@ -37,6 +39,7 @@ export default function CartPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [clearBusy, setClearBusy] = useState(false);
   const [placeOrderBusy, setPlaceOrderBusy] = useState(false);
+  const [qtyDraft, setQtyDraft] = useState<QtyDraftById>({});
 
   const loadCart = useCallback(async () => {
     setError("");
@@ -53,7 +56,15 @@ export default function CartPage() {
         return;
       }
       if (res.status === 200 && json.success && json.data) {
-        setCart(json.data);
+        const data = json.data;
+        setCart(data);
+        setQtyDraft((prev) => {
+          const next: QtyDraftById = { ...prev };
+          for (const line of data.items ?? []) {
+            next[line.productId] = String(line.quantity);
+          }
+          return next;
+        });
         return;
       }
       setError(json.message ?? t("error"));
@@ -72,6 +83,7 @@ export default function CartPage() {
     setBusyId(productId);
     setError("");
     try {
+      setQtyDraft((p) => ({ ...p, [productId]: String(nextQty) }));
       const res = await fetch("/api/cart", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -83,7 +95,15 @@ export default function CartPage() {
         return;
       }
       if (res.status === 200 && json.success && json.data) {
-        setCart(json.data);
+        const data = json.data;
+        setCart(data);
+        setQtyDraft((prev) => {
+          const next: QtyDraftById = { ...prev };
+          for (const line of data.items ?? []) {
+            next[line.productId] = String(line.quantity);
+          }
+          return next;
+        });
         return;
       }
       setError(json.message ?? t("error"));
@@ -92,6 +112,21 @@ export default function CartPage() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  function clampQty(value: number) {
+    if (!Number.isFinite(value)) return 1;
+    if (value < 1) return 1;
+    return Math.floor(value);
+  }
+
+  async function commitQty(productId: string) {
+    const draft = (qtyDraft[productId] ?? "").trim();
+    const parsed = clampQty(Number(draft));
+    const current = cart?.items.find((l) => l.productId === productId)?.quantity ?? null;
+    setQtyDraft((p) => ({ ...p, [productId]: String(parsed) }));
+    if (current == null || parsed === current) return;
+    await updateQty(productId, parsed);
   }
 
   async function removeItem(productId: string) {
@@ -191,37 +226,68 @@ export default function CartPage() {
           <ul className="ds-list">
             {cart.items.map((line) => (
               <li key={line.productId} className="ds-card ds-stack ds-stack--tight">
-                <p className="ds-product-name">{line.product.name}</p>
-                <p className="ds-text-caption">
-                  {t("sku")}: {line.product.sku}
-                </p>
-                <p className="ds-text-small">
-                  <strong>{t("unitPrice")}:</strong> {line.product.price} /{" "}
-                  {line.product.unit || "—"}
-                </p>
+                <div className="ds-product-row">
+                  <div className="ds-thumb" aria-hidden="true">
+                    {line.product.imageUrl ? (
+                      <img
+                        src={line.product.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="ds-stack ds-stack--tight" style={{ minWidth: 0 }}>
+                    <p className="ds-product-name">{line.product.name}</p>
+                    <p className="ds-text-caption">
+                      {t("sku")}: {line.product.sku}
+                    </p>
+                    <p className="ds-text-small">
+                      <strong>{t("unitPrice")}:</strong> {line.product.price} /{" "}
+                      {line.product.unit || "—"}
+                    </p>
+                  </div>
+                </div>
                 <div className="ds-qty-row">
                   <span className="ds-text-small">
                     <strong>{t("quantity")}:</strong>
                   </span>
-                  <button
-                    type="button"
-                    disabled={busyId === line.productId}
-                    className="ds-icon-btn"
-                    onClick={() => updateQty(line.productId, line.quantity - 1)}
-                    aria-label={t("decrease")}
-                  >
-                    −
-                  </button>
-                  <span className="ds-qty-value">{line.quantity}</span>
-                  <button
-                    type="button"
-                    disabled={busyId === line.productId}
-                    className="ds-icon-btn"
-                    onClick={() => updateQty(line.productId, line.quantity + 1)}
-                    aria-label={t("increase")}
-                  >
-                    +
-                  </button>
+                  <div className="ds-qty-controls" role="group" aria-label={t("quantity")}>
+                    <button
+                      type="button"
+                      disabled={busyId === line.productId}
+                      className="ds-icon-btn"
+                      onClick={() => updateQty(line.productId, line.quantity - 1)}
+                      aria-label={t("decrease")}
+                    >
+                      −
+                    </button>
+                    <input
+                      className="ds-qty-input"
+                      inputMode="numeric"
+                      type="text"
+                      pattern="\\d*"
+                      disabled={busyId === line.productId}
+                      value={qtyDraft[line.productId] ?? String(line.quantity)}
+                      onChange={(e) => setQtyDraft((p) => ({ ...p, [line.productId]: e.target.value }))}
+                      onBlur={() => void commitQty(line.productId)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          (e.currentTarget as HTMLInputElement).blur();
+                        }
+                      }}
+                      aria-label={t("quantity")}
+                    />
+                    <button
+                      type="button"
+                      disabled={busyId === line.productId}
+                      className="ds-icon-btn"
+                      onClick={() => updateQty(line.productId, line.quantity + 1)}
+                      aria-label={t("increase")}
+                    >
+                      +
+                    </button>
+                  </div>
                   <button
                     type="button"
                     disabled={busyId === line.productId}
