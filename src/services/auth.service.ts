@@ -127,3 +127,37 @@ export async function loginWithPassword(input: { identifier: string; password: s
   const token = signAuthToken({ userId, role: user.role });
   return { success: true, token };
 }
+
+export async function loginAdmin(input: { identifier: string; password: string }) {
+  const identifier = input.identifier.trim();
+  const password = input.password;
+
+  if (!identifier || !password) {
+    throw new Error("Identifier and password are required.");
+  }
+
+  await connectDB();
+
+  const isEmail = identifier.includes("@");
+  const query = isEmail
+    ? { email: identifier.toLowerCase() }
+    : { phoneNumber: normalizeIsraeliPhoneNumber(identifier) };
+
+  const user = await UserModel.findOne(query).lean();
+  if (!user) {
+    throw new Error("Invalid credentials.");
+  }
+
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) {
+    throw new Error("Invalid credentials.");
+  }
+
+  if (user.role !== "admin") {
+    throw new Error("Access denied.");
+  }
+
+  const userId = String((user as { _id: unknown })._id);
+  const token = signAuthToken({ userId, role: user.role });
+  return { success: true, token };
+}
