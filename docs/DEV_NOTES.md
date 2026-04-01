@@ -205,7 +205,7 @@ This file captures everything implemented so far and how it was implemented, so 
 ## 6) Frontend pages and behavior
 
 - Register page:
-  - `src/app/[locale]/register/page.tsx`
+  - `src/app/[locale]/(customer)/register/page.tsx`
   - fields: `businessName`, `email`, `phoneNumber`, `password`, `confirmPassword`
   - phone defaults to `+972`
   - supports Israeli normalization on submit (`053...` -> `+97253...`)
@@ -215,31 +215,31 @@ This file captures everything implemented so far and how it was implemented, so 
     - payload `{ success: true }`
   - stores `pendingVerificationPhoneNumber` in `localStorage`.
 - Verify page:
-  - `src/app/[locale]/verify/page.tsx`
+  - `src/app/[locale]/(customer)/verify/page.tsx`
   - field: `verificationCode` (6 digits)
   - reads phone number from query (`?phoneNumber=`) or from `localStorage`
   - posts to `/api/auth/verify`
   - runtime success check: status 200 + `success=true`.
 - Login page:
-  - `src/app/[locale]/login/page.tsx`
+  - `src/app/[locale]/(customer)/login/page.tsx`
   - fields: identifier (email/phone), password
   - posts to `/api/auth/login`
   - **Server session:** login route sets **`authToken` httpOnly cookie** (7d); all protected APIs use `getAuthenticatedUserId()` from that cookie.
   - **Client:** also saves the same JWT to `localStorage` under `authToken` (optional/redundant for current MVP — **fetch calls do not attach this header**; cookie is the real auth source). Logout on the dashboard hub clears `localStorage` and `POST /api/auth/logout` clears the cookie.
   - auto redirects to dashboard on success.
 - Dashboard page:
-  - `src/app/[locale]/dashboard/page.tsx`
-  - protected by `src/app/[locale]/dashboard/layout.tsx` (session gate before child routes render)
+  - `src/app/[locale]/(customer)/dashboard/page.tsx`
+  - protected by `src/app/[locale]/(customer)/dashboard/layout.tsx` (session gate before child routes render)
   - logout button clears session.
 - Dashboard Products page:
-  - `src/app/[locale]/dashboard/products/page.tsx`
+  - `src/app/[locale]/(customer)/dashboard/products/page.tsx`
   - fetches `/api/products` and renders a **mobile-first** list
   - displays `name`, `price`, `unit`, and `sku`
   - includes working “Add to cart” action (`POST /api/cart` with quantity `1`)
   - includes per-item loading state and short success feedback
   - includes link to `/{locale}/dashboard/cart`.
 - Dashboard Cart page:
-  - `src/app/[locale]/dashboard/cart/page.tsx`
+  - `src/app/[locale]/(customer)/dashboard/cart/page.tsx`
   - fetches `/api/cart` for authenticated user cart
   - renders list with `name`, `sku`, unit price, quantity, and line total
   - renders cart total
@@ -251,23 +251,23 @@ This file captures everything implemented so far and how it was implemented, so 
   - includes empty state + error handling
   - UI kept simple, mobile-first, RTL-safe.
 - Dashboard Orders list:
-  - `src/app/[locale]/dashboard/orders/page.tsx`
+  - `src/app/[locale]/(customer)/dashboard/orders/page.tsx`
   - `GET /api/orders`
   - links to each order detail
 - Dashboard Order detail:
-  - `src/app/[locale]/dashboard/orders/[id]/page.tsx`
+  - `src/app/[locale]/(customer)/dashboard/orders/[id]/page.tsx`
   - `GET /api/orders/[id]`
 - Dashboard Profile / business account (MVP single screen):
-  - `src/app/[locale]/dashboard/profile/page.tsx`
+  - `src/app/[locale]/(customer)/dashboard/profile/page.tsx`
   - `GET /api/account` — business profile, account summary (balance, debt, last payment), mock payments list
 - Dashboard Invoices (mock list):
-  - `src/app/[locale]/dashboard/invoices/page.tsx`
+  - `src/app/[locale]/(customer)/dashboard/invoices/page.tsx`
   - `GET /api/account/invoices`
 - **Dashboard navigation:**
-  - `src/components/dashboard-nav.tsx` — top link row (Home, Products, Cart, Orders, Profile, Invoices), shown on all dashboard routes via `src/app/[locale]/dashboard/layout.tsx`
+  - `src/components/dashboard-nav.tsx` — top link row (Home, Products, Cart, Orders, Profile, Invoices), shown on all dashboard routes via `src/app/[locale]/(customer)/dashboard/layout.tsx`
   - Dashboard home (`/dashboard`) — hub grid + logout; login redirects to `/{locale}/dashboard` explicitly
 - **Dashboard styling (shared UI):**
-  - `src/app/[locale]/dashboard/dashboard-ui.css` — plain CSS design tokens and `ds-*` classes (shell, typography, cards, nav tabs, hub grid, buttons, invoice/order badges). Imported only from `dashboard/layout.tsx`.
+  - `src/app/[locale]/(customer)/dashboard/dashboard-ui.css` — plain CSS design tokens and `ds-*` classes (shell, typography, cards, nav tabs, hub grid, buttons, invoice/order badges). Imported only from `dashboard/layout.tsx`.
   - Uses **logical properties** (`margin-inline`, `padding-inline`, etc.) for RTL.
   - `.ds-dash-shell` sets **readable text color**, **white background**, and **`color-scheme: light`** on the dashboard subtree so content stays legible when the OS uses dark mode and the root `body` applies a light foreground color.
 - Session bootstrap:
@@ -277,7 +277,7 @@ This file captures everything implemented so far and how it was implemented, so 
     - authenticated users are redirected to `/{locale}/dashboard` from home/login
     - **logged-out users hitting dashboard URLs are not redirected here** (avoids duplicate logic); see dashboard layout below.
 - **Dashboard auth gate (no flash of protected content):**
-  - `src/app/[locale]/dashboard/layout.tsx` (client)
+  - `src/app/[locale]/(customer)/dashboard/layout.tsx` (client)
   - calls `GET /api/auth/session` and **does not render child routes** (`cart`, `products`, `orders`, `profile`, …) until authenticated
   - prevents a brief flash of e.g. cart UI before redirect to login (which happened when protection lived only in `useEffect` in `SessionBootstrap`)
 
@@ -388,7 +388,91 @@ This file captures everything implemented so far and how it was implemented, so 
 
 - Namespace `invoices` in `en.json`, `he.json`, `ar.json` — title, paid/unpaid/overdue labels, date/dueDate/amount, loading/empty/error, navigation strings as needed
 
-## 15) Resume checklist for next session
+## 15) Admin login and admin pages
+
+### Folder organization
+
+Customer and admin pages are separated using Next.js **route groups** and regular folders:
+
+```
+src/app/[locale]/
+├── layout.tsx, page.tsx, SessionBootstrap.tsx   ← shared
+├── (customer)/                                  ← route group (no URL prefix)
+│   ├── login/, register/, verify/
+│   └── dashboard/ (layout, page, cart, orders, products, profile, invoices)
+└── admin/                                       ← regular folder (/admin/* URLs)
+    ├── login/page.tsx
+    └── dashboard/
+        ├── layout.tsx, loading.tsx, admin-auth-context.tsx, page.tsx
+        ├── overview/page.tsx
+        ├── customers/page.tsx
+        ├── orders/page.tsx
+        └── products/page.tsx
+```
+
+- `(customer)` uses parentheses so customer URLs stay as `/login`, `/dashboard` (no `/customer/` prefix).
+- `admin/` is a regular folder so URLs are `/admin/login`, `/admin/dashboard`, etc.
+
+### Shared login form component
+
+- `src/components/login-form.tsx` — reusable login UI used by both customer and admin login pages.
+- Accepts props: `translationNamespace`, `apiEndpoint`, `dashboardPath`, `sessionCheck`, `footer`.
+- Customer login page (`src/app/[locale]/(customer)/login/page.tsx`) passes `"login"` namespace, `/api/auth/login`, `/dashboard`, and a register link footer.
+- Admin login page (`src/app/[locale]/admin/login/page.tsx`) passes `"adminLogin"` namespace, `/api/auth/admin/login`, `/admin/dashboard`, and a stricter session check that verifies `role === "admin"`.
+
+### Admin auth service
+
+- `src/services/auth.service.ts` — added `loginAdmin()` function.
+  - Same flow as `loginWithPassword()` (identifier lookup, bcrypt compare), but **rejects non-admin users** with "Access denied." instead of checking `isVerified`.
+- `src/lib/auth-user.ts` — added `requireAdmin()` helper.
+  - Reads `authToken` cookie, verifies JWT, checks `payload.role === "admin"`.
+  - Used by admin API routes as a guard.
+
+### Admin API routes
+
+- `POST /api/auth/admin/login` (`src/app/api/auth/admin/login/route.ts`)
+  - Calls `loginAdmin()`, sets `authToken` cookie (same cookie as customer login).
+- `POST /api/auth/admin/seed` (`src/app/api/auth/admin/seed/route.ts`)
+  - **Dev-only** endpoint (disabled in production).
+  - Creates an admin user with defaults: `admin@sari.com` / `Admin1234`, `role: "admin"`, `isVerified: true`.
+  - Skips if admin already exists.
+- `GET /api/admin/customers` (`src/app/api/admin/customers/route.ts`)
+  - Protected by `requireAdmin()`.
+  - Returns all users with `role: "customer"` (excludes password), sorted newest first.
+
+### Admin dashboard
+
+- **Layout** (`src/app/[locale]/admin/dashboard/layout.tsx`) — client component.
+  - Wraps children in `AdminAuthProvider` (context-based session check).
+  - Header with logo, "Admin" badge, logout button.
+  - Centered content area with max-width.
+- **Auth context** (`admin-auth-context.tsx`) — session check runs once when layout mounts. Navigating between sub-pages does not re-check auth (context persists).
+- **Loading** (`loading.tsx`) — spinner shown instantly during route transitions via React Suspense.
+- **Dashboard home** (`page.tsx`) — server component. 2-column card grid linking to overview, customers, orders, products. Each card has icon, title, description.
+- **Sub-pages** (overview, orders, products) — server components with `getTranslations({ locale, namespace })` for correct i18n. Show "under construction" placeholder + back link.
+- **Customers page** — client component. Fetches `GET /api/admin/customers` and renders a table with business name, email, phone, verified badge (green/grey), join date. Includes loading spinner, error, and empty states.
+
+### Admin i18n
+
+- Added namespaces `adminLogin` and `adminDashboard` to all three locale files (`en.json`, `he.json`, `ar.json`).
+- `adminLogin`: title, subtitle, fields, placeholders, actions, messages, errors.
+- `adminDashboard`: title, badge, logout, loading, hub (title, subtitle, card labels + descriptions, backToDashboard, comingSoon), customers table (column headers, verified/notVerified labels, loading/empty/error).
+
+### SessionBootstrap update
+
+- `src/app/[locale]/SessionBootstrap.tsx` — now role-aware.
+  - Admin users at `/admin/login` or home → redirected to `/admin/dashboard`.
+  - Customer users at `/login` or home → redirected to `/dashboard`.
+
+### Admin dashboard card styles
+
+- Added to `src/app/globals.css`:
+  - `.admin-card-grid`, `.admin-card` (hover lift + gold border), `.admin-card-icon`, `.admin-card-title`, `.admin-card-desc`
+  - `.admin-table-wrap`, `.admin-table` (th/td/hover), `.admin-badge`, `.admin-badge-success`, `.admin-badge-muted`
+  - `.admin-spinner` (brand-colored spinning border)
+  - `.admin-back-link`
+
+## 16) Resume checklist for next session
 
 1. `npm run dev`
 2. Ensure `.env.local` has `MONGODB_URI`, `JWT_SECRET`, `SMS_MODE=development`
@@ -415,6 +499,15 @@ This file captures everything implemented so far and how it was implemented, so 
    - verify logged-out visit to `/{locale}/dashboard/*` shows **no flash** of protected page (loading shell, then login)
    - `GET /api/cart`, `GET /api/orders`, `GET /api/orders/[id]` without cookie → `401`
    - logout
+   - **Admin flow:**
+     - seed admin user: `POST /api/auth/admin/seed` (dev only)
+     - `/{locale}/admin/login` → login with `admin@sari.com` / `Admin1234`
+     - `/{locale}/admin/dashboard` → card grid renders in correct locale
+     - click each card → sub-page loads, back link works
+     - `/{locale}/admin/dashboard/customers` → table shows customer list from DB
+     - verify non-admin user cannot access admin login (`POST /api/auth/admin/login` → "Access denied.")
+     - verify `GET /api/admin/customers` without admin cookie → `401`
+     - admin logout → redirected to `/admin/login`
 4. Next feature work should continue from this architecture (service-first, i18n keys in 3 locales, RTL-safe UI, auth-from-cookie in server routes). After meaningful features or rule changes, update **this file** and **`docs/WORKING_INSTRUCTIONS.md`** as needed.
 
 ### Note: TypeScript and `.next`

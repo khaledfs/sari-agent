@@ -326,7 +326,6 @@ button:disabled,
 /* ——— Admin Dashboard Cards ——— */
 
 .admin-card-grid {
-  display: "grid";
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;

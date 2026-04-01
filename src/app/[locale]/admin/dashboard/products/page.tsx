@@ -1,11 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
-export default function AdminProductsPage() {
-  const t = useTranslations("adminDashboard");
-  const locale = useLocale();
+export default async function AdminProductsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "adminDashboard" });
 
   return (
     <div>
@@ -13,7 +11,7 @@ export default function AdminProductsPage() {
         ← {t("hub.backToDashboard")}
       </Link>
       <h1 style={{ fontSize: "1.5rem", marginBottom: "1.5rem" }}>
-        🏷️ {t("hub.cards.products")}
+        {t("hub.cards.products")}
       </h1>
       <p style={{ color: "var(--text-muted)" }}>{t("hub.comingSoon")}</p>
     </div>
