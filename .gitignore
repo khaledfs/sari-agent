@@ -53,3 +53,6 @@ next-env.d.ts
 
 # logs
 *.log
+
+# local scratch files
+tmp_flours.html

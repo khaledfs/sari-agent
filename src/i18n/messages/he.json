@@ -133,6 +133,15 @@
   "products": {
     "title": "מוצרים",
     "subtitle": "עיון במוצרים פעילים הזמינים להזמנה.",
+    "categories": "קטגוריות",
+    "subtitleCategories": "בחר קטגוריה כדי לעיין במוצרים.",
+    "subtitleCategoryProducts": "עיון במוצרים בקטגוריה זו.",
+    "allCategories": "כל הקטגוריות",
+    "searchCategories": "חיפוש קטגוריות...",
+    "searchProducts": "חיפוש מוצרים...",
+    "noCategories": "לא נמצאו קטגוריות.",
+    "noProducts": "לא נמצאו מוצרים בקטגוריה זו.",
+    "category": "קטגוריה",
     "fields": {
       "price": "מחיר",
       "sku": "מק\"ט",
@@ -146,6 +155,8 @@
       "loading": "טוען מוצרים...",
       "empty": "לא נמצאו מוצרים פעילים.",
       "fetchError": "טעינת המוצרים נכשלה.",
+      "loadingCategories": "טוען קטגוריות...",
+      "fetchCategoriesError": "טעינת הקטגוריות נכשלה.",
       "addError": "לא ניתן להוסיף לעגלה."
     }
   },
