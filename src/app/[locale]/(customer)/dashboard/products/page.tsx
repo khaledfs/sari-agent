@@ -1,157 +1,99 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
-type Product = {
-  _id: string;
-  name: string;
-  sku: string;
-  price: number;
-  unit: string;
+type Category = {
+  slug: string;
+  displayName: { he: string; en: string; ar: string };
   imageUrl?: string;
-  isActive: boolean;
 };
 
 export default function ProductsPage() {
   const t = useTranslations("products");
-  const tCart = useTranslations("cart");
   const tNav = useTranslations("dashboard.nav");
   const locale = useLocale();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [addingId, setAddingId] = useState<string | null>(null);
-  const [addedId, setAddedId] = useState<string | null>(null);
-  const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  async function addToCart(productId: string) {
-    setAddingId(productId);
-    setError("");
-    try {
-      const res = await fetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, quantity: 1 }),
-      });
-      const json = (await res.json()) as { success?: boolean; message?: string };
-      if (res.status === 401) {
-        setError(tCart("error"));
-        return;
-      }
-      if (res.status === 200 && json.success) {
-        if (addedTimer.current) {
-          clearTimeout(addedTimer.current);
-        }
-        setAddedId(productId);
-        addedTimer.current = setTimeout(() => setAddedId(null), 2500);
-        return;
-      }
-      setError(json.message ?? t("messages.addError"));
-    } catch {
-      setError(t("messages.addError"));
-    } finally {
-      setAddingId(null);
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      if (addedTimer.current) {
-        clearTimeout(addedTimer.current);
-      }
-    };
-  }, []);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     (async () => {
       try {
-        const response = await fetch("/api/products");
+        const response = await fetch("/api/products/categories");
         const payload = (await response.json()) as {
           success?: boolean;
-          data?: Product[];
+          data?: Category[];
           message?: string;
         };
 
         if (response.status === 200 && payload.success && payload.data) {
-          setProducts(payload.data);
+          setCategories(payload.data);
           return;
         }
 
-        setError(payload.message ?? t("messages.fetchError"));
+        setError(payload.message ?? t("messages.fetchCategoriesError"));
       } catch {
-        setError(t("messages.fetchError"));
+        setError(t("messages.fetchCategoriesError"));
       } finally {
         setLoading(false);
       }
     })();
   }, [t]);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) => (c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en).toLowerCase().includes(q));
+  }, [categories, locale, query]);
+
   return (
     <main className="ds-page">
       <header className="ds-header-row">
         <div>
-          <h1 className="ds-page-title">{t("title")}</h1>
-          <p className="ds-page-subtitle">{t("subtitle")}</p>
+          <h1 className="ds-page-title">{t("categories")}</h1>
+          <p className="ds-page-subtitle">{t("subtitleCategories")}</p>
         </div>
         <div className="ds-header-actions">
           <Link href={`/${locale}/dashboard`} className="ds-link">
             {tNav("home")}
           </Link>
-          <Link href={`/${locale}/dashboard/cart`} className="ds-link">
-            {tCart("goToCart")}
-          </Link>
         </div>
       </header>
 
-      {loading ? <p className="ds-text-muted">{t("messages.loading")}</p> : null}
+      <div className="ds-mb-md">
+        <input
+          className="ds-input ds-input--search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("searchCategories")}
+          aria-label={t("searchCategories")}
+        />
+      </div>
+
+      {loading ? <p className="ds-text-muted">{t("messages.loadingCategories")}</p> : null}
       {error ? <p className="ds-error">{error}</p> : null}
 
-      {!loading && !error && products.length === 0 ? <p className="ds-text-muted">{t("messages.empty")}</p> : null}
+      {!loading && !error && filtered.length === 0 ? (
+        <p className="ds-text-muted">{t("noCategories")}</p>
+      ) : null}
 
-      {!loading && !error && products.length > 0 ? (
+      {!loading && !error && filtered.length > 0 ? (
         <ul className="ds-grid ds-grid--2">
-          {products.map((product) => (
-            <li key={product._id} className="ds-card ds-product-card">
-              <div className="ds-product-media" aria-hidden="true">
-                {product.imageUrl ? (
-                  // MVP-simple: use <img> so we don't need Next remote image config.
-                  <img
-                    src={product.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="ds-product-media-fallback" />
-                )}
-              </div>
-              <div className="ds-product-body">
-                <p className="ds-product-name ds-product-name--sm">{product.name}</p>
-                <p className="ds-text-small">
-                  <strong>{t("fields.price")}:</strong> {product.price} /{" "}
-                  {product.unit || t("fields.defaultUnit")}
-                </p>
-                <p className="ds-text-caption">
-                  {t("fields.sku")}: {product.sku}
-                </p>
-              </div>
-              <div className="ds-stack ds-stack--tight ds-mt-sm">
-                <button
-                  type="button"
-                  disabled={addingId === product._id}
-                  className="ds-btn ds-btn--primary ds-btn--block"
-                  onClick={() => addToCart(product._id)}
-                >
-                  {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
-                </button>
-                {addedId === product._id ? (
-                  <span className="ds-success-text" role="status">
-                    {tCart("added")}
-                  </span>
-                ) : null}
-              </div>
+          {filtered.map((c) => (
+            <li key={c.slug} className="ds-card ds-category-card">
+              <Link href={`/${locale}/dashboard/products/${c.slug}`} className="ds-category-link">
+                <div className="ds-category-media" aria-hidden="true">
+                  {c.imageUrl ? (
+                    <img src={c.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="ds-category-media-fallback" />
+                  )}
+                </div>
+                <p className="ds-product-name">{c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}</p>
+              </Link>
             </li>
           ))}
         </ul>

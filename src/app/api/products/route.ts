@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { createProduct, getAllProducts } from "@/services/product.service";
+import { createProduct, getAllProducts, getProductsByCategory } from "@/services/product.service";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const products = await getAllProducts();
+    const url = new URL(req.url);
+    const category = url.searchParams.get("category")?.trim() ?? "";
+    const products = category ? await getProductsByCategory(category) : await getAllProducts();
     return NextResponse.json({ success: true, data: products });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch products.";

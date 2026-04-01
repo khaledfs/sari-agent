@@ -126,6 +126,10 @@
   margin-block-start: 0.35rem;
 }
 
+.ds-mb-md {
+  margin-block-end: 0.85rem;
+}
+
 .ds-error {
   color: var(--ds-danger);
   margin: 0.75rem 0 0;
@@ -292,6 +296,72 @@
 /* Default dashboard grid: 2-up on mobile for MVP catalog browsing */
 .ds-grid--2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ds-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--ds-radius);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.ds-input::placeholder {
+  color: var(--ds-muted);
+}
+
+.ds-input:focus-visible {
+  outline: 2px solid var(--ds-primary);
+  outline-offset: 2px;
+}
+
+.ds-input--search {
+  background: var(--ds-surface-2);
+}
+
+.ds-category-card {
+  padding: 0;
+}
+
+.ds-category-link {
+  display: block;
+  padding: 0.95rem 0.95rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ds-category-media {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-2);
+  overflow: hidden;
+  margin-block-end: 0.65rem;
+}
+
+.ds-category-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ds-category-media-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(166, 124, 0, 0.14) 0%, transparent 55%),
+    linear-gradient(180deg, var(--ds-surface-2) 0%, var(--ds-surface-3) 100%);
+}
+
+.ds-category-link:hover {
+  text-decoration: none;
 }
 
 .ds-product-card {

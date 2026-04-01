@@ -1,11 +1,13 @@
 import * as cheerio from "cheerio";
 
 import { connectDB } from "@/lib/db";
+import { getProductCategoryBySlug, PRODUCT_CATEGORIES } from "@/lib/product-categories";
+import { cacheRemoteImageToPublic } from "@/services/image-cache.service";
 import { ProductModel } from "@/models/product.model";
 
 type CategoryConfig = {
   url: string;
-  category: string;
+  categorySlug: string;
 };
 
 export type ImportFromSiteResult = {
@@ -90,7 +92,7 @@ async function fetchHtml(url: string) {
   return await res.text();
 }
 
-function parseCategoryPage(html: string, category: string): { products: ParsedProduct[]; nextUrl: string } {
+function parseCategoryPage(html: string, categorySlug: string): { products: ParsedProduct[]; nextUrl: string } {
   const $ = cheerio.load(html);
 
   const products: ParsedProduct[] = [];
@@ -121,7 +123,7 @@ function parseCategoryPage(html: string, category: string): { products: ParsedPr
       products.push({
         name,
         sku: "",
-        category,
+        category: categorySlug,
         price: Number.isFinite(price) ? price : NaN,
         unit,
         packageSize,
@@ -134,7 +136,7 @@ function parseCategoryPage(html: string, category: string): { products: ParsedPr
     products.push({
       name,
       sku,
-      category,
+      category: categorySlug,
       price: Number.isFinite(price) ? price : NaN,
       unit,
       packageSize,
@@ -174,13 +176,29 @@ export async function importProductsFromSariHassanSite(input: {
     for (let page = 1; page <= maxPagesPerCategory; page += 1) {
       try {
         const html = await fetchHtml(url);
-        const parsed = parseCategoryPage(html, cat.category);
+        const parsed = parseCategoryPage(html, cat.categorySlug);
 
         for (const p of parsed.products) {
           const v = validateParsedProduct(p);
           if (!v.ok) {
             result.skipped += 1;
             continue;
+          }
+
+          // Cache product image locally (dev/demo). If it fails, keep existing imageUrl behavior.
+          // Stored under: /public/categories/products/<categorySlug>/<sku>.<ext>
+          if (p.imageUrl) {
+            try {
+              const local = await cacheRemoteImageToPublic({
+                url: p.imageUrl,
+                publicRelativePath: `categories/products/${cat.categorySlug}/${p.sku}`,
+              });
+              if (local) {
+                p.imageUrl = local;
+              }
+            } catch {
+              // keep remote or empty, but never fail import due to an image
+            }
           }
 
           const existing = await ProductModel.findOne({ sku: p.sku }).lean();
@@ -229,5 +247,29 @@ export async function importProductsFromSariHassanSite(input: {
   }
 
   return result;
+}
+
+export async function importProductsFromCategory(categorySlug: string, opts?: { maxPages?: number }) {
+  const cfg = getProductCategoryBySlug(categorySlug);
+  if (!cfg) {
+    throw new Error("Unknown category.");
+  }
+  const res = await importProductsFromSariHassanSite({
+    categories: [{ url: cfg.sourceUrl, categorySlug: cfg.slug }],
+    maxPagesPerCategory: opts?.maxPages ?? 1,
+  });
+  return { category: cfg.slug, ...res };
+}
+
+export async function importAllConfiguredCategories(opts?: { maxPages?: number }) {
+  const results: Array<{ category: string } & ImportFromSiteResult> = [];
+  for (const cfg of PRODUCT_CATEGORIES) {
+    const res = await importProductsFromSariHassanSite({
+      categories: [{ url: cfg.sourceUrl, categorySlug: cfg.slug }],
+      maxPagesPerCategory: opts?.maxPages ?? 1,
+    });
+    results.push({ category: cfg.slug, ...res });
+  }
+  return results;
 }
 

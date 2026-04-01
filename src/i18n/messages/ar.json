@@ -133,6 +133,15 @@
   "products": {
     "title": "المنتجات",
     "subtitle": "تصفح المنتجات النشطة المتاحة للطلب.",
+    "categories": "الفئات",
+    "subtitleCategories": "اختر فئة لتصفّح المنتجات.",
+    "subtitleCategoryProducts": "تصفح المنتجات ضمن هذه الفئة.",
+    "allCategories": "كل الفئات",
+    "searchCategories": "ابحث في الفئات...",
+    "searchProducts": "ابحث في المنتجات...",
+    "noCategories": "لم يتم العثور على فئات.",
+    "noProducts": "لا توجد منتجات ضمن هذه الفئة.",
+    "category": "الفئة",
     "fields": {
       "price": "السعر",
       "sku": "SKU",
@@ -146,6 +155,8 @@
       "loading": "جارٍ تحميل المنتجات...",
       "empty": "لا توجد منتجات نشطة.",
       "fetchError": "فشل تحميل المنتجات.",
+      "loadingCategories": "جارٍ تحميل الفئات...",
+      "fetchCategoriesError": "فشل تحميل الفئات.",
       "addError": "تعذّرت الإضافة إلى السلة."
     }
   },

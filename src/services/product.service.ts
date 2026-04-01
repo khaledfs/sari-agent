@@ -47,6 +47,12 @@ export async function getAllProducts() {
   return ProductModel.find({ isActive: true }).sort({ createdAt: -1 }).lean();
 }
 
+export async function getProductsByCategory(categorySlug: string) {
+  await connectDB();
+  const slug = categorySlug.trim();
+  return ProductModel.find({ isActive: true, category: slug }).sort({ createdAt: -1 }).lean();
+}
+
 export async function createProduct(input: unknown) {
   await connectDB();
 

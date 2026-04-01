@@ -133,6 +133,15 @@
   "products": {
     "title": "Products",
     "subtitle": "Browse active products available for ordering.",
+    "categories": "Categories",
+    "subtitleCategories": "Choose a category to browse products.",
+    "subtitleCategoryProducts": "Browse products in this category.",
+    "allCategories": "All categories",
+    "searchCategories": "Search categories...",
+    "searchProducts": "Search products...",
+    "noCategories": "No categories found.",
+    "noProducts": "No products found in this category.",
+    "category": "Category",
     "fields": {
       "price": "Price",
       "sku": "SKU",
@@ -146,6 +155,8 @@
       "loading": "Loading products...",
       "empty": "No active products found.",
       "fetchError": "Failed to load products.",
+      "loadingCategories": "Loading categories...",
+      "fetchCategoriesError": "Failed to load categories.",
       "addError": "Could not add to cart."
     }
   },
