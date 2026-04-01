@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { useLocale, useTranslations } from "next-intl";
 
 const CARDS = [
   { key: "overview", icon: "📊", href: "/admin/dashboard/overview" },
@@ -8,9 +10,9 @@ const CARDS = [
   { key: "products", icon: "🏷️", href: "/admin/dashboard/products" },
 ] as const;
 
-export default async function AdminDashboardPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "adminDashboard" });
+export default function AdminDashboardPage() {
+  const locale = useLocale();
+  const t = useTranslations("adminDashboard");
 
   return (
     <div>
