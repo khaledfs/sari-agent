@@ -8,27 +8,35 @@ export function SessionBootstrap({ locale }: { locale: string }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const dashboardPath = `/${locale}/dashboard`;
-    const loginPath = `/${locale}/login`;
+    const customerDashboard = `/${locale}/dashboard`;
+    const adminDashboard = `/${locale}/admin/dashboard`;
+    const customerLogin = `/${locale}/login`;
+    const adminLogin = `/${locale}/admin/login`;
     const homePath = `/${locale}`;
 
     (async () => {
       try {
         const res = await fetch("/api/auth/session", { method: "GET" });
         const json = (await res.json()) as {
-          data?: { authenticated?: boolean };
+          data?: { authenticated?: boolean; payload?: { role?: string } };
         };
         const authenticated = json.data?.authenticated === true;
+        const role = json.data?.payload?.role;
 
         if (authenticated) {
-          if (pathname === loginPath || pathname === homePath) {
-            router.replace(dashboardPath);
+          if (role === "admin") {
+            if (pathname === adminLogin || pathname === homePath) {
+              router.replace(adminDashboard);
+            }
+          } else {
+            if (pathname === customerLogin || pathname === homePath) {
+              router.replace(customerDashboard);
+            }
           }
           return;
         }
 
-        // Logged-out users on dashboard are handled by `dashboard/layout.tsx` (no flash of page content).
-        // Keep SessionBootstrap focused on redirecting authenticated users away from login/home.
+        // Logged-out users on dashboard are handled by their respective layout.tsx guards.
       } catch {
         // ignore
       }

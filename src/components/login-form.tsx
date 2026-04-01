@@ -1,25 +1,32 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
-import Link from "next/link";
 
-type LoginForm = {
+type LoginFormValues = {
   identifier: string;
   password: string;
 };
 
-export default function LoginPage() {
-  const t = useTranslations("login");
+type LoginFormProps = {
+  translationNamespace: string;
+  apiEndpoint: string;
+  dashboardPath: string;
+  sessionCheck: (data: { authenticated?: boolean; payload?: { role?: string } }) => boolean;
+  footer?: ReactNode;
+};
+
+export function LoginForm({ translationNamespace, apiEndpoint, dashboardPath, sessionCheck, footer }: LoginFormProps) {
+  const t = useTranslations(translationNamespace);
   const locale = useLocale();
   const router = useRouter();
 
-  const [values, setValues] = useState<LoginForm>({ identifier: "", password: "" });
-  const [fieldError, setFieldError] = useState<string>("");
-  const [apiError, setApiError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [values, setValues] = useState<LoginFormValues>({ identifier: "", password: "" });
+  const [fieldError, setFieldError] = useState("");
+  const [apiError, setApiError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -27,16 +34,16 @@ export default function LoginPage() {
       try {
         const res = await fetch("/api/auth/session", { method: "GET" });
         const json = (await res.json()) as {
-          data?: { authenticated?: boolean };
+          data?: { authenticated?: boolean; payload?: { role?: string } };
         };
-        if (json.data?.authenticated) {
-          router.replace(`/${locale}/dashboard`);
+        if (json.data && sessionCheck(json.data)) {
+          router.replace(`/${locale}${dashboardPath}`);
         }
       } catch {
         // ignore
       }
     })();
-  }, [router, locale]);
+  }, [router, locale, dashboardPath, sessionCheck]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,7 +58,7 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -67,7 +74,7 @@ export default function LoginPage() {
         }
 
         setSuccessMessage(t("messages.success"));
-        router.replace(`/${locale}/dashboard`);
+        router.replace(`/${locale}${dashboardPath}`);
         return;
       }
 
@@ -117,9 +124,7 @@ export default function LoginPage() {
         {successMessage ? <p className="auth-message-success">{successMessage}</p> : null}
         {apiError ? <p className="auth-message-error">{apiError}</p> : null}
 
-        <p className="auth-footer">
-          <Link href={`/${locale}/register`}>{t("links.register") || "Create an account"}</Link>
-        </p>
+        {footer}
       </div>
     </main>
   );
