@@ -216,5 +216,70 @@
     "loading": "טוען חשבוניות…",
     "empty": "אין חשבוניות להצגה.",
     "error": "משהו השתבש. נסה שוב."
+  },
+  "adminLogin": {
+    "title": "כניסת מנהל",
+    "subtitle": "התחבר ללוח הניהול",
+    "fields": {
+      "identifier": "אימייל או מספר טלפון",
+      "password": "סיסמה"
+    },
+    "placeholders": {
+      "identifier": "name@company.com או ‎053.... / +9725....‎",
+      "password": "הסיסמה שלך"
+    },
+    "actions": {
+      "submit": "התחבר",
+      "submitting": "מתחבר..."
+    },
+    "messages": {
+      "success": "ההתחברות הצליחה",
+      "genericError": "ההתחברות נכשלה. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב."
+    },
+    "errors": {
+      "required": "יש להזין אימייל/טלפון וסיסמה."
+    }
+  },
+  "adminDashboard": {
+    "title": "לוח בקרה - מנהל",
+    "badge": "מנהל",
+    "actions": {
+      "logout": "התנתק"
+    },
+    "messages": {
+      "loading": "טוען..."
+    },
+    "hub": {
+      "title": "לוח בקרה - מנהל",
+      "subtitle": "נהל את העסק שלך מכאן.",
+      "cards": {
+        "overview": "סקירה",
+        "overviewDesc": "מכירות, הכנסות ופעילות",
+        "customers": "לקוחות",
+        "customersDesc": "ניהול חשבונות ופרופילים",
+        "orders": "הזמנות",
+        "ordersDesc": "מעקב ועיבוד הזמנות",
+        "products": "מוצרים",
+        "productsDesc": "קטלוג ומלאי"
+      },
+      "backToDashboard": "חזרה ללוח הבקרה",
+      "comingSoon": "חלק זה בבנייה."
+    },
+    "customers": {
+      "title": "לקוחות",
+      "columns": {
+        "businessName": "שם העסק",
+        "email": "אימייל",
+        "phone": "טלפון",
+        "verified": "מאומת",
+        "joined": "תאריך הצטרפות"
+      },
+      "verified": "כן",
+      "notVerified": "לא",
+      "loading": "טוען לקוחות…",
+      "empty": "לא נמצאו לקוחות.",
+      "error": "טעינת הלקוחות נכשלה."
+    }
   }
 }
