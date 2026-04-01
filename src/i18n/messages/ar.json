@@ -216,5 +216,70 @@
     "loading": "جارٍ تحميل الفواتير…",
     "empty": "لا توجد فواتير لعرضها.",
     "error": "حدث خطأ. حاول مرة أخرى."
+  },
+  "adminLogin": {
+    "title": "دخول المشرف",
+    "subtitle": "سجّل دخولك إلى لوحة الإدارة",
+    "fields": {
+      "identifier": "البريد الإلكتروني أو رقم الهاتف",
+      "password": "كلمة المرور"
+    },
+    "placeholders": {
+      "identifier": "name@company.com أو ‎053.... / +9725....‎",
+      "password": "كلمة المرور"
+    },
+    "actions": {
+      "submit": "دخول",
+      "submitting": "جارٍ تسجيل الدخول..."
+    },
+    "messages": {
+      "success": "تم تسجيل الدخول بنجاح",
+      "genericError": "فشل تسجيل الدخول. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى."
+    },
+    "errors": {
+      "required": "البريد/الهاتف وكلمة المرور مطلوبة."
+    }
+  },
+  "adminDashboard": {
+    "title": "لوحة إدارة المشرف",
+    "badge": "مشرف",
+    "actions": {
+      "logout": "تسجيل الخروج"
+    },
+    "messages": {
+      "loading": "جارٍ التحميل..."
+    },
+    "hub": {
+      "title": "لوحة إدارة المشرف",
+      "subtitle": "أدِر عملك من هنا.",
+      "cards": {
+        "overview": "نظرة عامة",
+        "overviewDesc": "المبيعات والإيرادات والنشاط",
+        "customers": "العملاء",
+        "customersDesc": "إدارة الحسابات والملفات",
+        "orders": "الطلبات",
+        "ordersDesc": "تتبع ومعالجة الطلبات",
+        "products": "المنتجات",
+        "productsDesc": "الكتالوج والمخزون"
+      },
+      "backToDashboard": "العودة إلى لوحة الإدارة",
+      "comingSoon": "هذا القسم قيد الإنشاء."
+    },
+    "customers": {
+      "title": "العملاء",
+      "columns": {
+        "businessName": "اسم النشاط التجاري",
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "verified": "موثّق",
+        "joined": "تاريخ الانضمام"
+      },
+      "verified": "نعم",
+      "notVerified": "لا",
+      "loading": "جارٍ تحميل العملاء…",
+      "empty": "لا يوجد عملاء.",
+      "error": "فشل تحميل العملاء."
+    }
   }
 }

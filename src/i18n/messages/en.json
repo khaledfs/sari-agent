@@ -216,5 +216,70 @@
     "loading": "Loading invoices…",
     "empty": "No invoices to show.",
     "error": "Something went wrong. Try again."
+  },
+  "adminLogin": {
+    "title": "Admin Login",
+    "subtitle": "Sign in to the admin panel",
+    "fields": {
+      "identifier": "Email or phone number",
+      "password": "Password"
+    },
+    "placeholders": {
+      "identifier": "name@company.com or 053.... / +9725....",
+      "password": "Your password"
+    },
+    "actions": {
+      "submit": "Login",
+      "submitting": "Logging in..."
+    },
+    "messages": {
+      "success": "Login successful",
+      "genericError": "Login failed. Please try again.",
+      "networkError": "Network error. Please try again."
+    },
+    "errors": {
+      "required": "Email/phone and password are required."
+    }
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "badge": "Admin",
+    "actions": {
+      "logout": "Logout"
+    },
+    "messages": {
+      "loading": "Loading..."
+    },
+    "hub": {
+      "title": "Admin Dashboard",
+      "subtitle": "Manage your business from here.",
+      "cards": {
+        "overview": "Overview",
+        "overviewDesc": "Sales, revenue & activity",
+        "customers": "Customers",
+        "customersDesc": "Manage accounts & profiles",
+        "orders": "Orders",
+        "ordersDesc": "Track & process orders",
+        "products": "Products",
+        "productsDesc": "Catalog & inventory"
+      },
+      "backToDashboard": "Back to dashboard",
+      "comingSoon": "This section is under construction."
+    },
+    "customers": {
+      "title": "Customers",
+      "columns": {
+        "businessName": "Business Name",
+        "email": "Email",
+        "phone": "Phone",
+        "verified": "Verified",
+        "joined": "Joined"
+      },
+      "verified": "Yes",
+      "notVerified": "No",
+      "loading": "Loading customers…",
+      "empty": "No customers found.",
+      "error": "Failed to load customers."
+    }
   }
 }

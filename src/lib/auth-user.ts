@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { verifyAuthToken } from "@/lib/jwt";
+import type { JwtPayload } from "@/types/session";
 
 /**
  * Reads authToken from cookies and returns JWT userId.
@@ -18,4 +19,21 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Verifies the caller is an authenticated admin.
+ * Throws if not authenticated or not an admin.
+ */
+export async function requireAdmin(): Promise<JwtPayload> {
+  const store = await cookies();
+  const token = store.get("authToken")?.value;
+  if (!token) {
+    throw new Error("Not authenticated.");
+  }
+  const payload = verifyAuthToken(token);
+  if (payload.role !== "admin") {
+    throw new Error("Access denied.");
+  }
+  return payload;
 }
