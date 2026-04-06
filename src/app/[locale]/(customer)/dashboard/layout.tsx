@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { AIAssistant } from "@/components/ai-assistant";
 import { DashboardNav } from "@/components/dashboard-nav";
 
 import "./dashboard-ui.css";
@@ -71,6 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <DashboardNav />
       </div>
       {children}
+      <AIAssistant />
     </div>
   );
 }

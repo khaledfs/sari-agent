@@ -484,7 +484,64 @@ src/app/[locale]/
   - `.admin-spinner` (brand-colored spinning border)
   - `.admin-back-link`
 
-## 16) Resume checklist for next session
+## 16) AI cart command MVP (OpenAI parser, service-first)
+
+### What was added
+
+- New backend-only MVP command endpoint:
+  - `POST /api/assistant/cart-command`
+  - Body: `{ "message": "..." }`
+- OpenAI is used **only** to parse one free-text command into structured data.
+- Product matching is deterministic and local (MongoDB active products only, no AI matching).
+- Cart mutations reuse existing cart service methods (`addToCart`, `updateCartItem`, `removeCartItem`).
+
+### New files
+
+- `src/lib/openai.ts`
+  - Shared OpenAI client loader using `OPENAI_API_KEY`.
+  - Throws clear error when key is missing.
+- `src/types/assistant.ts`
+  - Shared parsed-command type/schema:
+    - `action: "add" | "update" | "remove"`
+    - `productQuery: string`
+    - `quantity: number | null`
+- `src/services/assistant-parser.service.ts`
+  - Calls OpenAI with temperature `0` and strict parser prompt.
+  - Validates and normalizes response via zod.
+- `src/services/product-matching.service.ts`
+  - Matches one product query against active products.
+  - Deterministic scoring (exact SKU/name, contains, token overlap).
+- `src/services/assistant-command.service.ts`
+  - Orchestrates parse -> match -> cart action.
+  - Returns structured action result with parsed command and matched product summary.
+- `src/app/api/assistant/cart-command/route.ts`
+  - Thin authenticated route (cookie/JWT via `getAuthenticatedUserId`).
+  - No `userId` trust from payload.
+
+### Env variable
+
+- Added to `.env.example`:
+  - `OPENAI_API_KEY=`
+
+### Supported commands in this MVP
+
+- One command per message.
+- One product per message.
+- Actions: `add`, `update`, `remove`.
+- Quantity:
+  - `add`: defaults to `1` if missing.
+  - `update`: required and must be `> 0`.
+  - `remove`: quantity ignored / normalized to `null`.
+
+### Current limitations
+
+- No multi-command parsing.
+- No voice input.
+- No recommendations.
+- No conversational memory.
+- No advanced mixed-language disambiguation beyond strict parser + deterministic matcher.
+
+## 17) Resume checklist for next session
 
 1. `npm run dev`
 2. Ensure `.env.local` has `MONGODB_URI`, `JWT_SECRET`, `SMS_MODE=development`

@@ -678,6 +678,88 @@
   flex: 0 0 auto;
 }
 
+/* ——— AI assistant (minimal modal) ——— */
+.ds-ai-launch {
+  position: fixed;
+  inset-inline-end: 1rem;
+  inset-block-end: 1rem;
+  z-index: 60;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: var(--ds-shadow);
+}
+
+.ds-ai-launch:hover {
+  background: var(--ds-surface-2);
+}
+
+.ds-ai-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 80;
+}
+
+.ds-ai-card {
+  width: min(100%, 28rem);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-hover);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.ds-ai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.ds-ai-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+.ds-ai-close {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.ds-ai-close:hover {
+  background: var(--ds-surface-2);
+}
+
+.ds-ai-input {
+  width: 100%;
+}
+
+.ds-ai-response {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+}
+
 .ds-qty-value {
   min-width: 1.75rem;
   text-align: center;
