@@ -24,6 +24,10 @@ const allowedDevOrigins = parseAllowedDevOrigins();
 
 const nextConfig = {
   ...(allowedDevOrigins ? { allowedDevOrigins } : {}),
+  devIndicators: false,
+  experimental: {
+    reactDebugChannel: false,
+  },
 } satisfies NextConfig;
 
 export default withNextIntl(nextConfig);

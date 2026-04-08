@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
-type NavKey = "home" | "products" | "cart" | "orders" | "profile" | "invoices";
+type NavKey = "home" | "products" | "cart" | "orders" | "profile" | "ledger";
 
 const routes: { segment: string; key: NavKey }[] = [
   { segment: "/dashboard", key: "home" },
@@ -12,7 +12,7 @@ const routes: { segment: string; key: NavKey }[] = [
   { segment: "/dashboard/cart", key: "cart" },
   { segment: "/dashboard/orders", key: "orders" },
   { segment: "/dashboard/profile", key: "profile" },
-  { segment: "/dashboard/invoices", key: "invoices" },
+  { segment: "/dashboard/ledger", key: "ledger" },
 ];
 
 export function DashboardNav() {

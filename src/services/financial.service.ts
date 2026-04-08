@@ -88,3 +88,69 @@ export function getMockInvoicesByUser(userId: string): MockInvoice[] {
 
   return rows;
 }
+
+export type CheckStatus = "cleared" | "pending" | "returned";
+
+export type MockCheck = {
+  id: string;
+  checkNumber: string;
+  bankName: string;
+  amount: number;
+  date: string;
+  status: CheckStatus;
+};
+
+/**
+ * Mock checks for the authenticated user. Replace with DB/API when treasury data exists.
+ */
+export function getMockChecksByUser(userId: string): MockCheck[] {
+  if (!isValidObjectId(userId)) {
+    return [];
+  }
+
+  const n = parseInt(userId.slice(-4), 16) || 0;
+  const offset = n % 150;
+
+  const now = new Date();
+  const base = new Date(now);
+  base.setDate(base.getDate() - 60);
+
+  const num = (i: number) => String(1000 + ((n + i * 7919) % 9000));
+
+  const rows: MockCheck[] = [
+    {
+      id: `chk-${userId}-1`,
+      checkNumber: num(1),
+      bankName: "Hapoalim",
+      amount: Math.round((3200 + offset) * 100) / 100,
+      date: iso(addDays(base, 8)),
+      status: "cleared",
+    },
+    {
+      id: `chk-${userId}-2`,
+      checkNumber: num(2),
+      bankName: "Leumi",
+      amount: Math.round((1850 + offset / 2) * 100) / 100,
+      date: iso(addDays(base, 22)),
+      status: "pending",
+    },
+    {
+      id: `chk-${userId}-3`,
+      checkNumber: num(3),
+      bankName: "Discount",
+      amount: Math.round((940 + offset) * 100) / 100,
+      date: iso(addDays(base, 35)),
+      status: "cleared",
+    },
+    {
+      id: `chk-${userId}-4`,
+      checkNumber: num(4),
+      bankName: "Mizrahi-Tefahot",
+      amount: Math.round((2750 - offset) * 100) / 100,
+      date: iso(addDays(now, -6)),
+      status: "returned",
+    },
+  ];
+
+  return rows;
+}

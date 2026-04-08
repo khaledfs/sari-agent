@@ -114,7 +114,7 @@
       "cart": "Cart",
       "orders": "Orders",
       "profile": "Profile",
-      "invoices": "Invoices"
+      "ledger": "Ledger"
     },
     "hub": {
       "title": "Your dashboard",
@@ -126,7 +126,7 @@
         "cart": "Review items",
         "orders": "Track history",
         "profile": "Account details",
-        "invoices": "Billing & payments"
+        "ledger": "Invoices, checks & balances"
       }
     }
   },
@@ -213,6 +213,28 @@
     "loading": "Loading…",
     "error": "Something went wrong. Try again.",
     "noPayments": "No payments to show."
+  },
+  "ledger": {
+    "title": "Ledger",
+    "subtitle": "Invoices, payments, checks, and your account summary in one place.",
+    "loading": "Loading ledger…",
+    "error": "Something went wrong. Try again.",
+    "sections": {
+      "summary": "Account summary",
+      "payments": "Payments",
+      "checks": "Checks",
+      "invoices": "Invoices"
+    },
+    "checkNumber": "Check #",
+    "bank": "Bank",
+    "checkDate": "Date",
+    "amount": "Amount",
+    "checkStatus": {
+      "cleared": "Cleared",
+      "pending": "Pending",
+      "returned": "Returned"
+    },
+    "checksEmpty": "No checks to show."
   },
   "invoices": {
     "title": "Invoices",

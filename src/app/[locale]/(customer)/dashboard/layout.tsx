@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -22,6 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const t = useTranslations("dashboard");
   const locale = typeof params.locale === "string" ? params.locale : "en";
   const [phase, setPhase] = useState<Phase>("checking");
+  const didPrefetch = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +49,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       cancelled = true;
     };
   }, [locale, router]);
+
+  useEffect(() => {
+    if (phase !== "allowed" || didPrefetch.current) return;
+    didPrefetch.current = true;
+    const prefix = `/${locale}/dashboard`;
+    const paths = [
+      prefix,
+      `${prefix}/products`,
+      `${prefix}/cart`,
+      `${prefix}/orders`,
+      `${prefix}/profile`,
+      `${prefix}/ledger`,
+    ];
+    for (const href of paths) {
+      router.prefetch(href);
+    }
+  }, [phase, locale, router]);
 
   if (phase === "checking") {
     return (
