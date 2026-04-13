@@ -128,6 +128,32 @@
         "profile": "פרטי חשבון",
         "ledger": "חשבוניות, צ'קים ויתרות"
       }
+    },
+    "assistant": {
+      "launch": "עוזר AI",
+      "title": "עוזר AI",
+      "close": "סגור",
+      "placeholder": "כתוב פקודה לעגלה...",
+      "emptyHint": "בחר קיצור דרך למטה או כתוב פקודה.",
+      "send": "שלח",
+      "sending": "שולח…",
+      "thinking": "העוזר חושב…",
+      "choose": "בחר",
+      "choosing": "…",
+      "sku": "מק\"ט",
+      "price": "מחיר",
+      "networkError": "שגיאת רשת. נסה שוב.",
+      "failed": "לא ניתן להשלים את הבקשה.",
+      "followUpWithSelection": "בחרתי את {name}. {original}",
+      "viewCart": "פתח עגלה",
+      "tagOption": "אפשרות",
+      "tagInfo": "מידע",
+      "tagCompared": "השוואה",
+      "tagSelected": "נבחר",
+      "chipAdd": "הוסף מוצר",
+      "chipCompare": "השווה מוצרים",
+      "chipInfo": "מידע על מוצר",
+      "chipReorder": "הזמן שוב פריט קבוע"
     }
   },
   "products": {

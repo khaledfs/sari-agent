@@ -128,6 +128,32 @@
         "profile": "تفاصيل الحساب",
         "ledger": "فواتير وشيكات وأرصدة"
       }
+    },
+    "assistant": {
+      "launch": "مساعد AI",
+      "title": "مساعد AI",
+      "close": "إغلاق",
+      "placeholder": "اكتب أمر السلة...",
+      "emptyHint": "جرّب اختصارًا سريعًا أو اكتب أمرًا أدناه.",
+      "send": "إرسال",
+      "sending": "جارٍ الإرسال…",
+      "thinking": "المساعد يفكّر…",
+      "choose": "اختر",
+      "choosing": "…",
+      "sku": "SKU",
+      "price": "السعر",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "failed": "تعذّر إكمال الطلب.",
+      "followUpWithSelection": "اخترت {name}. {original}",
+      "viewCart": "فتح السلة",
+      "tagOption": "خيار",
+      "tagInfo": "معلومات",
+      "tagCompared": "مقارنة",
+      "tagSelected": "محدّد",
+      "chipAdd": "إضافة منتج",
+      "chipCompare": "مقارنة منتجات",
+      "chipInfo": "معلومات عن منتج",
+      "chipReorder": "إعادة طلب المعتاد"
     }
   },
   "products": {

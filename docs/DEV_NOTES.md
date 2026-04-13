@@ -486,6 +486,8 @@ src/app/[locale]/
 
 ## 16) AI cart command MVP (OpenAI parser, service-first)
 
+> **Note:** This section is **historical** (first MVP: single product, older types). Current assistant behavior — V2 pipeline, clarification persistence, resolve endpoint, chat UI — is documented in **sections 20) and 21)** below.
+
 ### What was added
 
 - New backend-only MVP command endpoint:
@@ -687,7 +689,61 @@ These notes capture updates pulled from remote (`origin/khaled`, fast-forward to
   - Target negatives per order: `max(4, positives*2)` capped at `18`.
 - Admin debug route: `GET /api/admin/recommendations/candidates?userId=...&limit=...` returns candidate rows, source counts, and pool size.
 
-## 20) Resume checklist for next session
+## 20) Assistant V2 (commercial shopping assistant)
+
+- `src/services/assistant-parser.service.ts`
+  - OpenAI parser now supports intents: `add`, `update`, `remove`, `info`, `compare`, `reorder_habit`, `clarify`.
+  - Output is structured + zod validated (`ParsedAssistantCommand`), with support for `productQueries` in compare flows.
+- `src/services/assistant-normalization.service.ts`
+  - Added deterministic normalization layer for typo-tolerance and mixed Hebrew/Arabic/English tokens.
+  - Includes filler-word trimming and small correction dictionary (e.g. `כמח` -> `קמח`, `sugar` -> `סוכר`).
+- `src/services/assistant-candidates.service.ts`
+  - Habit-aware ranking over active catalog using text relevance + boosts from explicit favorites, recent/frequent history, category affinity, and segment-popular signals.
+  - Returns ranked candidates with explainable `reasons` + `sources`.
+- `src/services/assistant-decision.service.ts`
+  - Deterministic execution-vs-clarification gate:
+    - execute if one candidate is clearly dominant
+    - ask clarification if top candidates are close
+    - fail safely with suggestions if weak/no match
+- `src/services/assistant-explanation.service.ts`
+  - Builds short evidence-based Hebrew user messages for action success, info, compare, clarification, and not-found.
+- `src/services/assistant-command.service.ts`
+  - New orchestration pipeline:
+    parser -> normalization -> candidate ranking -> decision -> execute/info/compare -> explanation
+  - Keeps cart/business execution deterministic (LLM does not execute DB decisions directly).
+  - `reorder_habit` without query uses top frequent product as safe deterministic fallback.
+- API compatibility:
+  - `POST /api/assistant/cart-command` remains thin; response payload includes richer fields (`intent`, `actionResult`, `matchedProducts`, `chosenProduct`, `clarification`, `metadata`) while still exposing `data.message` for existing UI.
+  - Clarification payloads may include `clarification.clarificationId` when persisted; see section **21)** below.
+- Current limitations:
+  - Compare answers are strictly catalog-field-based (name/category/price/unit/packageSize), no domain claims.
+  - Normalization dictionary is intentionally small and should be expanded incrementally based on real user errors.
+
+## 21) Assistant clarification state (short-lived disambiguation)
+
+- **Model:** `src/models/assistant-clarification.model.ts`
+  - Per-user pending records: `userId`, `intent`, `originalMessage`, `productQuery`, `productQueries[]`, `quantity`, `question`, `options[]` (productId, name, sku, price, unit, packageSize, imageUrl), optional `compareContext` (staged compare: `phase` left|right, queries, anchored product, `firstPick`, `secondStepOptions`).
+  - `status`: `pending` | `resolved` | `expired`; `expiresAt` with **Mongo TTL** (`expireAfterSeconds: 0`) so documents are removed automatically (default window **20 minutes**, see `ASSISTANT_CLARIFICATION_TTL_MS` in `src/services/assistant-clarification.service.ts`).
+- **Service:** `src/services/assistant-clarification.service.ts`
+  - `createAssistantClarificationRecord`, `resolveAssistantClarification` (no LLM), `planCompareClarification` (split left/right options vs merged fallback), `getPendingClarificationForUser`, `getClarificationByIdForUser`.
+  - Resolve enforces **owner-only** access (`userId` from JWT, never from body).
+  - Errors are user-facing Hebrew strings (expired, already resolved, invalid selection, inactive product).
+- **Orchestration:** `src/services/assistant-command.service.ts`
+  - When `actionResult` is `clarification_required` and there are **options**, a record is created and `clarification.clarificationId` (Mongo `_id` string) plus optional `compareStep` are returned.
+  - Compare: staged flow when possible (pick first side, then second); if only one side has candidates, second step may **re-rank** by stored `rightQuery` without calling the LLM.
+  - Merged single-list compare ambiguity **without** a valid plan still returns clarification **without** `clarificationId` (legacy UI fallback: text follow-up or `resolveSelection` on cart-command).
+- **Execution helper:** `src/services/assistant-execution.service.ts` — shared `runCartMutation`, `runAssistantCartCommandResolved`, `matchedProductFromDb` (used by command + clarification resolve).
+- **API**
+  - `POST /api/assistant/resolve-clarification` — body: `{ clarificationId, selectedProductId }`; returns same `AssistantCommandResponse` shape as cart-command.
+  - `POST /api/assistant/cart-command` — still supports optional `resolveSelection` for backward compatibility.
+- **UI:** `src/components/ai-assistant.tsx` — uses resolve endpoint when `clarificationId` is present.
+- **Assistant modal (conversation UI):** same component now keeps a **local chat history** (cleared when the modal closes): user bubbles, assistant bubbles, `assistant_loading`, structured **assistant_cards** (info / compare / cart success with optional product mini-card + “Open cart” link), and **assistant_clarification** (message + in-thread selectable options). Only the latest clarification row stays interactive (`activeClarificationEntryId`). Optional **quick prompt chips** when the thread is empty. Styling: `dashboard-ui.css` — scrollable thread, sticky foot with input, RTL-safe `align-items: start|end` rows.
+- **Limitations**
+  - Not a general chat/session memory; only clarification rows with TTL.
+  - Compare merged fallback (no staged plan) is not persisted.
+  - TTL deletion is eventual; resolve also checks `expiresAt` and marks `expired` when late.
+
+## 22) Resume checklist for next session
 
 1. `npm run dev`
 2. Ensure `.env.local` has `MONGODB_URI`, `JWT_SECRET`, `SMS_MODE=development`

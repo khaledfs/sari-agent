@@ -128,6 +128,32 @@
         "profile": "Account details",
         "ledger": "Invoices, checks & balances"
       }
+    },
+    "assistant": {
+      "launch": "AI Assistant",
+      "title": "AI Assistant",
+      "close": "Close",
+      "placeholder": "Type your cart command...",
+      "emptyHint": "Try a quick prompt or type a command below.",
+      "send": "Send",
+      "sending": "Processing…",
+      "thinking": "Assistant is thinking…",
+      "choose": "Choose",
+      "choosing": "…",
+      "sku": "SKU",
+      "price": "Price",
+      "networkError": "Network error. Please try again.",
+      "failed": "Could not complete the request.",
+      "followUpWithSelection": "I chose {name}. {original}",
+      "viewCart": "Open cart",
+      "tagOption": "Option",
+      "tagInfo": "Info",
+      "tagCompared": "Compared",
+      "tagSelected": "Selected",
+      "chipAdd": "Add product",
+      "chipCompare": "Compare products",
+      "chipInfo": "Product info",
+      "chipReorder": "Reorder usual item"
     }
   },
   "products": {
