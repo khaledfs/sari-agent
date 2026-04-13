@@ -1,5 +1,7 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
+import { BUSINESS_TYPES, SIZE_BANDS } from "@/types/business-segmentation";
+
 const customerAccountSchema = new Schema(
   {
     userId: {
@@ -33,6 +35,24 @@ const customerAccountSchema = new Schema(
     },
     lastPaymentDate: {
       type: Date,
+    },
+    /** Broad segment for cohorting / future ML (optional until collected in UI). */
+    businessType: {
+      type: String,
+      trim: true,
+      enum: BUSINESS_TYPES,
+    },
+    /** Niche within businessType (free text). */
+    specialization: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    /** Operational scale band (optional). */
+    sizeBand: {
+      type: String,
+      trim: true,
+      enum: SIZE_BANDS,
     },
   },
   { timestamps: true }

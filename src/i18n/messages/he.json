@@ -160,6 +160,24 @@
       "addError": "לא ניתן להוסיף לעגלה."
     }
   },
+  "smartOrdering": {
+    "recent": "מוצרים אחרונים",
+    "frequent": "נרכשים לעתים קרובות",
+    "reorder": "הזמן שוב",
+    "reordering": "מבצע הזמנה חוזרת…",
+    "reorderSuccess": "נוספו {added} פריטים לעגלה. {skipped} דולגו.",
+    "reorderError": "לא ניתן להזמין שוב. נסה שוב.",
+    "noRecent": "אין עדיין מוצרים אחרונים. לאחר הזמנה יופיעו כאן הצעות.",
+    "noFrequent": "אין עדיין מוצרים תכופים.",
+    "favorites": "מועדפים",
+    "noFavorites": "אין עדיין מועדפים שמורים. לחץ על \"שמור\" על מוצר כדי להוסיף.",
+    "addFavorite": "שמור",
+    "removeFavorite": "הסר",
+    "favoriteBusy": "שומר…",
+    "favoriteError": "לא ניתן לעדכן מועדפים. נסה שוב.",
+    "searchPlaceholder": "חיפוש קטגוריות ומוצרים (שם, מק\"ט, קטגוריה)…",
+    "orderedQty": "סה\"כ הוזמן: {count}"
+  },
   "cart": {
     "title": "עגלה",
     "empty": "העגלה ריקה.",
