@@ -181,6 +181,9 @@ export type CreateAssistantClarificationParams = {
   quantity: number | null;
   question: string;
   options: StoredClarificationOption[];
+  flowType?: "single" | "compare";
+  step?: "select_first" | "select_second";
+  firstProductId?: string;
   compareContext?: CompareContextStored;
 };
 
@@ -194,6 +197,9 @@ export async function createAssistantClarificationRecord(params: CreateAssistant
     productQuery: params.productQuery,
     productQueries: params.productQueries,
     quantity: params.quantity,
+    flowType: params.flowType ?? "single",
+    step: params.step,
+    firstProductId: params.firstProductId,
     question: params.question,
     options: params.options,
     compareContext: params.compareContext,
@@ -209,16 +215,18 @@ function clarificationPayloadFromDoc(
     question?: string;
     options: StoredClarificationOption[];
     compareContext?: CompareContextStored;
+    flowType?: "single" | "compare";
+    step?: "select_first" | "select_second";
   },
   questionFallback: string
 ): AssistantClarification {
-  const compareStep =
-    doc.compareContext?.phase === "left" ? "first_product" : doc.compareContext?.phase === "right" ? "second_product" : undefined;
+  const compareStep = doc.step === "select_first" ? "first_product" : doc.step === "select_second" ? "second_product" : undefined;
   return {
     clarificationId: String(doc._id),
     question: doc.question ?? questionFallback,
     options: doc.options.map((o) => ({ ...o })),
     compareStep,
+    flowType: doc.flowType ?? (compareStep ? "compare" : "single"),
   };
 }
 
@@ -263,7 +271,7 @@ async function finalizeCompare(
     matchedProducts: [left, right],
     chosenProduct: null,
     clarification: null,
-    metadata: { resolvedClarification: true, clarificationId },
+    metadata: { resolvedClarification: true, clarificationId, compare: { leftProductId: left.productId, rightProductId: right.productId } },
   };
 }
 
@@ -295,19 +303,16 @@ export async function resolveAssistantClarification(
   }
 
   const intent = doc.intent as AssistantIntent;
-
-  if (intent === "compare" && doc.compareContext) {
+  const flowType = (doc as { flowType?: "single" | "compare" }).flowType ?? (intent === "compare" ? "compare" : "single");
+  if (flowType === "compare" || intent === "compare") {
     return resolveCompareSelection(userId, {
       _id: doc._id,
       userId: doc.userId,
       options: plainOptionsFromDoc(doc.options),
-      compareContext: doc.compareContext as CompareContextStored,
-      intent: doc.intent,
+      compareContext: doc.compareContext as CompareContextStored | undefined,
+      step: (doc as { step?: "select_first" | "select_second" }).step ?? "select_first",
+      firstProductId: (doc as { firstProductId?: string }).firstProductId,
     }, selectedProductId);
-  }
-
-  if (intent === "compare") {
-    throw new Error("הבהרה לא תקינה להשוואה.");
   }
 
   const selected = findOption(plainOptionsFromDoc(doc.options), selectedProductId);
@@ -339,62 +344,44 @@ async function resolveCompareSelection(
     userId: string;
     options: StoredClarificationOption[];
     compareContext?: CompareContextStored;
-    intent?: string;
+    step: "select_first" | "select_second";
+    firstProductId?: string;
   },
   selectedProductId: string
 ): Promise<AssistantCommandResponse> {
-  const ctx = doc.compareContext;
-  if (!ctx) {
-    throw new Error("חסר הקשר השוואה.");
+  const clarificationId = String(doc._id);
+  const selected = findOption(doc.options, selectedProductId);
+  if (!selected) {
+    throw new Error("הבחירה אינה אחת מהאפשרויות שהוצעו.");
   }
 
-  const clarificationId = String(doc._id);
-
-  if (ctx.phase === "left") {
-    const selected = findOption(doc.options, selectedProductId);
-    if (!selected) {
-      throw new Error("הבחירה אינה אחת מהאפשרויות שהוצעו.");
-    }
-
-    if (ctx.anchoredSide === "right" && ctx.anchoredProduct) {
-      const left = await matchedProductFromDb(selectedProductId);
-      const right = await matchedProductFromDb(ctx.anchoredProduct.productId);
-      return finalizeCompare(userId, left, right, clarificationId);
-    }
-
-    let second = ctx.secondStepOptions?.length ? ctx.secondStepOptions : [];
-    if (!second.length) {
-      const ranked = await getAssistantRankedProductCandidates(userId, ctx.rightQuery, 6);
-      second = ranked.slice(0, 6).map(optionFromMatched);
-    }
+  if (doc.step === "select_first") {
+    const rightQuery = doc.compareContext?.rightQuery || doc.compareContext?.leftQuery || selected.name;
+    const ranked = await getAssistantRankedProductCandidates(userId, rightQuery, 8);
+    const second = ranked
+      .filter((p) => p.productId !== selectedProductId)
+      .slice(0, 6)
+      .map(optionFromMatched);
     if (!second.length) {
       throw new Error("לא נמצאו מועמדים למוצר השני.");
     }
-
-    await connectDB();
-    const nextQuestion = `בחר מוצר עבור "${ctx.rightQuery}"`;
+    const nextQuestion = `בחר מוצר שני להשוואה מול "${selected.name}"`;
     await AssistantClarificationModel.updateOne(
       { _id: doc._id },
       {
         $set: {
           options: second,
           question: nextQuestion,
-          "compareContext.phase": "right",
-          "compareContext.firstPick": selected,
-          "compareContext.secondStepOptions": [],
+          flowType: "compare",
+          step: "select_second",
+          firstProductId: selectedProductId,
         },
       }
     ).exec();
-
-    const updated = await AssistantClarificationModel.findById(doc._id).lean();
-    if (!updated) {
-      throw new Error("לא ניתן לעדכן את ההבהרה.");
-    }
-
     return {
       intent: "compare",
       actionResult: "clarification_required",
-      message: `בחר מוצר עבור "${ctx.rightQuery}"`,
+      message: nextQuestion,
       matchedProducts: second.map(
         (o) =>
           ({
@@ -412,41 +399,23 @@ async function resolveCompareSelection(
           }) satisfies AssistantMatchedProduct
       ),
       chosenProduct: null,
-      clarification: clarificationPayloadFromDoc(
-        {
-          _id: updated._id,
-          question: updated.question,
-          options: updated.options as StoredClarificationOption[],
-          compareContext: updated.compareContext as CompareContextStored,
-        },
-        `בחר מוצר עבור "${ctx.rightQuery}"`
-      ),
-      metadata: { compareStaged: true, clarificationId },
+      clarification: {
+        clarificationId,
+        question: nextQuestion,
+        options: second,
+        compareStep: "second_product",
+        flowType: "compare",
+      },
+      metadata: { compareStaged: true, clarificationId, step: "select_second" },
     };
   }
 
-  if (ctx.phase === "right") {
-    const selected = findOption(doc.options, selectedProductId);
-    if (!selected) {
-      throw new Error("הבחירה אינה אחת מהאפשרויות שהוצעו.");
-    }
-
-    if (ctx.anchoredSide === "left" && ctx.anchoredProduct) {
-      const left = await matchedProductFromDb(ctx.anchoredProduct.productId);
-      const right = await matchedProductFromDb(selectedProductId);
-      return finalizeCompare(userId, left, right, clarificationId);
-    }
-
-    if (ctx.firstPick) {
-      const left = await matchedProductFromDb(ctx.firstPick.productId);
-      const right = await matchedProductFromDb(selectedProductId);
-      return finalizeCompare(userId, left, right, clarificationId);
-    }
-
+  if (!doc.firstProductId) {
     throw new Error("חסר מוצר ראשון בהשוואה.");
   }
-
-  throw new Error("שלב הבהרה לא נתמך.");
+  const left = await matchedProductFromDb(doc.firstProductId);
+  const right = await matchedProductFromDb(selectedProductId);
+  return finalizeCompare(userId, left, right, clarificationId);
 }
 
 export async function getPendingClarificationForUser(userId: string) {

@@ -131,9 +131,10 @@
     },
     "assistant": {
       "launch": "مساعد AI",
-      "title": "مساعد AI",
+      "title": "مساعد الطلبات الذكي",
+      "subtitle": "فهم أسرع وتوضيح ذكي ومقارنة دقيقة",
       "close": "إغلاق",
-      "placeholder": "اكتب أمر السلة...",
+      "placeholder": "اكتب ما تريد طلبه...",
       "emptyHint": "جرّب اختصارًا سريعًا أو اكتب أمرًا أدناه.",
       "send": "إرسال",
       "sending": "جارٍ الإرسال…",
@@ -150,6 +151,10 @@
       "tagInfo": "معلومات",
       "tagCompared": "مقارنة",
       "tagSelected": "محدّد",
+      "compareProductA": "المنتج A",
+      "compareProductB": "المنتج B",
+      "compareCheaper": "أرخص",
+      "compareCategoryDiff": "اختلاف الفئة",
       "chipAdd": "إضافة منتج",
       "chipCompare": "مقارنة منتجات",
       "chipInfo": "معلومات عن منتج",
@@ -360,3 +365,5 @@
     }
   }
 }
+
+

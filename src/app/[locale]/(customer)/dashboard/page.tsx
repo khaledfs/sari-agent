@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { typography } from "@/design/typography";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 const ProductsIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,6 +50,13 @@ const LedgerIcon = () => (
   </svg>
 );
 
+const ArrowIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
 type HubItem = {
   href: string;
   navKey: "products" | "cart" | "orders" | "profile" | "ledger";
@@ -82,30 +92,61 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="ds-page">
-      <div className="ds-welcome-banner">
-        <h1 className="ds-welcome-title">{t("hub.welcome")}</h1>
-        <p className="ds-welcome-subtitle">{t("hub.welcomeSubtitle")}</p>
-      </div>
+    <main className="ds-page ds-page--dashboard-home">
+      <section className="ds-home-hero">
+        <div className="ds-home-hero__content">
+          <span className="ds-home-hero__eyebrow">SARI</span>
+          <h1 className={`ds-home-hero__title ${typography.h2}`}>{t("hub.welcome")}</h1>
+          <p className={`ds-home-hero__subtitle ${typography.body}`}>{t("hub.welcomeSubtitle")}</p>
 
-      <div className="ds-hub-grid">
-        {hubItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link key={item.href} href={item.href} className="ds-hub-card">
-              <span className="ds-hub-icon"><Icon /></span>
-              <span className="ds-hub-label">{tNav(item.navKey)}</span>
-              <span className="ds-hub-desc">{t(`hub.desc.${item.navKey}`)}</span>
+          <div className="ds-home-hero__actions">
+            <Link href={`/${locale}/dashboard/products`}>
+              <Button variant="primary">{tNav("products")}</Button>
             </Link>
-          );
-        })}
-      </div>
+            <Link href={`/${locale}/dashboard/cart`}>
+              <Button variant="secondary">{tNav("cart")}</Button>
+            </Link>
+          </div>
+        </div>
 
-      <div className="ds-logout-wrap">
-        <button type="button" className="ds-btn ds-btn--secondary" onClick={logout}>
+        <div className="ds-home-hero__glow" aria-hidden="true" />
+      </section>
+
+      <section className="ds-home-section">
+        <div className="ds-home-section__head">
+          <h2 className="ds-section-title">ניווט מהיר</h2>
+          <p className="ds-page-subtitle">גישה מהירה לפעולות החשובות ביותר במערכת.</p>
+        </div>
+
+        <div className="ds-hub-grid ds-hub-grid--premium">
+          {hubItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.href} as={Link} href={item.href} clickable className="ds-hub-card ds-hub-card--premium">
+                <div className="ds-hub-card__top">
+                  <span className="ds-hub-icon ds-hub-icon--premium">
+                    <Icon />
+                  </span>
+                  <span className="ds-hub-arrow" aria-hidden="true">
+                    <ArrowIcon />
+                  </span>
+                </div>
+
+                <div className="ds-hub-card__body">
+                  <span className={`ds-hub-label ${typography.h3}`}>{tNav(item.navKey)}</span>
+                  <span className={`ds-hub-desc ${typography.small}`}>{t(`hub.desc.${item.navKey}`)}</span>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="ds-home-footer-actions">
+        <Button variant="secondary" onClick={logout}>
           {t("actions.logout")}
-        </button>
-      </div>
+        </Button>
+      </section>
     </main>
   );
 }

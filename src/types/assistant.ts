@@ -51,6 +51,7 @@ export type AssistantClarification = {
   options: AssistantClarificationOption[];
   /** Present for staged compare clarifications. */
   compareStep?: "first_product" | "second_product";
+  flowType?: "single" | "compare";
 };
 
 export type AssistantResolveClarificationRequest = {

@@ -131,9 +131,10 @@
     },
     "assistant": {
       "launch": "AI Assistant",
-      "title": "AI Assistant",
+      "title": "Smart Ordering Assistant",
+      "subtitle": "Fast recognition, smart clarification, accurate compare",
       "close": "Close",
-      "placeholder": "Type your cart command...",
+      "placeholder": "Tell me what you want to order...",
       "emptyHint": "Try a quick prompt or type a command below.",
       "send": "Send",
       "sending": "Processing…",
@@ -150,6 +151,10 @@
       "tagInfo": "Info",
       "tagCompared": "Compared",
       "tagSelected": "Selected",
+      "compareProductA": "Product A",
+      "compareProductB": "Product B",
+      "compareCheaper": "is cheaper",
+      "compareCategoryDiff": "Category difference",
       "chipAdd": "Add product",
       "chipCompare": "Compare products",
       "chipInfo": "Product info",
@@ -360,3 +365,5 @@
     }
   }
 }
+
+

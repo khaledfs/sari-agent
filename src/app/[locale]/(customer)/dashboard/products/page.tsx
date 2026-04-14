@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
 type Category = {
@@ -49,6 +53,7 @@ export default function ProductsPage() {
   const tCart = useTranslations("cart");
   const tSmart = useTranslations("smartOrdering");
   const locale = useLocale();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -264,27 +269,29 @@ export default function ProductsPage() {
   function renderFavoriteControls(product: Product, mode: "strip" | "favorites-strip") {
     const isFav = favoriteIds.has(product._id);
     const busy = favBusyId === product._id;
+
     if (mode === "favorites-strip") {
       return (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          block
           disabled={busy}
-          className="ds-btn ds-btn--secondary ds-btn--block"
           onClick={() => void toggleFavorite(product._id, false)}
         >
           {busy ? tSmart("favoriteBusy") : tSmart("removeFavorite")}
-        </button>
+        </Button>
       );
     }
+
     return (
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        block
         disabled={busy}
-        className="ds-btn ds-btn--secondary ds-btn--block"
         onClick={() => void toggleFavorite(product._id, !isFav)}
       >
         {busy ? tSmart("favoriteBusy") : isFav ? tSmart("removeFavorite") : tSmart("addFavorite")}
-      </button>
+      </Button>
     );
   }
 
@@ -299,53 +306,72 @@ export default function ProductsPage() {
     if (loading) {
       return <p className="ds-text-muted">{t("messages.loading")}</p>;
     }
+
     if (products.length === 0) {
       if (searchActive && source.length > 0) {
         return <p className="ds-text-muted">{t("noProducts")}</p>;
       }
       return <p className="ds-text-muted">{tSmart(emptyKey)}</p>;
     }
+
     return (
       <ul className="ds-smart-strip">
         {products.map((product) => (
-          <li key={`${emptyKey}-${product._id}`} className="ds-card ds-product-card">
+          <Card
+            as="li"
+            key={`${emptyKey}-${product._id}`}
+            className="ds-product-card ds-product-card--redesign group"
+          >
             <div className="ds-product-media" aria-hidden="true">
               {product.imageUrl ? (
-                <img src={product.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                <img
+                  src={product.imageUrl}
+                  alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className="ds-product-media__img"
+                />
               ) : (
                 <div className="ds-product-media-fallback" />
               )}
             </div>
+
             <div className="ds-product-body">
               <p className="ds-product-name ds-product-name--sm">{product.name}</p>
+
               {meta === "frequency" && typeof product.frequency === "number" ? (
                 <p className="ds-text-caption">{tSmart("orderedQty", { count: product.frequency })}</p>
               ) : null}
-              <p className="ds-text-small">
-                <strong>{t("fields.price")}:</strong> {product.price} / {product.unit || t("fields.defaultUnit")}
+
+              <p className="ds-product-price">
+                ₪ {product.price} / {product.unit || t("fields.defaultUnit")}
               </p>
+
               <p className="ds-text-caption">
                 {t("fields.sku")}: {product.sku}
               </p>
             </div>
+
             <div className="ds-stack ds-stack--tight ds-mt-sm">
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                block
                 disabled={addingId === product._id}
-                className="ds-btn ds-btn--primary ds-btn--block"
                 onClick={() => void addToCart(product._id)}
               >
                 {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
-              </button>
+              </Button>
+
               {favoriteMode === "toggle" ? renderFavoriteControls(product, "strip") : null}
               {favoriteMode === "favorites-strip" ? renderFavoriteControls(product, "favorites-strip") : null}
+
               {addedId === product._id ? (
                 <span className="ds-success-text" role="status">
                   {tCart("added")}
                 </span>
               ) : null}
             </div>
-          </li>
+          </Card>
         ))}
       </ul>
     );
@@ -355,9 +381,10 @@ export default function ProductsPage() {
     <main className="ds-page">
       <header className="ds-header-row">
         <div>
-          <h1 className="ds-page-title">{t("title")}</h1>
-          <p className="ds-page-subtitle">{t("subtitleCategories")}</p>
+          <h1 className={`ds-page-title ${typography.h2}`}>{t("title")}</h1>
+          <p className={`ds-page-subtitle ${typography.body}`}>{t("subtitleCategories")}</p>
         </div>
+
         <div className="ds-header-actions">
           <Link href={`/${locale}/dashboard`} className="ds-link">
             {tNav("home")}
@@ -371,8 +398,8 @@ export default function ProductsPage() {
       {smartError ? <p className="ds-error ds-mb-md">{smartError}</p> : null}
 
       <div className="ds-mb-md">
-        <input
-          className="ds-input ds-input--search"
+        <Input
+          search
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={tSmart("searchPlaceholder")}
@@ -406,47 +433,64 @@ export default function ProductsPage() {
           <h2 id="catalog-products-heading" className="ds-section-title">
             {t("title")}
           </h2>
+
           {catalogLoading ? <p className="ds-text-muted">{t("messages.loading")}</p> : null}
+
           {!catalogLoading && filteredProducts.length === 0 ? (
             <p className="ds-text-muted">{t("noProducts")}</p>
           ) : null}
+
           {!catalogLoading && filteredProducts.length > 0 ? (
-            <ul className="ds-grid ds-grid--2">
+            <ul className="ds-grid ds-grid--2 ds-grid--products">
               {filteredProducts.map((product) => (
-                <li key={product._id} className="ds-card ds-product-card">
+                <Card
+                  as="li"
+                  key={product._id}
+                  className="ds-product-card ds-product-card--redesign group"
+                >
                   <div className="ds-product-media" aria-hidden="true">
                     {product.imageUrl ? (
-                      <img src={product.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="ds-product-media__img"
+                      />
                     ) : (
                       <div className="ds-product-media-fallback" />
                     )}
                   </div>
+
                   <div className="ds-product-body">
                     <p className="ds-product-name ds-product-name--sm">{product.name}</p>
-                    <p className="ds-text-small">
-                      <strong>{t("fields.price")}:</strong> {product.price} / {product.unit || t("fields.defaultUnit")}
+                    <p className="ds-product-price">
+                      ₪ {product.price} / {product.unit || t("fields.defaultUnit")}
                     </p>
                     <p className="ds-text-caption">
                       {t("fields.sku")}: {product.sku}
                     </p>
                   </div>
+
                   <div className="ds-stack ds-stack--tight ds-mt-sm">
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      block
                       disabled={addingId === product._id}
-                      className="ds-btn ds-btn--primary ds-btn--block"
                       onClick={() => void addToCart(product._id)}
                     >
                       {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
-                    </button>
+                    </Button>
+
                     {renderFavoriteControls(product, "strip")}
+
                     {addedId === product._id ? (
                       <span className="ds-success-text" role="status">
                         {tCart("added")}
                       </span>
                     ) : null}
                   </div>
-                </li>
+                </Card>
               ))}
             </ul>
           ) : null}
@@ -457,6 +501,7 @@ export default function ProductsPage() {
         <h2 id="categories-heading" className="ds-section-title">
           {t("categories")}
         </h2>
+
         {loading ? <p className="ds-text-muted">{t("messages.loadingCategories")}</p> : null}
         {error ? <p className="ds-error">{error}</p> : null}
 
@@ -465,9 +510,9 @@ export default function ProductsPage() {
         ) : null}
 
         {!loading && !error && filteredCategories.length > 0 ? (
-          <ul className="ds-grid ds-grid--2">
+          <ul className="ds-grid ds-grid--2 ds-grid--categories">
             {filteredCategories.map((c) => (
-              <li key={c.slug} className="ds-card ds-category-card">
+              <Card as="li" key={c.slug} className="ds-category-card">
                 <Link href={`/${locale}/dashboard/products/${c.slug}`} className="ds-category-link">
                   <div className="ds-category-media" aria-hidden="true">
                     {c.imageUrl ? (
@@ -475,10 +520,13 @@ export default function ProductsPage() {
                     ) : (
                       <div className="ds-category-media-fallback" />
                     )}
+                    <div className="ds-category-overlay" />
+                    <p className="ds-category-title-on-media">
+                      {c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}
+                    </p>
                   </div>
-                  <p className="ds-product-name">{c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}</p>
                 </Link>
-              </li>
+              </Card>
             ))}
           </ul>
         ) : null}

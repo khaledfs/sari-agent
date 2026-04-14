@@ -723,6 +723,7 @@ These notes capture updates pulled from remote (`origin/khaled`, fast-forward to
 
 - **Model:** `src/models/assistant-clarification.model.ts`
   - Per-user pending records: `userId`, `intent`, `originalMessage`, `productQuery`, `productQueries[]`, `quantity`, `question`, `options[]` (productId, name, sku, price, unit, packageSize, imageUrl), optional `compareContext` (staged compare: `phase` left|right, queries, anchored product, `firstPick`, `secondStepOptions`).
+  - Added staged-flow fields: `flowType` (`single` | `compare`), `step` (`select_first` | `select_second`), `firstProductId`.
   - `status`: `pending` | `resolved` | `expired`; `expiresAt` with **Mongo TTL** (`expireAfterSeconds: 0`) so documents are removed automatically (default window **20 minutes**, see `ASSISTANT_CLARIFICATION_TTL_MS` in `src/services/assistant-clarification.service.ts`).
 - **Service:** `src/services/assistant-clarification.service.ts`
   - `createAssistantClarificationRecord`, `resolveAssistantClarification` (no LLM), `planCompareClarification` (split left/right options vs merged fallback), `getPendingClarificationForUser`, `getClarificationByIdForUser`.
@@ -730,14 +731,15 @@ These notes capture updates pulled from remote (`origin/khaled`, fast-forward to
   - Errors are user-facing Hebrew strings (expired, already resolved, invalid selection, inactive product).
 - **Orchestration:** `src/services/assistant-command.service.ts`
   - When `actionResult` is `clarification_required` and there are **options**, a record is created and `clarification.clarificationId` (Mongo `_id` string) plus optional `compareStep` are returned.
-  - Compare: staged flow when possible (pick first side, then second); if only one side has candidates, second step may **re-rank** by stored `rightQuery` without calling the LLM.
-  - Merged single-list compare ambiguity **without** a valid plan still returns clarification **without** `clarificationId` (legacy UI fallback: text follow-up or `resolveSelection` on cart-command).
+  - Compare now follows deterministic staged selection: first clarification always asks for **Product A**, resolve moves the same clarification row to `step=select_second`, second resolve returns final compare result.
+  - Single-query compare requests (e.g. “מה ההבדל בין שוקולדים?”) are supported by reusing the query for both sides and forcing two-step selection flow.
 - **Execution helper:** `src/services/assistant-execution.service.ts` — shared `runCartMutation`, `runAssistantCartCommandResolved`, `matchedProductFromDb` (used by command + clarification resolve).
 - **API**
   - `POST /api/assistant/resolve-clarification` — body: `{ clarificationId, selectedProductId }`; returns same `AssistantCommandResponse` shape as cart-command.
   - `POST /api/assistant/cart-command` — still supports optional `resolveSelection` for backward compatibility.
 - **UI:** `src/components/ai-assistant.tsx` — uses resolve endpoint when `clarificationId` is present.
 - **Assistant modal (conversation UI):** same component now keeps a **local chat history** (cleared when the modal closes): user bubbles, assistant bubbles, `assistant_loading`, structured **assistant_cards** (info / compare / cart success with optional product mini-card + “Open cart” link), and **assistant_clarification** (message + in-thread selectable options). Only the latest clarification row stays interactive (`activeClarificationEntryId`). Optional **quick prompt chips** when the thread is empty. Styling: `dashboard-ui.css` — scrollable thread, sticky foot with input, RTL-safe `align-items: start|end` rows.
+  - Compare cards now show explicit labels for both sides (`Product A` / `Product B`, localized) and keep responsive side-by-side/stacked behavior.
 - **Limitations**
   - Not a general chat/session memory; only clarification rows with TTL.
   - Compare merged fallback (no staged plan) is not persisted.

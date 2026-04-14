@@ -50,6 +50,10 @@ export function buildAssistantInfoMessage(product: AssistantMatchedProduct): str
 }
 
 export function buildAssistantCompareMessage(left: AssistantMatchedProduct, right: AssistantMatchedProduct): string {
+  const categoryPart =
+    left.category && right.category && left.category !== right.category
+      ? `קטגוריות שונות: ${left.category} מול ${right.category}.`
+      : "";
   const pricePart =
     left.price === right.price
       ? "לשניהם אותו מחיר."
@@ -57,9 +61,11 @@ export function buildAssistantCompareMessage(left: AssistantMatchedProduct, righ
         ? `${left.name} זול יותר.`
         : `${right.name} זול יותר.`;
   return [
-    `השוואה בין ${left.name} לבין ${right.name}:`,
+    "השוואה בין שני המוצרים:",
+    `${left.name} מול ${right.name}:`,
     `• ${left.name}: ${left.price}/${left.unit || "יח'"}${left.packageSize ? `, ${left.packageSize}` : ""}`,
     `• ${right.name}: ${right.price}/${right.unit || "יח'"}${right.packageSize ? `, ${right.packageSize}` : ""}`,
+    categoryPart,
     pricePart,
   ].join(" ");
 }
