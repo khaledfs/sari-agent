@@ -5,6 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
 type Product = {
@@ -113,10 +117,13 @@ export default function CategoryProductsPage() {
       <header className="ds-header-row">
         <div>
           <h1 className="ds-page-title">
-            {category ? (category.displayName[locale as "he" | "en" | "ar"] ?? category.displayName.en) : t("category")}
+            <span className={typography.h2}>
+              {category ? (category.displayName[locale as "he" | "en" | "ar"] ?? category.displayName.en) : t("category")}
+            </span>
           </h1>
-          <p className="ds-page-subtitle">{t("subtitleCategoryProducts")}</p>
+          <p className={`ds-page-subtitle ${typography.body}`}>{t("subtitleCategoryProducts")}</p>
         </div>
+
         <div className="ds-header-actions">
           <Link href={`/${locale}/dashboard`} className="ds-link">
             {tNav("home")}
@@ -131,8 +138,8 @@ export default function CategoryProductsPage() {
       </header>
 
       <div className="ds-mb-md">
-        <input
-          className="ds-input ds-input--search"
+        <Input
+          search
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("searchProducts")}
@@ -148,9 +155,13 @@ export default function CategoryProductsPage() {
       ) : null}
 
       {!loading && !error && filtered.length > 0 ? (
-        <ul className="ds-grid ds-grid--2">
+        <ul className="ds-grid ds-grid--2 ds-grid--products">
           {filtered.map((product) => (
-            <li key={product._id} className="ds-card ds-product-card">
+            <Card
+              as="li"
+              key={product._id}
+              className="ds-product-card ds-product-card--redesign group"
+            >
               <div className="ds-product-media" aria-hidden="true">
                 {product.imageUrl ? (
                   <img
@@ -158,40 +169,45 @@ export default function CategoryProductsPage() {
                     alt=""
                     loading="lazy"
                     referrerPolicy="no-referrer"
+                    className="ds-product-media__img"
                   />
                 ) : (
                   <div className="ds-product-media-fallback" />
                 )}
               </div>
+
               <div className="ds-product-body">
                 <p className="ds-product-name ds-product-name--sm">{product.name}</p>
-                <p className="ds-text-small">
-                  <strong>{t("fields.price")}:</strong> {product.price} / {product.unit || t("fields.defaultUnit")}
+
+                <p className="ds-product-price">
+                  ₪ {product.price} / {product.unit || t("fields.defaultUnit")}
                 </p>
+
                 <p className="ds-text-caption">
                   {t("fields.sku")}: {product.sku}
                 </p>
               </div>
+
               <div className="ds-stack ds-stack--tight ds-mt-sm">
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
+                  block
                   disabled={addingId === product._id}
-                  className="ds-btn ds-btn--primary ds-btn--block"
                   onClick={() => addToCart(product._id)}
                 >
                   {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
-                </button>
+                </Button>
+
                 {addedId === product._id ? (
                   <span className="ds-success-text" role="status">
                     {tCart("added")}
                   </span>
                 ) : null}
               </div>
-            </li>
+            </Card>
           ))}
         </ul>
       ) : null}
     </main>
   );
 }
-

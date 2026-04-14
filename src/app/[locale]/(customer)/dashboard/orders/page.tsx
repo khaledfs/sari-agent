@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import type { StatusBadgeState } from "@/components/ui/StatusBadge";
+import { typography } from "@/design/typography";
 
 type OrderSummary = {
   id: string;
@@ -12,10 +17,12 @@ type OrderSummary = {
   createdAt: string;
 };
 
-function orderStatusBadgeClass(status: string) {
+function orderStatusState(status: string): StatusBadgeState {
   const s = status.toLowerCase();
-  if (s === "pending") return "ds-badge ds-badge--unpaid";
-  return "ds-badge ds-badge--neutral";
+  if (s === "pending") return "unpaid";
+  if (s === "completed") return "paid";
+  if (s === "failed") return "overdue";
+  return "neutral";
 }
 
 export default function OrdersPage() {
@@ -103,7 +110,7 @@ export default function OrdersPage() {
   return (
     <main className="ds-page">
       <div className="ds-header-row">
-        <h1 className="ds-page-title">{t("title")}</h1>
+        <h1 className={`ds-page-title ${typography.h2}`}>{t("title")}</h1>
         <div className="ds-header-actions">
           <Link href={`/${locale}/dashboard`} className="ds-link">
             {tNav("home")}
@@ -136,7 +143,7 @@ export default function OrdersPage() {
         <ul className="ds-list">
           {orders.map((o) => (
             <li key={o.id}>
-              <div className="ds-card ds-stack ds-stack--tight">
+              <Card className="ds-stack ds-stack--tight ds-order-card">
                 <div className="ds-order-row">
                   <Link href={`/${locale}/dashboard/orders/${o.id}`} className="ds-order-list-link">
                     <div className="ds-order-meta">
@@ -147,17 +154,17 @@ export default function OrdersPage() {
                     </div>
                     <div className="ds-details-cta">{t("details")} →</div>
                   </Link>
-                  <span className={orderStatusBadgeClass(o.status)}>{o.status}</span>
+                  <StatusBadge status={orderStatusState(o.status)}>{o.status}</StatusBadge>
                 </div>
-                <button
-                  type="button"
-                  className="ds-btn ds-btn--secondary ds-btn--block"
+                <Button
+                  variant="secondary"
+                  block
                   disabled={reorderingId === o.id}
                   onClick={() => void reorder(o.id)}
                 >
                   {reorderingId === o.id ? tSmart("reordering") : tSmart("reorder")}
-                </button>
-              </div>
+                </Button>
+              </Card>
             </li>
           ))}
         </ul>

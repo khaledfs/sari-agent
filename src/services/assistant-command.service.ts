@@ -2,9 +2,8 @@
 
 import {
   createAssistantClarificationRecord,
-  planCompareClarification,
+  optionFromMatched,
   type CompareContextStored,
-  type ProductResolutionSide,
 } from "@/services/assistant-clarification.service";
 import { getAssistantRankedProductCandidates } from "@/services/assistant-candidates.service";
 import { decideAssistantProductResolution } from "@/services/assistant-decision.service";
@@ -79,7 +78,10 @@ async function persistClarificationIfNeeded(
   originalMessage: string,
   parsed: ParsedAssistantCommand,
   clarification: NonNullable<AssistantCommandResponse["clarification"]>,
-  compareContext?: CompareContextStored
+  compareContext?: CompareContextStored,
+  flowType: "single" | "compare" = "single",
+  step?: "select_first" | "select_second",
+  firstProductId?: string
 ): Promise<AssistantCommandResponse["clarification"]> {
   if (!clarification.options.length) {
     return clarification;
@@ -94,16 +96,20 @@ async function persistClarificationIfNeeded(
     quantity: parsed.quantity ?? null,
     question: clarification.question,
     options: clarification.options.map((o) => ({ ...o })),
+    flowType,
+    step,
+    firstProductId,
     compareContext,
   });
 
   const compareStep =
-    compareContext?.phase === "left" ? "first_product" : compareContext?.phase === "right" ? "second_product" : undefined;
+    step === "select_first" ? "first_product" : step === "select_second" ? "second_product" : undefined;
 
   return {
     ...clarification,
     clarificationId,
     compareStep,
+    flowType,
   };
 }
 
@@ -156,24 +162,11 @@ export async function runAssistantCartCommand(userId: string, message: string): 
     const queries = parsed.productQueries?.length
       ? parsed.productQueries.slice(0, 2)
       : parsed.productQuery
-        ? [parsed.productQuery]
-        : [];
+        ? [parsed.productQuery, parsed.productQuery]
+        : [input.message, input.message];
 
-    if (queries.length < 2) {
-      return {
-        intent: parsed.intent,
-        actionResult: "clarification_required",
-        message: "כדי לבצע השוואה, ציין שני מוצרים להשוואה.",
-        matchedProducts: [],
-        chosenProduct: null,
-        clarification: {
-          question: "איזה שני מוצרים תרצה להשוות?",
-          options: [],
-        },
-      };
-    }
-
-    const [q1, q2] = queries;
+    const q1 = queries[0] ?? input.message;
+    const q2 = queries[1] ?? queries[0] ?? input.message;
     const leftRes = await resolveSingleProduct(input.userId, q1, "compare");
     const rightRes = await resolveSingleProduct(input.userId, q2, "compare");
 
@@ -190,51 +183,46 @@ export async function runAssistantCartCommand(userId: string, message: string): 
       };
     }
 
-    const plan = planCompareClarification(leftRes as ProductResolutionSide, rightRes as ProductResolutionSide, q1, q2);
-    if (plan) {
-      const clarification = await persistClarificationIfNeeded(
-        input.userId,
-        input.message,
-        parsed,
-        {
-          question: plan.question,
-          options: plan.options,
-        },
-        plan.compareContext
-      );
+    const firstOptions =
+      leftRes.kind === "execute"
+        ? [optionFromMatched(leftRes.chosen), ...leftRes.candidates.slice(0, 5).map(optionFromMatched)]
+        : leftRes.kind === "clarify"
+          ? (leftRes.clarification?.options ?? []).map((o) => ({ ...o }))
+          : leftRes.suggestions.slice(0, 5).map(optionFromMatched);
+    const uniqueFirstOptions = firstOptions.filter((opt, i, arr) => arr.findIndex((x) => x.productId === opt.productId) === i).slice(0, 6);
+    if (!uniqueFirstOptions.length) {
       return {
         intent: parsed.intent,
-        actionResult: "clarification_required",
-        message: plan.question,
-        matchedProducts: plan.matchedProducts,
+        actionResult: "failed",
+        message: "לא מצאתי מוצרים מתאימים להתחלת השוואה.",
+        matchedProducts: [],
         chosenProduct: null,
-        clarification,
+        clarification: null,
         metadata: { parsed },
       };
     }
-
+    const compareContext: CompareContextStored = { phase: "left", leftQuery: q1, rightQuery: q2 };
+    const question = "בחר מוצר ראשון להשוואה";
+    const clarification = await persistClarificationIfNeeded(
+      input.userId,
+      input.message,
+      parsed,
+      { question, options: uniqueFirstOptions },
+      compareContext,
+      "compare",
+      "select_first"
+    );
     const cands = [
       ...(leftRes.kind === "execute" ? [leftRes.chosen] : leftRes.kind === "clarify" ? leftRes.candidates : leftRes.suggestions),
       ...(rightRes.kind === "execute" ? [rightRes.chosen] : rightRes.kind === "clarify" ? rightRes.candidates : rightRes.suggestions),
-    ].slice(0, 4);
+    ].slice(0, 6);
     return {
       intent: parsed.intent,
       actionResult: "clarification_required",
-      message: "לא הצלחתי לזהות שני מוצרים חד-משמעיים להשוואה. תוכל לדייק שמות?",
+      message: question,
       matchedProducts: cands,
       chosenProduct: null,
-      clarification: {
-        question: "התכוונת לאחד מהמוצרים הבאים?",
-        options: cands.map((c) => ({
-          productId: c.productId,
-          name: c.name,
-          sku: c.sku,
-          packageSize: c.packageSize,
-          price: c.price,
-          unit: c.unit,
-          imageUrl: c.imageUrl,
-        })),
-      },
+      clarification,
       metadata: { parsed },
     };
   }

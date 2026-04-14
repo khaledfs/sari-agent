@@ -131,9 +131,10 @@
     },
     "assistant": {
       "launch": "עוזר AI",
-      "title": "עוזר AI",
+      "title": "עוזר הזמנות חכם",
+      "subtitle": "זיהוי מהיר, הבהרות חכמות והשוואה מדויקת",
       "close": "סגור",
-      "placeholder": "כתוב פקודה לעגלה...",
+      "placeholder": "כתוב מה שאתה רוצה להזמין...",
       "emptyHint": "בחר קיצור דרך למטה או כתוב פקודה.",
       "send": "שלח",
       "sending": "שולח…",
@@ -150,6 +151,10 @@
       "tagInfo": "מידע",
       "tagCompared": "השוואה",
       "tagSelected": "נבחר",
+      "compareProductA": "מוצר A",
+      "compareProductB": "מוצר B",
+      "compareCheaper": "זול יותר",
+      "compareCategoryDiff": "שוני בקטגוריה",
       "chipAdd": "הוסף מוצר",
       "chipCompare": "השווה מוצרים",
       "chipInfo": "מידע על מוצר",
@@ -360,3 +365,5 @@
     }
   }
 }
+
+

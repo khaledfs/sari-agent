@@ -208,7 +208,7 @@ function AssistantClarificationList({
                 {interactive ? (
                   <button
                     type="button"
-                    className="ds-btn ds-btn--secondary ds-ai-opt-btn"
+                    className="ds-btn ds-btn--secondary ds-ai-opt-btn ds-ai-opt-btn--choose"
                     disabled={loading}
                     onClick={() => onChoose(opt.productId, opt.name)}
                   >
@@ -237,6 +237,16 @@ function AssistantCardsBlock({
 }) {
   const showCartLink =
     data.actionResult === "added" || data.actionResult === "updated" || data.actionResult === "removed";
+  const compareLeft = data.actionResult === "compare" ? data.matchedProducts?.[0] : null;
+  const compareRight = data.actionResult === "compare" ? data.matchedProducts?.[1] : null;
+  const priceDiff =
+    compareLeft && compareRight && compareLeft.price !== compareRight.price
+      ? `${compareLeft.price < compareRight.price ? compareLeft.name : compareRight.name} ${t("compareCheaper")}`
+      : null;
+  const categoryDiff =
+    compareLeft && compareRight && compareLeft.category && compareRight.category && compareLeft.category !== compareRight.category
+      ? `${t("compareCategoryDiff")}: ${compareLeft.category} / ${compareRight.category}`
+      : null;
 
   return (
     <div className="ds-ai-cards-block">
@@ -250,6 +260,7 @@ function AssistantCardsBlock({
 
       {data.actionResult === "compare" && data.matchedProducts?.length ? (
         <div className="ds-ai-compare">
+          <p className="ds-ai-compare-title">{t("tagCompared")}</p>
           <span className="ds-ai-pcard-badge ds-ai-pcard-badge--inline">{t("tagCompared")}</span>
           <div
             className={
@@ -257,9 +268,21 @@ function AssistantCardsBlock({
             }
           >
             {data.matchedProducts.slice(0, 2).map((p, index) => (
-              <ProductMiniCard key={`${p.productId}-${index}`} p={p} locale={locale} t={t} />
+              <ProductMiniCard
+                key={`${p.productId}-${index}`}
+                p={p}
+                locale={locale}
+                t={t}
+                badge={index === 0 ? t("compareProductA") : t("compareProductB")}
+              />
             ))}
           </div>
+          {priceDiff || categoryDiff ? (
+            <div className="ds-ai-compare-diff">
+              {priceDiff ? <div>{priceDiff}</div> : null}
+              {categoryDiff ? <div>{categoryDiff}</div> : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -484,7 +507,7 @@ export function AIAssistant() {
       {isOpen ? (
         <div className="ds-ai-overlay" role="presentation" onClick={closeModal}>
           <div
-            className="ds-ai-card ds-ai-card--chat"
+            className="ds-ai-card ds-ai-card--chat ds-ai-drawer"
             role="dialog"
             aria-modal="true"
             aria-label={t("title")}
@@ -492,7 +515,10 @@ export function AIAssistant() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="ds-ai-head">
-              <h3 className="ds-ai-title">{t("title")}</h3>
+              <div className="ds-ai-head-copy">
+                <h3 className="ds-ai-title">{t("title")}</h3>
+                <p className="ds-ai-subtitle">{t("subtitle")}</p>
+              </div>
               <button type="button" className="ds-ai-close" onClick={closeModal} aria-label={t("close")}>
                 ×
               </button>
@@ -504,16 +530,16 @@ export function AIAssistant() {
               {history.length === 0 ? (
                 <div className="ds-ai-chips" aria-label="Quick prompts">
                   <button type="button" className="ds-ai-chip" onClick={() => applyChip(t("chipAdd"))}>
-                    {t("chipAdd")}
+                    <span aria-hidden>+</span> {t("chipAdd")}
                   </button>
                   <button type="button" className="ds-ai-chip" onClick={() => applyChip(t("chipCompare"))}>
-                    {t("chipCompare")}
+                    <span aria-hidden>⇄</span> {t("chipCompare")}
                   </button>
                   <button type="button" className="ds-ai-chip" onClick={() => applyChip(t("chipInfo"))}>
-                    {t("chipInfo")}
+                    <span aria-hidden>i</span> {t("chipInfo")}
                   </button>
                   <button type="button" className="ds-ai-chip" onClick={() => applyChip(t("chipReorder"))}>
-                    {t("chipReorder")}
+                    <span aria-hidden>↻</span> {t("chipReorder")}
                   </button>
                 </div>
               ) : null}
@@ -530,16 +556,23 @@ export function AIAssistant() {
                 }
                 if (m.type === "assistant_loading") {
                   return (
-                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant">
+                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--animate">
                       <AssistantBubble>
-                        <p className="ds-ai-bubble-text ds-ai-bubble-text--muted">{t("thinking")}</p>
+                        <p className="ds-ai-bubble-text ds-ai-bubble-text--muted">
+                          {t("thinking")}
+                          <span className="ds-ai-loading-dots" aria-hidden>
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        </p>
                       </AssistantBubble>
                     </div>
                   );
                 }
                 if (m.type === "assistant") {
                   return (
-                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant">
+                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--animate">
                       <AssistantBubble>
                         <p className="ds-ai-bubble-text">{m.text}</p>
                       </AssistantBubble>
@@ -548,7 +581,7 @@ export function AIAssistant() {
                 }
                 if (m.type === "error") {
                   return (
-                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant">
+                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--animate">
                       <AssistantBubble variant="error">
                         <p className="ds-ai-bubble-text">{m.text}</p>
                       </AssistantBubble>
@@ -557,7 +590,7 @@ export function AIAssistant() {
                 }
                 if (m.type === "assistant_cards") {
                   return (
-                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant">
+                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--animate">
                       <AssistantCardsBlock data={m.data} locale={locale} t={t} cartHref={cartHref} />
                     </div>
                   );
@@ -565,7 +598,7 @@ export function AIAssistant() {
                 if (m.type === "assistant_clarification") {
                   const interactive = m.id === activeClarificationEntryId;
                   return (
-                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--clarify">
+                    <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--clarify ds-ai-row--animate">
                       <AssistantBubble>
                         <p className="ds-ai-bubble-text">{m.data.message}</p>
                       </AssistantBubble>
@@ -587,23 +620,26 @@ export function AIAssistant() {
             </div>
 
             <div className="ds-ai-foot">
-              <input
-                type="text"
-                dir="auto"
-                className="ds-ai-input"
-                placeholder={t("placeholder")}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={onKeyDown}
-              />
-              <button
-                type="button"
-                className="ds-btn ds-btn--primary ds-btn--block"
-                onClick={() => void send()}
-                disabled={loading || !message.trim()}
-              >
-                {loading && !resolvingId ? t("sending") : t("send")}
-              </button>
+              <div className="ds-ai-input-wrap">
+                <input
+                  type="text"
+                  dir="auto"
+                  className="ds-ai-input ds-ai-input--pill"
+                  placeholder={t("placeholder")}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={onKeyDown}
+                />
+                <button
+                  type="button"
+                  className="ds-ai-send-btn"
+                  onClick={() => void send()}
+                  disabled={loading || !message.trim()}
+                  aria-label={t("send")}
+                >
+                  {loading && !resolvingId ? "…" : "➤"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
