@@ -30,12 +30,16 @@ function orderStatusBadgeClass(status: string) {
 
 export default function OrderDetailPage() {
   const t = useTranslations("orders");
+  const tSmart = useTranslations("smartOrdering");
+  const tCart = useTranslations("cart");
   const locale = useLocale();
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reordering, setReordering] = useState(false);
+  const [reorderBanner, setReorderBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -77,6 +81,36 @@ export default function OrderDetailPage() {
     void load();
   }, [load]);
 
+  async function reorder() {
+    if (!id) return;
+    setReordering(true);
+    setReorderBanner(null);
+    try {
+      const res = await fetch(`/api/orders/${id}/reorder`, { method: "POST" });
+      const json = (await res.json()) as {
+        success?: boolean;
+        message?: string;
+        data?: { added: number; skipped: number };
+      };
+      if (res.status === 401) {
+        setReorderBanner({ kind: "err", text: t("error") });
+        return;
+      }
+      if (res.status === 200 && json.success && json.data) {
+        setReorderBanner({
+          kind: "ok",
+          text: tSmart("reorderSuccess", { added: json.data.added, skipped: json.data.skipped }),
+        });
+        return;
+      }
+      setReorderBanner({ kind: "err", text: json.message ?? tSmart("reorderError") });
+    } catch {
+      setReorderBanner({ kind: "err", text: tSmart("reorderError") });
+    } finally {
+      setReordering(false);
+    }
+  }
+
   function formatDate(iso: string) {
     try {
       return new Intl.DateTimeFormat(locale, {
@@ -98,6 +132,22 @@ export default function OrderDetailPage() {
 
       {loading ? <p className="ds-text-muted ds-mt-sm">{t("loading")}</p> : null}
       {error ? <p className="ds-error ds-mt-sm">{error}</p> : null}
+      {reorderBanner ? (
+        <p
+          className={reorderBanner.kind === "ok" ? "ds-success-text ds-mt-sm" : "ds-error ds-mt-sm"}
+          role="status"
+        >
+          {reorderBanner.text}
+          {reorderBanner.kind === "ok" ? (
+            <>
+              {" "}
+              <Link href={`/${locale}/dashboard/cart`} className="ds-link">
+                {tCart("goToCart")}
+              </Link>
+            </>
+          ) : null}
+        </p>
+      ) : null}
 
       {!loading && order ? (
         <div className="ds-stack ds-content-after-title">
@@ -132,6 +182,15 @@ export default function OrderDetailPage() {
           <div className="ds-totals-strip">
             <strong>{t("total")}:</strong> {order.total}
           </div>
+
+          <button
+            type="button"
+            className="ds-btn ds-btn--secondary ds-btn--block"
+            disabled={reordering}
+            onClick={() => void reorder()}
+          >
+            {reordering ? tSmart("reordering") : tSmart("reorder")}
+          </button>
         </div>
       ) : null}
     </main>

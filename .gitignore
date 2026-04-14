@@ -56,3 +56,10 @@ next-env.d.ts
 
 # local scratch files
 tmp_flours.html
+
+# ML export + trained artifacts (regenerate locally)
+artifacts/recommendation-data/*.jsonl
+artifacts/recommendation-logreg/
+
+# ML requirements
+requirements-ml.txt

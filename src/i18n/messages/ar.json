@@ -114,7 +114,7 @@
       "cart": "السلة",
       "orders": "الطلبات",
       "profile": "الملف",
-      "invoices": "الفواتير"
+      "ledger": "دفتر الحسابات"
     },
     "hub": {
       "title": "لوحة التحكم",
@@ -126,8 +126,34 @@
         "cart": "راجع العناصر",
         "orders": "تتبّع السجل",
         "profile": "تفاصيل الحساب",
-        "invoices": "الفواتير والمدفوعات"
+        "ledger": "فواتير وشيكات وأرصدة"
       }
+    },
+    "assistant": {
+      "launch": "مساعد AI",
+      "title": "مساعد AI",
+      "close": "إغلاق",
+      "placeholder": "اكتب أمر السلة...",
+      "emptyHint": "جرّب اختصارًا سريعًا أو اكتب أمرًا أدناه.",
+      "send": "إرسال",
+      "sending": "جارٍ الإرسال…",
+      "thinking": "المساعد يفكّر…",
+      "choose": "اختر",
+      "choosing": "…",
+      "sku": "SKU",
+      "price": "السعر",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "failed": "تعذّر إكمال الطلب.",
+      "followUpWithSelection": "اخترت {name}. {original}",
+      "viewCart": "فتح السلة",
+      "tagOption": "خيار",
+      "tagInfo": "معلومات",
+      "tagCompared": "مقارنة",
+      "tagSelected": "محدّد",
+      "chipAdd": "إضافة منتج",
+      "chipCompare": "مقارنة منتجات",
+      "chipInfo": "معلومات عن منتج",
+      "chipReorder": "إعادة طلب المعتاد"
     }
   },
   "products": {
@@ -159,6 +185,24 @@
       "fetchCategoriesError": "فشل تحميل الفئات.",
       "addError": "تعذّرت الإضافة إلى السلة."
     }
+  },
+  "smartOrdering": {
+    "recent": "مختارات حديثة",
+    "frequent": "الأكثر طلبًا",
+    "reorder": "إعادة الطلب",
+    "reordering": "جارٍ إعادة الطلب…",
+    "reorderSuccess": "تمت إضافة {added} عنصرًا إلى السلة. تم تخطي {skipped}.",
+    "reorderError": "تعذّرت إعادة الطلب. حاول مرة أخرى.",
+    "noRecent": "لا توجد منتجات حديثة بعد. بعد أول طلب ستظهر اقتراحات هنا.",
+    "noFrequent": "لا توجد منتجات متكررة بعد.",
+    "favorites": "المفضّلة",
+    "noFavorites": "لا توجد مفضّلات محفوظة بعد. استخدم «حفظ» على منتج لإضافته هنا.",
+    "addFavorite": "حفظ",
+    "removeFavorite": "إزالة",
+    "favoriteBusy": "جارٍ الحفظ…",
+    "favoriteError": "تعذّر تحديث المفضّلة. حاول مرة أخرى.",
+    "searchPlaceholder": "ابحث في الفئات والمنتجات (الاسم، الـ SKU، الفئة)…",
+    "orderedQty": "إجمالي الكمية المطلوبة: {count}"
   },
   "cart": {
     "title": "السلة",
@@ -213,6 +257,28 @@
     "loading": "جارٍ التحميل…",
     "error": "حدث خطأ. حاول مرة أخرى.",
     "noPayments": "لا توجد مدفوعات لعرضها."
+  },
+  "ledger": {
+    "title": "دفتر الحسابات",
+    "subtitle": "الفواتير والمدفوعات والشيكات وملخص الحساب في مكان واحد.",
+    "loading": "جارٍ تحميل دفتر الحسابات…",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "sections": {
+      "summary": "ملخص الحساب",
+      "payments": "المدفوعات",
+      "checks": "الشيكات",
+      "invoices": "الفواتير"
+    },
+    "checkNumber": "رقم الشيك",
+    "bank": "البنك",
+    "checkDate": "التاريخ",
+    "amount": "المبلغ",
+    "checkStatus": {
+      "cleared": "مسدد",
+      "pending": "قيد الانتظار",
+      "returned": "مرتجع"
+    },
+    "checksEmpty": "لا توجد شيكات لعرضها."
   },
   "invoices": {
     "title": "الفواتير",

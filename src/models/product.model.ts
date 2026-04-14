@@ -50,6 +50,8 @@ const productSchema = new Schema(
 );
 
 productSchema.index({ sku: 1 }, { unique: true });
+/** Speeds up customer catalog: active products by category, newest first. */
+productSchema.index({ isActive: 1, category: 1, createdAt: -1 });
 
 export type ProductDocument = InferSchemaType<typeof productSchema>;
 

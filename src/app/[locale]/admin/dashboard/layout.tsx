@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -20,6 +21,17 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("adminDashboard");
   const locale = typeof params.locale === "string" ? params.locale : "en";
   const phase = useAdminAuth();
+  const didPrefetch = useRef(false);
+
+  useEffect(() => {
+    if (phase !== "allowed" || didPrefetch.current) return;
+    didPrefetch.current = true;
+    const base = `/${locale}/admin/dashboard`;
+    const paths = [base, `${base}/overview`, `${base}/customers`, `${base}/orders`, `${base}/products`];
+    for (const href of paths) {
+      router.prefetch(href);
+    }
+  }, [phase, locale, router]);
 
   if (phase === "checking") {
     return (

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 
+import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
+
 type Product = {
   _id: string;
   name: string;
@@ -30,13 +32,17 @@ export default function CategoryProductsPage() {
   const slug = params.slug;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [category, setCategory] = useState<Category | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addingId, setAddingId] = useState<string | null>(null);
   const [addedId, setAddedId] = useState<string | null>(null);
   const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const category = useMemo((): Category | null => {
+    const c = PRODUCT_CATEGORIES.find((x) => x.slug === slug);
+    return c ? { slug: c.slug, displayName: c.displayName } : null;
+  }, [slug]);
 
   async function addToCart(productId: string) {
     setAddingId(productId);
@@ -81,16 +87,7 @@ export default function CategoryProductsPage() {
       setLoading(true);
       setError("");
       try {
-        const [catRes, prodRes] = await Promise.all([
-          fetch("/api/products/categories"),
-          fetch(`/api/products?category=${encodeURIComponent(slug)}`),
-        ]);
-
-        const catPayload = (await catRes.json()) as { success?: boolean; data?: Category[]; message?: string };
-        if (catRes.status === 200 && catPayload.success && catPayload.data) {
-          setCategory(catPayload.data.find((c) => c.slug === slug) ?? null);
-        }
-
+        const prodRes = await fetch(`/api/products?category=${encodeURIComponent(slug)}`);
         const prodPayload = (await prodRes.json()) as { success?: boolean; data?: Product[]; message?: string };
         if (prodRes.status === 200 && prodPayload.success && prodPayload.data) {
           setProducts(prodPayload.data);

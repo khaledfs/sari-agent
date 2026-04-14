@@ -486,6 +486,8 @@ src/app/[locale]/
 
 ## 16) AI cart command MVP (OpenAI parser, service-first)
 
+> **Note:** This section is **historical** (first MVP: single product, older types). Current assistant behavior — V2 pipeline, clarification persistence, resolve endpoint, chat UI — is documented in **sections 20) and 21)** below.
+
 ### What was added
 
 - New backend-only MVP command endpoint:
@@ -541,7 +543,207 @@ src/app/[locale]/
 - No conversational memory.
 - No advanced mixed-language disambiguation beyond strict parser + deterministic matcher.
 
-## 17) Resume checklist for next session
+## 17) Post-pull updates (ledger + admin + perf)
+
+These notes capture updates pulled from remote (`origin/khaled`, fast-forward to `06335bb`), so current behavior matches the latest branch state.
+
+### Customer finance UX shifted from "Invoices" page to "Ledger" page
+
+- New customer page:
+  - `src/app/[locale]/(customer)/dashboard/ledger/page.tsx`
+  - Loads `GET /api/account/ledger` and renders:
+    - account summary
+    - payments
+    - checks
+    - invoices
+  - Uses locale-aware date/currency formatting and existing dashboard card/badge styles.
+- Legacy invoices route now redirects:
+  - `src/app/[locale]/(customer)/dashboard/invoices/page.tsx`
+  - Redirect target: `/{locale}/dashboard/ledger`
+
+### New ledger API route
+
+- Added:
+  - `src/app/api/account/ledger/route.ts`
+- Auth:
+  - Uses `getAuthenticatedUserId()` (cookie/JWT), returns `401` when unauthenticated.
+- Response data:
+  - summary from `getAccountByUser`
+  - payments from `getMockPaymentsByUser`
+  - checks + invoices from `financial.service`
+
+### Financial service expansion
+
+- `src/services/financial.service.ts` now includes mock checks:
+  - types: `CheckStatus`, `MockCheck`
+  - helper: `getMockChecksByUser(userId)`
+- Existing invoice mock logic remains and is reused by ledger route.
+
+### Dashboard navigation and home updates
+
+- `src/components/dashboard-nav.tsx`
+  - nav key switched from `invoices` to `ledger`
+  - route switched to `/{locale}/dashboard/ledger`
+- `src/app/[locale]/(customer)/dashboard/page.tsx`
+  - dashboard hub card switched from invoices icon/link to ledger icon/link.
+
+### Customer dashboard layout runtime improvements
+
+- `src/app/[locale]/(customer)/dashboard/layout.tsx`
+  - added route prefetching after authenticated phase (`products`, `cart`, `orders`, `profile`, `ledger`).
+  - keeps existing auth gate behavior.
+- Added route-level loading UI:
+  - `src/app/[locale]/(customer)/dashboard/loading.tsx`
+  - uses spinner while dashboard segment transitions.
+
+### Admin customers flow hardening / service-first cleanup
+
+- New shared admin helper:
+  - `src/lib/admin-customers.ts`
+  - enforces admin auth via `requireAdmin()`
+  - centralizes customer list loading/mapping.
+- `src/app/api/admin/customers/route.ts`
+  - now calls `listAdminCustomers()`
+  - keeps thin-route pattern and returns `401` for auth/role errors.
+- `src/app/[locale]/admin/dashboard/customers/page.tsx`
+  - now server-side via `listAdminCustomers()` + `getTranslations`
+  - redirects unauthorized users to `/{locale}/admin/login`.
+
+### Data/model and indexing update
+
+- `src/models/product.model.ts`
+  - added compound index:
+    - `{ isActive: 1, category: 1, createdAt: -1 }`
+  - intent: speed customer catalog queries by active/category/newest.
+
+### i18n updates
+
+- Message files updated:
+  - `src/i18n/messages/en.json`
+  - `src/i18n/messages/he.json`
+  - `src/i18n/messages/ar.json`
+- Includes ledger labels and dashboard nav/hub text changes from invoices -> ledger.
+
+## 18) Smart ordering + explicit favorites + ML prep (customer)
+
+- **Smart ordering (unchanged intent):** `src/services/smart-ordering.service.ts`
+  - `getRecentProductsByUser`, `getFrequentProductsByUser` — order-history–derived only; **not** favorites.
+  - `reorderOrderToCart` — owner-scoped reorder into cart.
+- **Explicit favorites (user-marked only, not inferred):**
+  - Model `src/models/user-favorite-product.model.ts` — `{ userId, productId }`, unique compound index `(userId, productId)`, refs `User` / `Product`.
+  - Service `src/services/favorites.service.ts` — `getFavoriteProductsByUser` (active products only, skips missing/inactive), `addFavoriteProduct`, `removeFavoriteProduct`, `isFavoriteProduct`.
+  - API `GET|POST|DELETE /api/favorites` — JSON body `{ productId }` for POST/DELETE; cookie auth; `401` if unauthenticated. **Removed** `GET /api/smart-ordering/favorites` (no score-based “favorites”).
+- **Customer segmentation (schema only for now):** `src/models/customer-account.model.ts` optional `businessType` (enum), `specialization` (string), `sizeBand` (enum). Intended for cohorting / future features; registration does not collect them yet. Future ML-related fields (e.g. `priceSensitivityBand`, `orderFrequencyProfile`, `preferredPackSizes`) can live on `CustomerAccount` or a dedicated analytics doc when signals exist — see `src/types/business-segmentation.ts` comment.
+- **ML feature scaffold (no training):** `src/services/recommendation-features.service.ts` — `buildRecommendationUserProductFeatures(userId, productId, referenceAt?)` returns typed `RecommendationUserProductFeatures` (`src/types/recommendation.ts`): history, category affinity, `isExplicitFavorite`, business profile, product metadata.
+- **Dataset scaffold (no export / no Python):** `src/services/recommendation-dataset.service.ts` — `buildRecommendationExamplesForUser(userId)` builds in-memory `RecommendationTrainingExample[]` (positives = purchased lines per order; negatives = small deterministic same-category catalog sample not in order). For offline training / warehouse later.
+- **UI:** `/{locale}/dashboard/products` — unified search; Recent / Frequent from smart-ordering APIs; **Favorites** from `GET /api/favorites` with Save/Remove controls (explicit only).
+- **i18n:** `smartOrdering.*` includes favorite save/remove strings.
+- **Limitations:** no model training or serving; feature builder uses **current** product categories for historical order lines when resolving category affinity; negatives are a tiny heuristic sample, not full candidate pools.
+
+## 19) Recommendation ML baseline (Logistic Regression, offline)
+
+- **Training target:** `label` in `RecommendationTrainingExample` = product **ordered in that order context** (from `recommendation-dataset.service`). `isExplicitFavorite` is **only an input feature**, not the label.
+- **Flat features:** `src/lib/recommendation-feature-flat.ts` — `BASELINE_MODEL_FEATURE_KEYS` + `flattenRecommendationFeaturesForBaselineModel` / `baselineFeatureVector`. **Must match** `flatten_features()` in `scripts/train_logistic_recommendation.py`.
+- **Export (admin-only):** `POST /api/admin/recommendations/export-dataset` optional body `{ "maxUsers": 50 }`. Uses `requireAdmin()`, writes:
+  - `artifacts/recommendation-data/dataset.jsonl` — one JSON `RecommendationTrainingExample` per line
+  - `artifacts/recommendation-data/feature_keys.json` — baseline column order for Python
+- **Python:** `pip install -r requirements-ml.txt` then `npm run ml:train` or `python scripts/train_logistic_recommendation.py`. Writes `artifacts/recommendation-logreg/model.pkl`, `linear_head.json` (coef + intercept + names), `metrics.json` (ROC AUC, PR AUC, precision, recall, F1, precision@5 heuristic).
+- **Inference (Node):** `src/services/recommendation-model.service.ts` — loads `linear_head.json`, scores **Candidate Generation V2** pool; `GET /api/recommendations?limit=12` (customer cookie auth). If artifact missing or score mismatch → deterministic fallback over the same candidate pool.
+- **Limitations:** no LightGBM/XGBoost yet; no production model registry; linear head must stay aligned with export keys; small-data stratify may fall back; category expansion is shallow; artifacts gitignored — deploy pipeline must ship `linear_head.json` separately if needed.
+
+### 19.1) Hardening pass (schema safety + validation split)
+
+- Added shared schema contract: `src/lib/recommendation-schema.ts` (`RECOMMENDATION_SCHEMA_VERSION`, metadata builder).
+- Dataset export now writes schema-aware files:
+  - `artifacts/recommendation-data/feature_keys.json` as metadata object (`schemaVersion`, `featureKeys`, `featureCount`, `generatedAt`)
+  - `artifacts/recommendation-data/metadata.json` with export counts + timestamp
+- Python trainer (`scripts/train_logistic_recommendation.py`) now:
+  - validates `feature_keys.json` schema version before training
+  - uses **time-based split** (oldest train, newest validation), with safe random fallback only when required
+  - writes schema metadata into `linear_head.json` (`schemaVersion`, `trainedAt`, `feature_count`)
+  - writes richer `metrics.json` (`splitMethod`, class balance, time ranges, top positive/negative coefficients, fallback notes)
+- Node inference (`src/services/recommendation-model.service.ts`) now validates artifact structure + schema/version + feature order/count and exposes status metadata.
+  - On mismatch/invalid artifact it logs a warning and serves deterministic fallback only.
+- Admin-only status route: `GET /api/admin/recommendations/status` for model load/debug visibility (mode, reason, schema, trainedAt, featureCount).
+
+### 19.2) Candidate Generation V2 + Hard Negatives V1
+
+- New service: `src/services/recommendation-candidates.service.ts`.
+  - Builds deterministic deduped active-product pool with source attribution from:
+    - `recent`
+    - `frequent`
+    - `favorite` (explicit only)
+    - `category_affinity`
+    - `co_purchase` (same-order co-occurrence with recent/frequent/favorite seeds)
+    - `segment_popular` (similar customer profile: businessType + optional specialization/sizeBand boost)
+    - `exploration` (small newest-active deterministic slice)
+  - Returns `RecommendationCandidatePool` + `countsBySource`.
+- Inference now uses candidate pool V2 before model scoring; deterministic fallback also uses candidate pool ordering.
+- Dataset hard negatives upgraded in `src/services/recommendation-dataset.service.ts`:
+  - For each order, negatives are selected deterministically from realistic buckets in this priority:
+    1. same-category alternatives
+    2. co_purchase candidates
+    3. segment_popular candidates
+    4. frequent/favorite candidates
+    5. generic candidates
+  - Target negatives per order: `max(4, positives*2)` capped at `18`.
+- Admin debug route: `GET /api/admin/recommendations/candidates?userId=...&limit=...` returns candidate rows, source counts, and pool size.
+
+## 20) Assistant V2 (commercial shopping assistant)
+
+- `src/services/assistant-parser.service.ts`
+  - OpenAI parser now supports intents: `add`, `update`, `remove`, `info`, `compare`, `reorder_habit`, `clarify`.
+  - Output is structured + zod validated (`ParsedAssistantCommand`), with support for `productQueries` in compare flows.
+- `src/services/assistant-normalization.service.ts`
+  - Added deterministic normalization layer for typo-tolerance and mixed Hebrew/Arabic/English tokens.
+  - Includes filler-word trimming and small correction dictionary (e.g. `כמח` -> `קמח`, `sugar` -> `סוכר`).
+- `src/services/assistant-candidates.service.ts`
+  - Habit-aware ranking over active catalog using text relevance + boosts from explicit favorites, recent/frequent history, category affinity, and segment-popular signals.
+  - Returns ranked candidates with explainable `reasons` + `sources`.
+- `src/services/assistant-decision.service.ts`
+  - Deterministic execution-vs-clarification gate:
+    - execute if one candidate is clearly dominant
+    - ask clarification if top candidates are close
+    - fail safely with suggestions if weak/no match
+- `src/services/assistant-explanation.service.ts`
+  - Builds short evidence-based Hebrew user messages for action success, info, compare, clarification, and not-found.
+- `src/services/assistant-command.service.ts`
+  - New orchestration pipeline:
+    parser -> normalization -> candidate ranking -> decision -> execute/info/compare -> explanation
+  - Keeps cart/business execution deterministic (LLM does not execute DB decisions directly).
+  - `reorder_habit` without query uses top frequent product as safe deterministic fallback.
+- API compatibility:
+  - `POST /api/assistant/cart-command` remains thin; response payload includes richer fields (`intent`, `actionResult`, `matchedProducts`, `chosenProduct`, `clarification`, `metadata`) while still exposing `data.message` for existing UI.
+  - Clarification payloads may include `clarification.clarificationId` when persisted; see section **21)** below.
+- Current limitations:
+  - Compare answers are strictly catalog-field-based (name/category/price/unit/packageSize), no domain claims.
+  - Normalization dictionary is intentionally small and should be expanded incrementally based on real user errors.
+
+## 21) Assistant clarification state (short-lived disambiguation)
+
+- **Model:** `src/models/assistant-clarification.model.ts`
+  - Per-user pending records: `userId`, `intent`, `originalMessage`, `productQuery`, `productQueries[]`, `quantity`, `question`, `options[]` (productId, name, sku, price, unit, packageSize, imageUrl), optional `compareContext` (staged compare: `phase` left|right, queries, anchored product, `firstPick`, `secondStepOptions`).
+  - `status`: `pending` | `resolved` | `expired`; `expiresAt` with **Mongo TTL** (`expireAfterSeconds: 0`) so documents are removed automatically (default window **20 minutes**, see `ASSISTANT_CLARIFICATION_TTL_MS` in `src/services/assistant-clarification.service.ts`).
+- **Service:** `src/services/assistant-clarification.service.ts`
+  - `createAssistantClarificationRecord`, `resolveAssistantClarification` (no LLM), `planCompareClarification` (split left/right options vs merged fallback), `getPendingClarificationForUser`, `getClarificationByIdForUser`.
+  - Resolve enforces **owner-only** access (`userId` from JWT, never from body).
+  - Errors are user-facing Hebrew strings (expired, already resolved, invalid selection, inactive product).
+- **Orchestration:** `src/services/assistant-command.service.ts`
+  - When `actionResult` is `clarification_required` and there are **options**, a record is created and `clarification.clarificationId` (Mongo `_id` string) plus optional `compareStep` are returned.
+  - Compare: staged flow when possible (pick first side, then second); if only one side has candidates, second step may **re-rank** by stored `rightQuery` without calling the LLM.
+  - Merged single-list compare ambiguity **without** a valid plan still returns clarification **without** `clarificationId` (legacy UI fallback: text follow-up or `resolveSelection` on cart-command).
+- **Execution helper:** `src/services/assistant-execution.service.ts` — shared `runCartMutation`, `runAssistantCartCommandResolved`, `matchedProductFromDb` (used by command + clarification resolve).
+- **API**
+  - `POST /api/assistant/resolve-clarification` — body: `{ clarificationId, selectedProductId }`; returns same `AssistantCommandResponse` shape as cart-command.
+  - `POST /api/assistant/cart-command` — still supports optional `resolveSelection` for backward compatibility.
+- **UI:** `src/components/ai-assistant.tsx` — uses resolve endpoint when `clarificationId` is present.
+- **Assistant modal (conversation UI):** same component now keeps a **local chat history** (cleared when the modal closes): user bubbles, assistant bubbles, `assistant_loading`, structured **assistant_cards** (info / compare / cart success with optional product mini-card + “Open cart” link), and **assistant_clarification** (message + in-thread selectable options). Only the latest clarification row stays interactive (`activeClarificationEntryId`). Optional **quick prompt chips** when the thread is empty. Styling: `dashboard-ui.css` — scrollable thread, sticky foot with input, RTL-safe `align-items: start|end` rows.
+- **Limitations**
+  - Not a general chat/session memory; only clarification rows with TTL.
+  - Compare merged fallback (no staged plan) is not persisted.
+  - TTL deletion is eventual; resolve also checks `expiresAt` and marks `expired` when late.
+
+## 22) Resume checklist for next session
 
 1. `npm run dev`
 2. Ensure `.env.local` has `MONGODB_URI`, `JWT_SECRET`, `SMS_MODE=development`
@@ -564,7 +766,7 @@ src/app/[locale]/
    - **place order** from cart → lands on `/{locale}/dashboard/orders` → cart empty when returning to cart
    - open order detail → line items + totals; wrong `id` or another user’s order → `404` / no leak
    - `/{locale}/dashboard/profile` → `GET /api/account` shows profile + summary + mock payments; first visit creates `CustomerAccount` if missing
-   - `/{locale}/dashboard/invoices` → `GET /api/account/invoices` returns **mock** invoice rows (paid/unpaid/overdue); not tied to real orders yet
+   - `/{locale}/dashboard/ledger` → `GET /api/account/ledger` returns summary + mock payments + mock checks + mock invoices
    - verify logged-out visit to `/{locale}/dashboard/*` shows **no flash** of protected page (loading shell, then login)
    - `GET /api/cart`, `GET /api/orders`, `GET /api/orders/[id]` without cookie → `401`
    - logout

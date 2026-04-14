@@ -114,7 +114,7 @@
       "cart": "Cart",
       "orders": "Orders",
       "profile": "Profile",
-      "invoices": "Invoices"
+      "ledger": "Ledger"
     },
     "hub": {
       "title": "Your dashboard",
@@ -126,8 +126,34 @@
         "cart": "Review items",
         "orders": "Track history",
         "profile": "Account details",
-        "invoices": "Billing & payments"
+        "ledger": "Invoices, checks & balances"
       }
+    },
+    "assistant": {
+      "launch": "AI Assistant",
+      "title": "AI Assistant",
+      "close": "Close",
+      "placeholder": "Type your cart command...",
+      "emptyHint": "Try a quick prompt or type a command below.",
+      "send": "Send",
+      "sending": "Processing…",
+      "thinking": "Assistant is thinking…",
+      "choose": "Choose",
+      "choosing": "…",
+      "sku": "SKU",
+      "price": "Price",
+      "networkError": "Network error. Please try again.",
+      "failed": "Could not complete the request.",
+      "followUpWithSelection": "I chose {name}. {original}",
+      "viewCart": "Open cart",
+      "tagOption": "Option",
+      "tagInfo": "Info",
+      "tagCompared": "Compared",
+      "tagSelected": "Selected",
+      "chipAdd": "Add product",
+      "chipCompare": "Compare products",
+      "chipInfo": "Product info",
+      "chipReorder": "Reorder usual item"
     }
   },
   "products": {
@@ -159,6 +185,24 @@
       "fetchCategoriesError": "Failed to load categories.",
       "addError": "Could not add to cart."
     }
+  },
+  "smartOrdering": {
+    "recent": "Recent picks",
+    "frequent": "Often ordered",
+    "reorder": "Reorder",
+    "reordering": "Reordering…",
+    "reorderSuccess": "{added} items added to your cart. {skipped} skipped.",
+    "reorderError": "Could not reorder. Try again.",
+    "noRecent": "No recent products yet. Place an order to see suggestions here.",
+    "noFrequent": "No frequent products yet.",
+    "favorites": "Favorites",
+    "noFavorites": "No saved favorites yet. Use “Save” on a product to add it here.",
+    "addFavorite": "Save",
+    "removeFavorite": "Remove",
+    "favoriteBusy": "Saving…",
+    "favoriteError": "Could not update favorites. Try again.",
+    "searchPlaceholder": "Search categories and products (name, SKU, category)…",
+    "orderedQty": "Total ordered: {count}"
   },
   "cart": {
     "title": "Cart",
@@ -213,6 +257,28 @@
     "loading": "Loading…",
     "error": "Something went wrong. Try again.",
     "noPayments": "No payments to show."
+  },
+  "ledger": {
+    "title": "Ledger",
+    "subtitle": "Invoices, payments, checks, and your account summary in one place.",
+    "loading": "Loading ledger…",
+    "error": "Something went wrong. Try again.",
+    "sections": {
+      "summary": "Account summary",
+      "payments": "Payments",
+      "checks": "Checks",
+      "invoices": "Invoices"
+    },
+    "checkNumber": "Check #",
+    "bank": "Bank",
+    "checkDate": "Date",
+    "amount": "Amount",
+    "checkStatus": {
+      "cleared": "Cleared",
+      "pending": "Pending",
+      "returned": "Returned"
+    },
+    "checksEmpty": "No checks to show."
   },
   "invoices": {
     "title": "Invoices",
