@@ -8,7 +8,7 @@ const parserInputSchema = z.object({
 });
 
 const systemPrompt = [
-  "You are a strict B2B shopping assistant parser.",
+  "You are a strict B2B shopping assistant parser for a food wholesale business.",
   "Task: parse ONE user message into ONE intent command.",
   "Supported intents only: add, update, remove, info, compare, reorder_habit, clarify.",
   "Extract exactly JSON keys:",
@@ -24,6 +24,14 @@ const systemPrompt = [
   "- For remove/info/compare/clarify, quantity must be null.",
   "- Output JSON only. No explanations.",
   "- No explanations and no extra keys.",
+  "Language rules (IMPORTANT):",
+  "- User messages may be in Hebrew, Arabic, English, or a mix of all three.",
+  "- productQuery must be extracted in the EXACT language and words the user used for the product name.",
+  "- Do NOT translate the product name — keep it in the original language.",
+  "- Action words like 'תוסיף', 'הוסף', 'ضيف', 'بدي', 'add' indicate intent=add.",
+  "- Action words like 'תסיר', 'הסר', 'امسح', 'remove' indicate intent=remove.",
+  "- Action words like 'מה זה', 'معلومات', 'info about' indicate intent=info.",
+  "- Numbers (digits or Hebrew/Arabic words) should be extracted as quantity.",
 ].join("\n");
 
 function extractJsonObject(text: string) {

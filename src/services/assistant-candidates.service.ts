@@ -166,9 +166,16 @@ export async function getAssistantRankedProductCandidates(
     }
   }
 
-  const scored: AssistantMatchedProduct[] = products.map((p) => {
+  const MIN_TEXT_SCORE = 10;
+
+  const scored: AssistantMatchedProduct[] = products.flatMap((p) => {
     const id = String(p._id);
     const t = textScore(query, p);
+
+    // Discard products with no textual relevance to the query — prevents
+    // history-boosted unrelated products from appearing as suggestions.
+    if (t.score < MIN_TEXT_SCORE) return [];
+
     let score = t.score;
     const sources: string[] = [];
     const reasons = [...t.reasons];
@@ -202,7 +209,7 @@ export async function getAssistantRankedProductCandidates(
       reasons.push("segment_popular_category");
     }
 
-    return {
+    return [{
       productId: id,
       name: p.name ?? "",
       sku: p.sku ?? "",
@@ -214,7 +221,7 @@ export async function getAssistantRankedProductCandidates(
       score,
       reasons,
       sources,
-    };
+    }];
   });
 
   return scored.sort((a, b) => b.score - a.score).slice(0, Math.max(1, limit));

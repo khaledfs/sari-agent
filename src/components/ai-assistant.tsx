@@ -317,6 +317,11 @@ export function AIAssistant() {
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [activeClarificationEntryId, setActiveClarificationEntryId] = useState<string | null>(null);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   const pendingSourceMessageRef = useRef("");
   const threadEndRef = useRef<HTMLDivElement>(null);
 
@@ -335,12 +340,60 @@ export function AIAssistant() {
   }
 
   function closeModal() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
     setIsOpen(false);
     setHistory([]);
     setMessage("");
+    setIsRecording(false);
+    setIsTranscribing(false);
     resetClarificationState();
     setLoading(false);
     setResolvingId(null);
+  }
+
+  async function startRecording() {
+    if (isRecording || isTranscribing || loading) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
+        setIsRecording(false);
+        setIsTranscribing(true);
+        try {
+          const form = new FormData();
+          form.append("audio", blob, "recording.webm");
+          const res = await fetch(`/api/assistant/transcribe?locale=${locale}`, { method: "POST", body: form });
+          const json = (await res.json()) as { success: boolean; data?: { text: string }; message?: string };
+          if (json.success && json.data?.text) {
+            setMessage(json.data.text);
+          } else {
+            setHistory((h) => [...h, { id: nextMessageId(idSeq), type: "error", text: t("micError") }]);
+          }
+        } catch {
+          setHistory((h) => [...h, { id: nextMessageId(idSeq), type: "error", text: t("micError") }]);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      setHistory((h) => [...h, { id: nextMessageId(idSeq), type: "error", text: t("micPermissionError") }]);
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
   }
 
   async function postAssistant(body: { message?: string; resolveSelection?: { productId: string; intent: AssistantIntent; quantity?: number | null } }) {
@@ -388,6 +441,9 @@ export function AIAssistant() {
         if (data.actionResult !== "clarification_required") {
           pendingSourceMessageRef.current = "";
         }
+        if (data.actionResult === "added" || data.actionResult === "updated" || data.actionResult === "removed") {
+          window.dispatchEvent(new CustomEvent("cart-updated"));
+        }
       } else {
         const errText = (!res.ok && !json.success && json.message) || t("failed");
         setHistory((h) => [...h.filter((m) => m.id !== loadingId), { id: nextMessageId(idSeq), type: "error", text: errText }]);
@@ -431,6 +487,9 @@ export function AIAssistant() {
           if (next.actionResult !== "clarification_required") {
             pendingSourceMessageRef.current = "";
           }
+          if (next.actionResult === "added" || next.actionResult === "updated" || next.actionResult === "removed") {
+            window.dispatchEvent(new CustomEvent("cart-updated"));
+          }
           return;
         }
 
@@ -455,6 +514,9 @@ export function AIAssistant() {
           setActiveClarificationEntryId(entry.type === "assistant_clarification" ? entry.id : null);
           if (next.actionResult !== "clarification_required") {
             pendingSourceMessageRef.current = "";
+          }
+          if (next.actionResult === "added" || next.actionResult === "updated" || next.actionResult === "removed") {
+            window.dispatchEvent(new CustomEvent("cart-updated"));
           }
           return;
         }
@@ -621,20 +683,31 @@ export function AIAssistant() {
 
             <div className="ds-ai-foot">
               <div className="ds-ai-input-wrap">
+                <button
+                  type="button"
+                  className={`ds-ai-mic-btn${isRecording ? " ds-ai-mic-btn--active" : ""}`}
+                  onClick={isRecording ? stopRecording : () => void startRecording()}
+                  disabled={isTranscribing || loading}
+                  aria-label={isRecording ? t("micStop") : t("micRecord")}
+                  title={isRecording ? t("micStop") : t("micRecord")}
+                >
+                  {isTranscribing ? "…" : isRecording ? "■" : "🎤"}
+                </button>
                 <input
                   type="text"
                   dir="auto"
                   className="ds-ai-input ds-ai-input--pill"
-                  placeholder={t("placeholder")}
+                  placeholder={isTranscribing ? t("micTranscribing") : t("placeholder")}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={onKeyDown}
+                  disabled={isTranscribing}
                 />
                 <button
                   type="button"
                   className="ds-ai-send-btn"
                   onClick={() => void send()}
-                  disabled={loading || !message.trim()}
+                  disabled={loading || isTranscribing || !message.trim()}
                   aria-label={t("send")}
                 >
                   {loading && !resolvingId ? "…" : "➤"}

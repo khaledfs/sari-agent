@@ -158,7 +158,12 @@
       "chipAdd": "إضافة منتج",
       "chipCompare": "مقارنة منتجات",
       "chipInfo": "معلومات عن منتج",
-      "chipReorder": "إعادة طلب المعتاد"
+      "chipReorder": "إعادة طلب المعتاد",
+      "micRecord": "تسجيل صوتي",
+      "micStop": "إيقاف التسجيل",
+      "micTranscribing": "جارٍ النسخ…",
+      "micError": "تعذّر نسخ الصوت. حاول الكتابة بدلاً من ذلك.",
+      "micPermissionError": "تم رفض الوصول إلى الميكروفون."
     }
   },
   "products": {
@@ -362,6 +367,77 @@
       "loading": "جارٍ تحميل العملاء…",
       "empty": "لا يوجد عملاء.",
       "error": "فشل تحميل العملاء."
+    },
+    "orders": {
+      "title": "الطلبات",
+      "loading": "جارٍ تحميل الطلبات…",
+      "empty": "لا توجد طلبات.",
+      "error": "فشل تحميل الطلبات.",
+      "filters": {
+        "all": "الكل",
+        "pending": "معلّق",
+        "processing": "قيد المعالجة",
+        "fulfilled": "مكتمل",
+        "cancelled": "ملغى"
+      },
+      "columns": {
+        "id": "رقم الطلب",
+        "customer": "العميل",
+        "items": "العناصر",
+        "total": "المجموع",
+        "status": "الحالة",
+        "date": "التاريخ"
+      },
+      "statusUpdated": "تم تحديث الحالة.",
+      "updateError": "فشل تحديث الحالة."
+    },
+    "products": {
+      "title": "المنتجات",
+      "addProduct": "إضافة منتج",
+      "loading": "جارٍ تحميل المنتجات…",
+      "empty": "لا توجد منتجات.",
+      "error": "فشل تحميل المنتجات.",
+      "columns": {
+        "name": "الاسم",
+        "sku": "الرمز",
+        "category": "الفئة",
+        "price": "السعر",
+        "unit": "الوحدة",
+        "packageSize": "التعبئة",
+        "active": "نشط"
+      },
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "toggleError": "فشل تحديث المنتج.",
+      "saveSuccess": "تم حفظ المنتج.",
+      "saveError": "فشل حفظ المنتج.",
+      "form": {
+        "title_create": "منتج جديد",
+        "title_edit": "تعديل المنتج",
+        "name": "اسم المنتج",
+        "sku": "الرمز",
+        "category": "الفئة",
+        "price": "السعر",
+        "unit": "الوحدة",
+        "packageSize": "حجم التعبئة",
+        "imageUrl": "رابط الصورة",
+        "isActive": "نشط",
+        "save": "حفظ",
+        "saving": "جارٍ الحفظ…",
+        "cancel": "إلغاء"
+      }
+    },
+    "overview": {
+      "title": "نظرة عامة",
+      "loading": "جارٍ التحميل…",
+      "error": "فشل تحميل البيانات.",
+      "stats": {
+        "totalOrders": "إجمالي الطلبات",
+        "pendingOrders": "معلّقة",
+        "totalProducts": "المنتجات",
+        "activeProducts": "منتجات نشطة",
+        "totalCustomers": "العملاء"
+      }
     }
   }
 }

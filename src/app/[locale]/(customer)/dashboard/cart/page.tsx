@@ -82,6 +82,12 @@
       void loadCart();
     }, [loadCart]);
 
+    useEffect(() => {
+      const handler = () => void loadCart();
+      window.addEventListener("cart-updated", handler);
+      return () => window.removeEventListener("cart-updated", handler);
+    }, [loadCart]);
+
     async function updateQty(productId: string, nextQty: number) {
       setBusyId(productId);
       setError("");
