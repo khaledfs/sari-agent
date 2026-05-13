@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+settings.local.json
 
 # local HTTPS dev setup (mkcert)
 mkcert.exe
