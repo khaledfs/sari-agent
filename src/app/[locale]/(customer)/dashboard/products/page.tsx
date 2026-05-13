@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Clock, TrendingUp, ShoppingBag, Home, ShoppingCart as CartIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
+import { PremiumProductCard, SmartSection, PremiumSearchBar } from "@/components/ui/premium/premium-products-page";
+import { PremiumNotification } from "@/components/ui/premium/premium-notification";
 
 type Category = {
   slug: string;
@@ -378,159 +382,326 @@ export default function ProductsPage() {
   }
 
   return (
-    <main className="ds-page">
-      <header className="ds-header-row">
-        <div>
-          <h1 className={`ds-page-title ${typography.h2}`}>{t("title")}</h1>
-          <p className={`ds-page-subtitle ${typography.body}`}>{t("subtitleCategories")}</p>
-        </div>
+    <>
+      {/* Success notification */}
+      <PremiumNotification
+        show={!!addedId}
+        message={tCart("added")}
+        onClose={() => setAddedId(null)}
+      />
 
-        <div className="ds-header-actions">
-          <Link href={`/${locale}/dashboard`} className="ds-link">
-            {tNav("home")}
-          </Link>
-          <Link href={`/${locale}/dashboard/cart`} className="ds-link">
-            {tCart("goToCart")}
-          </Link>
-        </div>
-      </header>
-
-      {smartError ? <p className="ds-error ds-mb-md">{smartError}</p> : null}
-
-      <div className="ds-mb-md">
-        <Input
-          search
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={tSmart("searchPlaceholder")}
-          aria-label={tSmart("searchPlaceholder")}
+      <main className="min-h-screen bg-gradient-to-br from-[#fafaf8] via-white to-[#faf8f3] relative overflow-hidden">
+        {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-[#c9a54c]/10 to-[#d4af37]/10 blur-3xl"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity }}
+          style={{ left: "10%", top: "10%" }}
+        />
+        <motion.div
+          className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-[#b8962e]/10 to-[#a67c00]/10 blur-3xl"
+          animate={{
+            x: [0, -100, 0],
+            y: [0, 50, 0],
+          }}
+          transition={{ duration: 15, repeat: Infinity }}
+          style={{ right: "10%", bottom: "10%" }}
         />
       </div>
 
-      <section className="ds-mb-md" aria-labelledby="smart-recent-heading">
-        <h2 id="smart-recent-heading" className="ds-smart-section-title">
-          {tSmart("recent")}
-        </h2>
-        {renderSmartStrip(recentVisible, recent, "noRecent", "none", rfLoading, "toggle")}
-      </section>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-3 mb-2"
+              >
+                <div className="p-3 bg-gradient-to-br from-[#d4af37] to-[#b8962e] rounded-2xl shadow-[0_8px_20px_rgba(201,165,76,0.3)]">
+                  <ShoppingBag className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-black bg-gradient-to-r from-[#c9a54c] via-[#d4af37] to-[#b8962e] bg-clip-text text-transparent">
+                    {t("title")}
+                  </h1>
+                </div>
+              </motion.div>
+              <p className="text-[#4a4639] text-lg ml-16">{t("subtitleCategories")}</p>
+            </div>
 
-      <section className="ds-mb-md" aria-labelledby="smart-frequent-heading">
-        <h2 id="smart-frequent-heading" className="ds-smart-section-title">
-          {tSmart("frequent")}
-        </h2>
-        {renderSmartStrip(frequentVisible, frequent, "noFrequent", "frequency", rfLoading, "toggle")}
-      </section>
-
-      <section className="ds-mb-md" aria-labelledby="smart-favorites-heading">
-        <h2 id="smart-favorites-heading" className="ds-smart-section-title">
-          {tSmart("favorites")}
-        </h2>
-        {renderSmartStrip(favoritesVisible, favorites, "noFavorites", "none", favLoading, "favorites-strip")}
-      </section>
-
-      {searchActive ? (
-        <section className="ds-mb-md" aria-labelledby="catalog-products-heading">
-          <h2 id="catalog-products-heading" className="ds-section-title">
-            {t("title")}
-          </h2>
-
-          {catalogLoading ? <p className="ds-text-muted">{t("messages.loading")}</p> : null}
-
-          {!catalogLoading && filteredProducts.length === 0 ? (
-            <p className="ds-text-muted">{t("noProducts")}</p>
-          ) : null}
-
-          {!catalogLoading && filteredProducts.length > 0 ? (
-            <ul className="ds-grid ds-grid--2 ds-grid--products">
-              {filteredProducts.map((product) => (
-                <Card
-                  as="li"
-                  key={product._id}
-                  className="ds-product-card ds-product-card--redesign group"
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex gap-3"
+            >
+              <Link href={`/${locale}/dashboard`}>
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#e8e4dc] hover:border-[#c9a54c] rounded-xl font-semibold text-[#1a1814] hover:text-[#c9a54c] transition-all shadow-sm hover:shadow-md"
                 >
-                  <div className="ds-product-media" aria-hidden="true">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        className="ds-product-media__img"
-                      />
-                    ) : (
-                      <div className="ds-product-media-fallback" />
-                    )}
-                  </div>
+                  <Home className="w-4 h-4" />
+                  {tNav("home")}
+                </motion.button>
+              </Link>
+              <Link href={`/${locale}/dashboard/cart`}>
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#d4af37] to-[#b8962e] hover:from-[#c9a54c] hover:to-[#a67c00] rounded-xl font-bold text-white shadow-[0_4px_12px_rgba(201,165,76,0.26)] hover:shadow-[0_6px_16px_rgba(201,165,76,0.34)] transition-all"
+                >
+                  <CartIcon className="w-4 h-4" />
+                  {tCart("goToCart")}
+                </motion.button>
+              </Link>
+            </motion.div>
+          </div>
 
-                  <div className="ds-product-body">
-                    <p className="ds-product-name ds-product-name--sm">{product.name}</p>
-                    <p className="ds-product-price">
-                      ₪ {product.price} / {product.unit || t("fields.defaultUnit")}
-                    </p>
-                    <p className="ds-text-caption">
-                      {t("fields.sku")}: {product.sku}
-                    </p>
-                  </div>
+          {/* Error message */}
+          <AnimatePresence>
+            {smartError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium"
+              >
+                {smartError}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                  <div className="ds-stack ds-stack--tight ds-mt-sm">
-                    <Button
-                      variant="primary"
-                      block
-                      disabled={addingId === product._id}
-                      onClick={() => void addToCart(product._id)}
+          {/* Search bar */}
+          <div className="mb-8">
+            <PremiumSearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder={tSmart("searchPlaceholder")}
+            />
+          </div>
+        </motion.header>
+
+        {/* Recent Products */}
+        <SmartSection
+          title={tSmart("recent")}
+          icon={<Clock className="w-5 h-5 text-[#c9a54c]" />}
+          products={recentVisible}
+          emptyMessage={tSmart("noRecent")}
+          loading={rfLoading}
+          onAddToCart={addToCart}
+          onToggleFavorite={toggleFavorite}
+          favoriteIds={favoriteIds}
+          addingId={addingId}
+          addedId={addedId}
+          favBusyId={favBusyId}
+        />
+
+        {/* Frequent Products */}
+        <SmartSection
+          title={tSmart("frequent")}
+          icon={<TrendingUp className="w-5 h-5 text-[#c9a54c]" />}
+          products={frequentVisible}
+          emptyMessage={tSmart("noFrequent")}
+          loading={rfLoading}
+          onAddToCart={addToCart}
+          onToggleFavorite={toggleFavorite}
+          favoriteIds={favoriteIds}
+          addingId={addingId}
+          addedId={addedId}
+          favBusyId={favBusyId}
+          showFrequency
+        />
+
+        {/* Favorite Products */}
+        <SmartSection
+          title={tSmart("favorites")}
+          icon={<Heart className="w-5 h-5 text-[#c9a54c]" />}
+          products={favoritesVisible}
+          emptyMessage={tSmart("noFavorites")}
+          loading={favLoading}
+          onAddToCart={addToCart}
+          onToggleFavorite={toggleFavorite}
+          favoriteIds={favoriteIds}
+          addingId={addingId}
+          addedId={addedId}
+          favBusyId={favBusyId}
+        />
+
+        {/* Catalog Products (Search Results) */}
+        <AnimatePresence>
+          {searchActive && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-12"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-gradient-to-br from-[#c9a54c]/20 to-[#b8962e]/20 rounded-xl">
+                  <ShoppingBag className="w-5 h-5 text-[#c9a54c]" />
+                </div>
+                <h2 className="text-2xl font-bold text-[#1a1814]">{t("title")}</h2>
+              </div>
+
+              {catalogLoading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="h-[450px] bg-gradient-to-br from-[#f7f6f3] to-[#eeece6] rounded-[22px] animate-pulse"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {!catalogLoading && filteredProducts.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-br from-[#fdf6e3]/50 to-white border border-[#e8e4dc] rounded-2xl p-12 text-center"
+                >
+                  <p className="text-[#8a8477] text-lg">{t("noProducts")}</p>
+                </motion.div>
+              )}
+
+              {!catalogLoading && filteredProducts.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  {filteredProducts.map((product, idx) => (
+                    <motion.div
+                      key={product._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
                     >
-                      {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
-                    </Button>
+                      <PremiumProductCard
+                        product={product}
+                        onAddToCart={addToCart}
+                        onToggleFavorite={toggleFavorite}
+                        isFavorite={favoriteIds.has(product._id)}
+                        isAdding={addingId === product._id}
+                        isAdded={addedId === product._id}
+                        isFavBusy={favBusyId === product._id}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </motion.section>
+          )}
+        </AnimatePresence>
 
-                    {renderFavoriteControls(product, "strip")}
+        {/* Categories Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-12"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-[#c9a54c]/20 to-[#b8962e]/20 rounded-xl">
+              <ShoppingBag className="w-5 h-5 text-[#c9a54c]" />
+            </div>
+            <h2 className="text-2xl font-bold text-[#1a1814]">{t("categories")}</h2>
+          </div>
 
-                    {addedId === product._id ? (
-                      <span className="ds-success-text" role="status">
-                        {tCart("added")}
-                      </span>
-                    ) : null}
-                  </div>
-                </Card>
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="h-[200px] bg-gradient-to-br from-[#f7f6f3] to-[#eeece6] rounded-[22px] animate-pulse"
+                />
               ))}
-            </ul>
-          ) : null}
-        </section>
-      ) : null}
+            </div>
+          )}
 
-      <section className="ds-mb-md" aria-labelledby="categories-heading">
-        <h2 id="categories-heading" className="ds-section-title">
-          {t("categories")}
-        </h2>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center"
+            >
+              <p className="text-red-700 font-medium">{error}</p>
+            </motion.div>
+          )}
 
-        {loading ? <p className="ds-text-muted">{t("messages.loadingCategories")}</p> : null}
-        {error ? <p className="ds-error">{error}</p> : null}
+          {!loading && !error && filteredCategories.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-br from-[#fdf6e3]/50 to-white border border-[#e8e4dc] rounded-2xl p-12 text-center"
+            >
+              <p className="text-[#8a8477] text-lg">{t("noCategories")}</p>
+            </motion.div>
+          )}
 
-        {!loading && !error && filteredCategories.length === 0 ? (
-          <p className="ds-text-muted">{t("noCategories")}</p>
-        ) : null}
+          {!loading && !error && filteredCategories.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCategories.map((c, idx) => (
+                <motion.div
+                  key={c.slug}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  className="group relative h-full"
+                >
+                  {/* Glow effect */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-[#c9a54c]/20 via-[#d4af37]/20 to-[#b8962e]/20 rounded-[24px] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-        {!loading && !error && filteredCategories.length > 0 ? (
-          <ul className="ds-grid ds-grid--2 ds-grid--categories">
-            {filteredCategories.map((c) => (
-              <Card as="li" key={c.slug} className="ds-category-card">
-                <Link href={`/${locale}/dashboard/products/${c.slug}`} className="ds-category-link">
-                  <div className="ds-category-media" aria-hidden="true">
-                    {c.imageUrl ? (
-                      <img src={c.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="ds-category-media-fallback" />
-                    )}
-                    <div className="ds-category-overlay" />
-                    <p className="ds-category-title-on-media">
-                      {c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}
-                    </p>
-                  </div>
-                </Link>
-              </Card>
-            ))}
-          </ul>
-        ) : null}
-      </section>
+                  <Link
+                    href={`/${locale}/dashboard/products/${c.slug}`}
+                    className="relative block h-full bg-gradient-to-br from-white to-[#faf8f3] border border-[#e8e4dc] rounded-[22px] overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.08)] group-hover:shadow-[0_20px_50px_rgba(201,165,76,0.18)] group-hover:border-[#d4cfc4] transition-all duration-300"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden bg-[#f7f6f3]">
+                      {c.imageUrl ? (
+                        <img
+                          src={c.imageUrl}
+                          alt={c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#f7f6f3] via-[#eeece6] to-[#e8e4dc] flex items-center justify-center">
+                          <div className="w-20 h-20 rounded-full bg-[#c9a54c]/10 flex items-center justify-center">
+                            <ShoppingBag className="w-10 h-10 text-[#c9a54c]/40" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dark overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+                      {/* Category title */}
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-white font-black text-xl leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)] group-hover:text-[#fdf6e3] transition-colors">
+                          {c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}
+                        </h3>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.section>
+      </div>
     </main>
+    </>
   );
 }

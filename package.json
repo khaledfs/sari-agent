@@ -11,9 +11,13 @@
     "ml:train": "python scripts/train_logistic_recommendation.py"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
+    "framer-motion": "^12.38.0",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.8.0",
     "mongoose": "^9.3.3",
     "next": "16.2.1",
     "next-intl": "^4.8.3",
