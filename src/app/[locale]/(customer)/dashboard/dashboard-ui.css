@@ -13,33 +13,32 @@
 ══════════════════════════════════════════════════════════ */
 
 .ds-dash-shell {
-  /* Local token overrides scoped to dashboard */
+  /* Local token overrides scoped to dashboard - LIGHT MODE */
   --ds-primary:       #c8902f;
   --ds-primary-hover: #e4a83c;
   --ds-primary-glow:  rgba(200, 144, 47, 0.30);
   --ds-success:       #4a9e6e;
   --ds-success-hover: #3d8a5e;
   --ds-danger:        #c03535;
-  --ds-text:          #ede4d0;
-  --ds-text-secondary:#b5a88e;
-  --ds-muted:         #6b6050;
-  --ds-border:        rgba(255, 255, 255, 0.07);
-  --ds-border-strong: rgba(255, 255, 255, 0.11);
+  --ds-text:          #1a1814;
+  --ds-text-secondary:#4a4639;
+  --ds-muted:         #8a8477;
+  --ds-border:        rgba(0, 0, 0, 0.08);
+  --ds-border-strong: rgba(0, 0, 0, 0.12);
   --ds-border-gold:   rgba(200, 144, 47, 0.22);
-  --ds-surface:       #141008;
-  --ds-surface-2:     #1c1710;
-  --ds-surface-3:     #252019;
+  --ds-surface:       #ffffff;
+  --ds-surface-2:     #f7f6f3;
+  --ds-surface-3:     #eeece6;
 
-  --ds-shadow:        0 4px 18px rgba(0, 0, 0, 0.5);
-  --ds-shadow-hover:  0 12px 36px rgba(0, 0, 0, 0.6);
-  --ds-shadow-strong: 0 24px 60px rgba(0, 0, 0, 0.7);
-  --ds-shadow-gold:   0 8px 28px rgba(200, 144, 47, 0.28);
+  --ds-shadow:        0 4px 18px rgba(0, 0, 0, 0.08);
+  --ds-shadow-hover:  0 12px 36px rgba(0, 0, 0, 0.12);
+  --ds-shadow-strong: 0 24px 60px rgba(0, 0, 0, 0.15);
+  --ds-shadow-gold:   0 8px 28px rgba(200, 144, 47, 0.20);
 
   --ds-radius:        14px;
   --ds-radius-lg:     22px;
   --ds-radius-pill:   999px;
 
-  /* Page entrance stagger counter */
   --ds-stagger: 0;
 
   max-width: 72rem;
@@ -50,6 +49,25 @@
   box-sizing: border-box;
   color: var(--ds-text);
   background-color: transparent;
+  color-scheme: light;
+}
+
+.dark .ds-dash-shell {
+  /* DARK MODE overrides */
+  --ds-text:          #ede4d0;
+  --ds-text-secondary:#b5a88e;
+  --ds-muted:         #6b6050;
+  --ds-border:        rgba(255, 255, 255, 0.07);
+  --ds-border-strong: rgba(255, 255, 255, 0.11);
+  --ds-surface:       #141008;
+  --ds-surface-2:     #1c1710;
+  --ds-surface-3:     #252019;
+
+  --ds-shadow:        0 4px 18px rgba(0, 0, 0, 0.5);
+  --ds-shadow-hover:  0 12px 36px rgba(0, 0, 0, 0.6);
+  --ds-shadow-strong: 0 24px 60px rgba(0, 0, 0, 0.7);
+  --ds-shadow-gold:   0 8px 28px rgba(200, 144, 47, 0.28);
+
   color-scheme: dark;
 }
 
@@ -289,9 +307,13 @@
   inset-block-start: 0;
   inset-inline: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   border-radius: inherit;
   pointer-events: none;
+}
+
+.dark .ds-card::before {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
 }
 
 .ds-card--clickable {
@@ -656,16 +678,27 @@
   border-radius: 28px;
   padding: 2.5rem 2rem;
   margin-block-end: 2rem;
+  /* Light gold gradient */
+  background:
+    radial-gradient(ellipse 60% 80% at 100% 50%, rgba(200,144,47,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 0% 100%, rgba(200,144,47,0.05) 0%, transparent 50%),
+    linear-gradient(135deg, #faf8f3 0%, #f0ede6 50%, #faf6ed 100%);
+  border: 1px solid var(--ds-border-gold);
+  box-shadow:
+    var(--ds-shadow-strong),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  animation: ds-hero-enter 700ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.dark .ds-home-hero {
   /* Dark gold gradient with depth */
   background:
     radial-gradient(ellipse 60% 80% at 100% 50%, rgba(200,144,47,0.18) 0%, transparent 60%),
     radial-gradient(ellipse 80% 60% at 0% 100%, rgba(200,144,47,0.08) 0%, transparent 50%),
     linear-gradient(135deg, #1e1810 0%, #13100a 50%, #1a1208 100%);
-  border: 1px solid var(--ds-border-gold);
   box-shadow:
     var(--ds-shadow-strong),
     inset 0 1px 0 rgba(255,255,255,0.04);
-  animation: ds-hero-enter 700ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 
 @keyframes ds-hero-enter {

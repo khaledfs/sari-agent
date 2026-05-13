@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-display",
@@ -27,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html className={`${cormorant.variable} ${dmSans.variable} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <DarkModeToggle />
+      </body>
     </html>
   );
 }

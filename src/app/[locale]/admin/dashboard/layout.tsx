@@ -57,7 +57,7 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
         width: "100%",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <Image src="/logo.png" alt="Sari" width={100} height={28} style={{ height: "28px", width: "auto", objectFit: "contain" }} priority />
+          <Image src="/logo.png" alt="Sari" width={150} height={42} style={{ height: "42px", width: "auto", objectFit: "contain" }} priority />
           <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--brand)", background: "var(--brand-bg)", padding: "0.15rem 0.5rem", borderRadius: "var(--radius-pill)" }}>
             {t("badge")}
           </span>

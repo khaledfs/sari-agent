@@ -114,8 +114,8 @@ export default function DashboardPage() {
 
       <section className="ds-home-section">
         <div className="ds-home-section__head">
-          <h2 className="ds-section-title">ניווט מהיר</h2>
-          <p className="ds-page-subtitle">גישה מהירה לפעולות החשובות ביותר במערכת.</p>
+          <h2 className="ds-section-title">{t("hub.quickNav")}</h2>
+          <p className="ds-page-subtitle">{t("hub.quickNavSubtitle")}</p>
         </div>
 
         <div className="ds-hub-grid ds-hub-grid--premium">

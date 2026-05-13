@@ -121,6 +121,8 @@
       "subtitle": "Open a section below or use the links at the top.",
       "welcome": "Welcome back",
       "welcomeSubtitle": "Manage your orders, products, and account from here.",
+      "quickNav": "Quick Navigation",
+      "quickNavSubtitle": "Quick access to the most important operations in the system.",
       "desc": {
         "products": "Browse & order",
         "cart": "Review items",

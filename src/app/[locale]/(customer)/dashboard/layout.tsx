@@ -84,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="ds-dash-shell">
       <div style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center" }}>
-        <Image src="/logo.png" alt="Sari" width={120} height={34} style={{ height: "30px", width: "auto", objectFit: "contain" }} priority />
+        <Image src="/logo.png" alt="Sari" width={180} height={51} style={{ height: "45px", width: "auto", objectFit: "contain" }} priority />
       </div>
       <div className="ds-nav-border">
         <DashboardNav />
