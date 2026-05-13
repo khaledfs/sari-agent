@@ -52,7 +52,7 @@ export const PremiumProductCard = ({
 
       <div className="relative h-full bg-gradient-to-br from-white to-[#faf8f3] border border-[#e8e4dc] rounded-[22px] overflow-hidden shadow-[0_4px_14px_rgba(15,23,42,0.08)] group-hover:shadow-[0_20px_50px_rgba(201,165,76,0.18)] group-hover:border-[#d4cfc4] transition-all duration-300">
         {/* Image container */}
-        <div className="relative aspect-square overflow-hidden bg-[#f7f6f3] border-b border-[#e8e4dc]">
+        <div className="relative aspect-[4/3] overflow-hidden bg-[#f7f6f3] border-b border-[#e8e4dc]">
           {product.imageUrl ? (
             <>
               <img
@@ -67,14 +67,14 @@ export const PremiumProductCard = ({
               />
               {!imageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 border-4 border-[#c9a54c]/20 border-t-[#c9a54c] rounded-full animate-spin" />
+                  <div className="w-10 h-10 border-4 border-[#c9a54c]/20 border-t-[#c9a54c] rounded-full animate-spin" />
                 </div>
               )}
             </>
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[#f7f6f3] via-[#eeece6] to-[#e8e4dc] flex items-center justify-center">
-              <div className="w-20 h-20 rounded-full bg-[#c9a54c]/10 flex items-center justify-center">
-                <Sparkles className="w-10 h-10 text-[#c9a54c]/40" />
+              <div className="w-16 h-16 rounded-full bg-[#c9a54c]/10 flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-[#c9a54c]/40" />
               </div>
             </div>
           )}
@@ -85,19 +85,19 @@ export const PremiumProductCard = ({
             whileTap={{ scale: 0.9 }}
             onClick={() => onToggleFavorite(product._id, !isFavorite)}
             disabled={isFavBusy}
-            className={`absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-xl border transition-all duration-300 ${
+            className={`absolute top-2 right-2 w-9 h-9 rounded-full backdrop-blur-xl border transition-all duration-300 ${
               isFavorite
                 ? "bg-[#c9a54c] border-[#b8962e] text-white shadow-[0_4px_12px_rgba(201,165,76,0.4)]"
                 : "bg-white/90 border-white/50 text-[#8a8477] hover:text-[#c9a54c]"
             } flex items-center justify-center`}
           >
-            <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+            <Heart className={`w-4 h-4 ${isFavorite ? "fill-current" : ""}`} />
           </motion.button>
 
           {/* Frequency badge */}
           {showFrequency && typeof product.frequency === "number" && (
-            <div className="absolute top-3 left-3 px-3 py-1.5 bg-[#c9a54c] text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5" />
+            <div className="absolute top-2 left-2 px-2.5 py-1 bg-[#c9a54c] text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
               {product.frequency}x
             </div>
           )}
@@ -107,31 +107,31 @@ export const PremiumProductCard = ({
         </div>
 
         {/* Content */}
-        <div className="p-4 flex flex-col gap-2.5">
+        <div className="p-3 flex flex-col gap-2">
           {/* Product name */}
-          <h3 className="font-bold text-[#1a1814] text-base leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-[#c9a54c] transition-colors">
+          <h3 className="font-bold text-[#1a1814] text-sm leading-tight line-clamp-2 min-h-[2rem] group-hover:text-[#c9a54c] transition-colors">
             {product.name}
           </h3>
 
           {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black bg-gradient-to-r from-[#c9a54c] to-[#b8962e] bg-clip-text text-transparent">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black bg-gradient-to-r from-[#c9a54c] to-[#b8962e] bg-clip-text text-transparent">
               ₪{product.price}
             </span>
-            <span className="text-sm text-[#8a8477]">/ {product.unit}</span>
+            <span className="text-xs text-[#8a8477]">/ {product.unit}</span>
           </div>
 
           {/* SKU */}
           <p className="text-xs text-[#8a8477] font-medium">SKU: {product.sku}</p>
 
           {/* Actions */}
-          <div className="flex flex-col gap-2 mt-2">
+          <div className="flex flex-col gap-2 mt-1.5">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onAddToCart(product._id)}
               disabled={isAdding}
-              className="relative w-full px-4 py-3 bg-gradient-to-r from-[#d4af37] to-[#b8962e] hover:from-[#c9a54c] hover:to-[#a67c00] text-white font-bold rounded-xl shadow-[0_10px_22px_rgba(201,165,76,0.26)] hover:shadow-[0_14px_28px_rgba(201,165,76,0.34)] transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden group/btn"
+              className="relative w-full px-3 py-2.5 bg-gradient-to-r from-[#d4af37] to-[#b8962e] hover:from-[#c9a54c] hover:to-[#a67c00] text-white font-bold text-sm rounded-xl shadow-[0_10px_22px_rgba(201,165,76,0.26)] hover:shadow-[0_14px_28px_rgba(201,165,76,0.34)] transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden group/btn"
             >
               <AnimatePresence mode="wait">
                 {isAdding ? (
@@ -226,7 +226,7 @@ export const SmartSection = ({
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="min-w-[280px] h-[400px] bg-gradient-to-br from-[#f7f6f3] to-[#eeece6] rounded-[22px] animate-pulse"
+              className="min-w-[240px] h-[320px] bg-gradient-to-br from-[#f7f6f3] to-[#eeece6] rounded-[22px] animate-pulse"
             />
           ))}
         </div>
@@ -273,7 +273,7 @@ export const SmartSection = ({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className="min-w-[280px] snap-start"
+            className="min-w-[240px] snap-start"
           >
             <PremiumProductCard
               product={product}
