@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
+import { useViewportMode } from "@/lib/use-viewport";
 
 type Product = {
   _id: string;
@@ -34,6 +35,7 @@ export default function CategoryProductsPage() {
   const locale = useLocale();
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
+  const viewportMode = useViewportMode();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -156,12 +158,16 @@ export default function CategoryProductsPage() {
 
       {!loading && !error && filtered.length > 0 ? (
         <ul className="ds-grid ds-grid--2 ds-grid--products">
-          {filtered.map((product) => (
-            <Card
-              as="li"
-              key={product._id}
-              className="ds-product-card ds-product-card--redesign group"
-            >
+          {filtered.map((product) => {
+            const ProductWrapper = viewportMode === "mobile" ? Card : "li";
+            const productProps = viewportMode === "mobile"
+              ? { as: "li" as const, className: "ds-product-card ds-product-card--redesign group" }
+              : { className: "ds-product-card ds-product-card--redesign ds-product-card--no-card group" };
+            return (
+              <ProductWrapper
+                key={product._id}
+                {...productProps}
+              >
               <div className="ds-product-media" aria-hidden="true">
                 {product.imageUrl ? (
                   <img
@@ -204,8 +210,9 @@ export default function CategoryProductsPage() {
                   </span>
                 ) : null}
               </div>
-            </Card>
-          ))}
+            </ProductWrapper>
+          );
+          })}
         </ul>
       ) : null}
     </main>

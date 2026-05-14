@@ -121,6 +121,8 @@
       "subtitle": "בחר מקטע למטה או מהקישורים למעלה.",
       "welcome": "ברוך הבא",
       "welcomeSubtitle": "נהל הזמנות, מוצרים וחשבון מכאן.",
+      "quickNav": "ניווט מהיר",
+      "quickNavSubtitle": "גישה מהירה לפעולות החשובות ביותר במערכת.",
       "desc": {
         "products": "עיון והזמנה",
         "cart": "סקירת פריטים",
@@ -158,7 +160,51 @@
       "chipAdd": "הוסף מוצר",
       "chipCompare": "השווה מוצרים",
       "chipInfo": "מידע על מוצר",
-      "chipReorder": "הזמן שוב פריט קבוע"
+      "chipReorder": "הזמן שוב פריט קבוע",
+      "micRecord": "הקלט קול",
+      "micStop": "עצור הקלטה",
+      "micTranscribing": "מתמלל…",
+      "micError": "לא ניתן לתמלל. נסה להקליד במקום זאת.",
+      "micPermissionError": "הגישה למיקרופון נדחתה."
+    },
+    "landing": {
+      "features": {
+        "title": "נבנה למסחר מזון B2B",
+        "speed": {
+          "title": "מהירות ברק",
+          "description": "בצע הזמנות בשניות עם זרימת העבודה המייעלת שלנו"
+        },
+        "ai": {
+          "title": "עוזר AI",
+          "description": "קבל עזרה מיידית במציאת מוצרים וביצוע הזמנות"
+        },
+        "tracking": {
+          "title": "מעקב בזמן אמת",
+          "description": "עקוב אחר כל הזמנה מהרגע שהיא מבוצעת ועד המשלוח"
+        }
+      },
+      "actions": {
+        "title": "פעולות מהירות"
+      },
+      "trust": {
+        "catalog": {
+          "title": "קטלוג פרימיום",
+          "description": "אלפי מוצרים באיכות גבוהה"
+        },
+        "delivery": {
+          "title": "משלוח מהיר",
+          "description": "אפשרויות משלוח באותו יום ולמחרת"
+        },
+        "support": {
+          "title": "תמיכה 24/7",
+          "description": "אנחנו כאן כשאתה צריך אותנו"
+        }
+      },
+      "footer": {
+        "help": "צריך עזרה?",
+        "viewLedger": "צפה בכרטסת",
+        "settings": "הגדרות חשבון"
+      }
     }
   },
   "products": {
@@ -362,6 +408,77 @@
       "loading": "טוען לקוחות…",
       "empty": "לא נמצאו לקוחות.",
       "error": "טעינת הלקוחות נכשלה."
+    },
+    "orders": {
+      "title": "הזמנות",
+      "loading": "טוען הזמנות…",
+      "empty": "לא נמצאו הזמנות.",
+      "error": "טעינת ההזמנות נכשלה.",
+      "filters": {
+        "all": "הכל",
+        "pending": "ממתין",
+        "processing": "בטיפול",
+        "fulfilled": "הושלם",
+        "cancelled": "בוטל"
+      },
+      "columns": {
+        "id": "מזהה הזמנה",
+        "customer": "לקוח",
+        "items": "פריטים",
+        "total": "סכום",
+        "status": "סטטוס",
+        "date": "תאריך"
+      },
+      "statusUpdated": "הסטטוס עודכן.",
+      "updateError": "עדכון הסטטוס נכשל."
+    },
+    "products": {
+      "title": "מוצרים",
+      "addProduct": "הוסף מוצר",
+      "loading": "טוען מוצרים…",
+      "empty": "לא נמצאו מוצרים.",
+      "error": "טעינת המוצרים נכשלה.",
+      "columns": {
+        "name": "שם",
+        "sku": "מק״ט",
+        "category": "קטגוריה",
+        "price": "מחיר",
+        "unit": "יחידה",
+        "packageSize": "אריזה",
+        "active": "פעיל"
+      },
+      "active": "פעיל",
+      "inactive": "לא פעיל",
+      "toggleError": "עדכון המוצר נכשל.",
+      "saveSuccess": "המוצר נשמר.",
+      "saveError": "שמירת המוצר נכשלה.",
+      "form": {
+        "title_create": "מוצר חדש",
+        "title_edit": "עריכת מוצר",
+        "name": "שם המוצר",
+        "sku": "מק״ט",
+        "category": "קטגוריה",
+        "price": "מחיר",
+        "unit": "יחידה",
+        "packageSize": "גודל אריזה",
+        "imageUrl": "כתובת תמונה",
+        "isActive": "פעיל",
+        "save": "שמור",
+        "saving": "שומר…",
+        "cancel": "ביטול"
+      }
+    },
+    "overview": {
+      "title": "סקירה כללית",
+      "loading": "טוען נתונים…",
+      "error": "טעינת הנתונים נכשלה.",
+      "stats": {
+        "totalOrders": "סה״כ הזמנות",
+        "pendingOrders": "ממתינות",
+        "totalProducts": "מוצרים",
+        "activeProducts": "מוצרים פעילים",
+        "totalCustomers": "לקוחות"
+      }
     }
   }
 }

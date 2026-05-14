@@ -23,6 +23,13 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+settings.local.json
+
+# local HTTPS dev setup (mkcert)
+mkcert.exe
+*.key.pem
+*+*.pem
 
 # debug
 npm-debug.log*
@@ -30,8 +37,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — keep .env.example, ignore everything else
 .env*
+!.env.example
 
 # vercel
 .vercel

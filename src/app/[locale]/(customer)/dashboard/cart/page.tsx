@@ -7,6 +7,7 @@
   import { Button } from "@/components/ui/Button";
   import { Card } from "@/components/ui/Card";
   import { typography } from "@/design/typography";
+  import { useViewportMode } from "@/lib/use-viewport";
 
   type QtyDraftById = Record<string, string | undefined>;
 
@@ -36,6 +37,7 @@
     const tNav = useTranslations("dashboard.nav");
     const locale = useLocale();
     const router = useRouter();
+    const viewportMode = useViewportMode();
     const [cart, setCart] = useState<CartData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -80,6 +82,12 @@
 
     useEffect(() => {
       void loadCart();
+    }, [loadCart]);
+
+    useEffect(() => {
+      const handler = () => void loadCart();
+      window.addEventListener("cart-updated", handler);
+      return () => window.removeEventListener("cart-updated", handler);
     }, [loadCart]);
 
     async function updateQty(productId: string, nextQty: number) {
@@ -227,8 +235,13 @@
         {!loading && cart && cart.items.length > 0 ? (
           <>
             <ul className="ds-list">
-              {cart.items.map((line) => (
-                <Card as="li" key={line.productId} className="ds-stack ds-stack--tight ds-cart-row-card">
+              {cart.items.map((line) => {
+                const CartWrapper = viewportMode === "mobile" ? Card : "li";
+                const cartProps = viewportMode === "mobile"
+                  ? { as: "li" as const, className: "ds-stack ds-stack--tight ds-cart-row-card" }
+                  : { className: "ds-stack ds-stack--tight ds-cart-row-card ds-cart-row-card--no-card" };
+                return (
+                  <CartWrapper key={line.productId} {...cartProps}>
                   <div className="ds-product-row">
                     <div className="ds-thumb" aria-hidden="true">
                       {line.product.imageUrl ? (
@@ -303,8 +316,9 @@
                   <p className="ds-text-small">
                     <strong>{t("lineTotal")}:</strong> {line.lineTotal}
                   </p>
-                </Card>
-              ))}
+                </CartWrapper>
+              );
+              })}
             </ul>
             <div className="ds-totals-strip ds-totals-strip--strong">
               <span>{t("total")}:</span>

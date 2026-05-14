@@ -121,12 +121,53 @@
       "subtitle": "Open a section below or use the links at the top.",
       "welcome": "Welcome back",
       "welcomeSubtitle": "Manage your orders, products, and account from here.",
+      "quickNav": "Quick Navigation",
+      "quickNavSubtitle": "Quick access to the most important operations in the system.",
       "desc": {
         "products": "Browse & order",
         "cart": "Review items",
         "orders": "Track history",
         "profile": "Account details",
         "ledger": "Invoices, checks & balances"
+      }
+    },
+    "landing": {
+      "features": {
+        "title": "Built for B2B Food Trade",
+        "speed": {
+          "title": "Lightning Fast",
+          "description": "Place orders in seconds with our streamlined workflow"
+        },
+        "ai": {
+          "title": "AI Assistant",
+          "description": "Get instant help finding products and placing orders"
+        },
+        "tracking": {
+          "title": "Real-Time Tracking",
+          "description": "Monitor every order from placement to delivery"
+        }
+      },
+      "actions": {
+        "title": "Quick Actions"
+      },
+      "trust": {
+        "catalog": {
+          "title": "Premium Catalog",
+          "description": "Thousands of quality products"
+        },
+        "delivery": {
+          "title": "Fast Delivery",
+          "description": "Same-day and next-day options"
+        },
+        "support": {
+          "title": "24/7 Support",
+          "description": "We're here when you need us"
+        }
+      },
+      "footer": {
+        "help": "Need help?",
+        "viewLedger": "View ledger",
+        "settings": "Account settings"
       }
     },
     "assistant": {
@@ -158,7 +199,12 @@
       "chipAdd": "Add product",
       "chipCompare": "Compare products",
       "chipInfo": "Product info",
-      "chipReorder": "Reorder usual item"
+      "chipReorder": "Reorder usual item",
+      "micRecord": "Record voice",
+      "micStop": "Stop recording",
+      "micTranscribing": "Transcribing…",
+      "micError": "Could not transcribe. Try typing instead.",
+      "micPermissionError": "Microphone access denied."
     }
   },
   "products": {
@@ -362,6 +408,77 @@
       "loading": "Loading customers…",
       "empty": "No customers found.",
       "error": "Failed to load customers."
+    },
+    "orders": {
+      "title": "Orders",
+      "loading": "Loading orders…",
+      "empty": "No orders found.",
+      "error": "Failed to load orders.",
+      "filters": {
+        "all": "All",
+        "pending": "Pending",
+        "processing": "Processing",
+        "fulfilled": "Fulfilled",
+        "cancelled": "Cancelled"
+      },
+      "columns": {
+        "id": "Order ID",
+        "customer": "Customer",
+        "items": "Items",
+        "total": "Total",
+        "status": "Status",
+        "date": "Date"
+      },
+      "statusUpdated": "Status updated.",
+      "updateError": "Failed to update status."
+    },
+    "products": {
+      "title": "Products",
+      "addProduct": "Add Product",
+      "loading": "Loading products…",
+      "empty": "No products found.",
+      "error": "Failed to load products.",
+      "columns": {
+        "name": "Name",
+        "sku": "SKU",
+        "category": "Category",
+        "price": "Price",
+        "unit": "Unit",
+        "packageSize": "Package",
+        "active": "Active"
+      },
+      "active": "Active",
+      "inactive": "Inactive",
+      "toggleError": "Failed to update product.",
+      "saveSuccess": "Product saved.",
+      "saveError": "Failed to save product.",
+      "form": {
+        "title_create": "New Product",
+        "title_edit": "Edit Product",
+        "name": "Product Name",
+        "sku": "SKU",
+        "category": "Category",
+        "price": "Price",
+        "unit": "Unit",
+        "packageSize": "Package Size",
+        "imageUrl": "Image URL",
+        "isActive": "Active",
+        "save": "Save",
+        "saving": "Saving…",
+        "cancel": "Cancel"
+      }
+    },
+    "overview": {
+      "title": "Overview",
+      "loading": "Loading overview…",
+      "error": "Failed to load overview.",
+      "stats": {
+        "totalOrders": "Total Orders",
+        "pendingOrders": "Pending",
+        "totalProducts": "Products",
+        "activeProducts": "Active Products",
+        "totalCustomers": "Customers"
+      }
     }
   }
 }
