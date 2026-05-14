@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
+import { useViewportMode } from "@/lib/use-viewport";
 
 type Category = {
   slug: string;
@@ -53,6 +54,7 @@ export default function ProductsPage() {
   const tCart = useTranslations("cart");
   const tSmart = useTranslations("smartOrdering");
   const locale = useLocale();
+  const viewportMode = useViewportMode();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -314,13 +316,17 @@ export default function ProductsPage() {
       return <p className="ds-text-muted">{tSmart(emptyKey)}</p>;
     }
 
+    const ProductWrapper = viewportMode === "mobile" ? Card : "li";
+    const wrapperProps = viewportMode === "mobile"
+      ? { as: "li" as const, className: "ds-product-card ds-product-card--redesign group" }
+      : { className: "ds-product-card ds-product-card--redesign ds-product-card--no-card group" };
+
     return (
       <ul className="ds-smart-strip">
         {products.map((product) => (
-          <Card
-            as="li"
+          <ProductWrapper
             key={`${emptyKey}-${product._id}`}
-            className="ds-product-card ds-product-card--redesign group"
+            {...wrapperProps}
           >
             <div className="ds-product-media" aria-hidden="true">
               {product.imageUrl ? (
@@ -371,7 +377,7 @@ export default function ProductsPage() {
                 </span>
               ) : null}
             </div>
-          </Card>
+          </ProductWrapper>
         ))}
       </ul>
     );
@@ -442,12 +448,16 @@ export default function ProductsPage() {
 
           {!catalogLoading && filteredProducts.length > 0 ? (
             <ul className="ds-grid ds-grid--2 ds-grid--products">
-              {filteredProducts.map((product) => (
-                <Card
-                  as="li"
-                  key={product._id}
-                  className="ds-product-card ds-product-card--redesign group"
-                >
+              {filteredProducts.map((product) => {
+                const CatalogWrapper = viewportMode === "mobile" ? Card : "li";
+                const catalogProps = viewportMode === "mobile"
+                  ? { as: "li" as const, className: "ds-product-card ds-product-card--redesign group" }
+                  : { className: "ds-product-card ds-product-card--redesign ds-product-card--no-card group" };
+                return (
+                  <CatalogWrapper
+                    key={product._id}
+                    {...catalogProps}
+                  >
                   <div className="ds-product-media" aria-hidden="true">
                     {product.imageUrl ? (
                       <img
@@ -490,8 +500,9 @@ export default function ProductsPage() {
                       </span>
                     ) : null}
                   </div>
-                </Card>
-              ))}
+                </CatalogWrapper>
+              );
+              })}
             </ul>
           ) : null}
         </section>
@@ -511,23 +522,29 @@ export default function ProductsPage() {
 
         {!loading && !error && filteredCategories.length > 0 ? (
           <ul className="ds-grid ds-grid--2 ds-grid--categories">
-            {filteredCategories.map((c) => (
-              <Card as="li" key={c.slug} className="ds-category-card">
-                <Link href={`/${locale}/dashboard/products/${c.slug}`} className="ds-category-link">
-                  <div className="ds-category-media" aria-hidden="true">
-                    {c.imageUrl ? (
-                      <img src={c.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="ds-category-media-fallback" />
-                    )}
-                    <div className="ds-category-overlay" />
-                    <p className="ds-category-title-on-media">
-                      {c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}
-                    </p>
-                  </div>
-                </Link>
-              </Card>
-            ))}
+            {filteredCategories.map((c) => {
+              const CategoryWrapper = viewportMode === "mobile" ? Card : "li";
+              const categoryProps = viewportMode === "mobile"
+                ? { as: "li" as const, className: "ds-category-card" }
+                : { className: "ds-category-card ds-category-card--no-card" };
+              return (
+                <CategoryWrapper key={c.slug} {...categoryProps}>
+                  <Link href={`/${locale}/dashboard/products/${c.slug}`} className="ds-category-link">
+                    <div className="ds-category-media" aria-hidden="true">
+                      {c.imageUrl ? (
+                        <img src={c.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="ds-category-media-fallback" />
+                      )}
+                      <div className="ds-category-overlay" />
+                      <p className="ds-category-title-on-media">
+                        {c.displayName[locale as "he" | "en" | "ar"] ?? c.displayName.en}
+                      </p>
+                    </div>
+                  </Link>
+                </CategoryWrapper>
+              );
+            })}
           </ul>
         ) : null}
       </section>

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { StatusBadgeState } from "@/components/ui/StatusBadge";
 import { typography } from "@/design/typography";
+import { useViewportMode } from "@/lib/use-viewport";
 
 type OrderSummary = {
   id: string;
@@ -31,6 +32,7 @@ export default function OrdersPage() {
   const tSmart = useTranslations("smartOrdering");
   const tCart = useTranslations("cart");
   const locale = useLocale();
+  const viewportMode = useViewportMode();
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -141,9 +143,14 @@ export default function OrdersPage() {
 
       {!loading && orders.length > 0 ? (
         <ul className="ds-list">
-          {orders.map((o) => (
-            <li key={o.id}>
-              <Card className="ds-stack ds-stack--tight ds-order-card">
+          {orders.map((o) => {
+            const OrderWrapper = viewportMode === "mobile" ? Card : "div";
+            const orderProps = viewportMode === "mobile"
+              ? { className: "ds-stack ds-stack--tight ds-order-card" }
+              : { className: "ds-stack ds-stack--tight ds-order-card ds-order-card--no-card" };
+            return (
+              <li key={o.id}>
+                <OrderWrapper {...orderProps}>
                 <div className="ds-order-row">
                   <Link href={`/${locale}/dashboard/orders/${o.id}`} className="ds-order-list-link">
                     <div className="ds-order-meta">
@@ -164,9 +171,10 @@ export default function OrdersPage() {
                 >
                   {reorderingId === o.id ? tSmart("reordering") : tSmart("reorder")}
                 </Button>
-              </Card>
+              </OrderWrapper>
             </li>
-          ))}
+          );
+          })}
         </ul>
       ) : null}
     </main>

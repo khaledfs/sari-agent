@@ -131,6 +131,45 @@
         "ledger": "Invoices, checks & balances"
       }
     },
+    "landing": {
+      "features": {
+        "title": "Built for B2B Food Trade",
+        "speed": {
+          "title": "Lightning Fast",
+          "description": "Place orders in seconds with our streamlined workflow"
+        },
+        "ai": {
+          "title": "AI Assistant",
+          "description": "Get instant help finding products and placing orders"
+        },
+        "tracking": {
+          "title": "Real-Time Tracking",
+          "description": "Monitor every order from placement to delivery"
+        }
+      },
+      "actions": {
+        "title": "Quick Actions"
+      },
+      "trust": {
+        "catalog": {
+          "title": "Premium Catalog",
+          "description": "Thousands of quality products"
+        },
+        "delivery": {
+          "title": "Fast Delivery",
+          "description": "Same-day and next-day options"
+        },
+        "support": {
+          "title": "24/7 Support",
+          "description": "We're here when you need us"
+        }
+      },
+      "footer": {
+        "help": "Need help?",
+        "viewLedger": "View ledger",
+        "settings": "Account settings"
+      }
+    },
     "assistant": {
       "launch": "AI Assistant",
       "title": "Smart Ordering Assistant",
