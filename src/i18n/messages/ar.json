@@ -1,0 +1,425 @@
+{
+  "home": {
+    "title": "نظام طلبات B2B",
+    "description": "بنية MVP مع دعم تعدد اللغات والتحقق عبر الرسائل النصية."
+  },
+  "register": {
+    "title": "إنشاء حساب الأعمال",
+    "subtitle": "أدخل بياناتك أدناه للبدء",
+    "links": {
+      "login": "لديك حساب بالفعل؟ سجّل الدخول"
+    },
+    "fields": {
+      "businessName": "اسم النشاط التجاري",
+      "email": "البريد الإلكتروني",
+      "phoneNumber": "رقم الهاتف",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور"
+    },
+    "placeholders": {
+      "businessName": "أدخل اسم النشاط التجاري",
+      "email": "name@company.com",
+      "phoneNumber": "+972501234567",
+      "password": "8 أحرف على الأقل مع كبير/صغير ورقم",
+      "confirmPassword": "أعد إدخال كلمة المرور"
+    },
+    "actions": {
+      "submit": "تسجيل",
+      "submitting": "جارٍ التسجيل..."
+    },
+    "messages": {
+      "success": "تم التسجيل بنجاح، تحقق من رسالة SMS للحصول على رمز التحقق",
+      "genericError": "فشل التسجيل. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "developmentHint": "وضع التطوير: يتم طباعة رمز التحقق في سجل الخادم."
+    },
+    "errors": {
+      "businessNameRequired": "اسم النشاط التجاري مطلوب.",
+      "emailRequired": "البريد الإلكتروني مطلوب.",
+      "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
+      "phoneRequired": "رقم الهاتف مطلوب.",
+      "phoneInvalid": "أدخل رقم هاتف صالحًا.",
+      "passwordRequired": "كلمة المرور مطلوبة.",
+      "passwordInvalid": "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم.",
+      "confirmPasswordRequired": "تأكيد كلمة المرور مطلوب.",
+      "confirmPasswordMismatch": "كلمتا المرور غير متطابقتين."
+    }
+  },
+  "verify": {
+    "title": "التحقق من الهاتف",
+    "subtitle": "أدخل الرمز المكوّن من 6 أرقام المرسل إلى هاتفك",
+    "fields": {
+      "verificationCode": "رمز التحقق"
+    },
+    "placeholders": {
+      "verificationCode": "رمز مكوّن من 6 أرقام"
+    },
+    "actions": {
+      "submit": "تحقق",
+      "submitting": "جارٍ التحقق..."
+    },
+    "messages": {
+      "success": "تم التحقق بنجاح، يمكنك الآن تسجيل الدخول",
+      "genericError": "فشل التحقق. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "missingPhoneNumber": "رقم الهاتف غير متوفر. يرجى التسجيل مرة أخرى أو فتح الصفحة مع ‎?phoneNumber=+972....‎",
+      "developmentHint": "وضع التطوير: يتم طباعة رمز التحقق في سجل الخادم."
+    },
+    "errors": {
+      "codeRequired": "رمز التحقق مطلوب.",
+      "codeInvalid": "أدخل رمزًا صالحًا مكوّنًا من 6 أرقام."
+    }
+  },
+  "login": {
+    "title": "تسجيل الدخول",
+    "subtitle": "سجّل دخولك إلى حسابك التجاري",
+    "fields": {
+      "identifier": "البريد الإلكتروني أو رقم الهاتف",
+      "password": "كلمة المرور"
+    },
+    "placeholders": {
+      "identifier": "name@company.com أو ‎053.... / +9725....‎",
+      "password": "كلمة المرور"
+    },
+    "actions": {
+      "submit": "دخول",
+      "submitting": "جارٍ تسجيل الدخول..."
+    },
+    "messages": {
+      "success": "تم تسجيل الدخول بنجاح",
+      "genericError": "فشل تسجيل الدخول. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى."
+    },
+    "errors": {
+      "required": "البريد/الهاتف وكلمة المرور مطلوبة."
+    },
+    "links": {
+      "register": "ليس لديك حساب؟ سجّل الآن"
+    }
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "actions": {
+      "logout": "تسجيل الخروج"
+    },
+    "messages": {
+      "welcome": "تم تسجيل دخولك.",
+      "loading": "جارٍ التحميل..."
+    },
+    "nav": {
+      "home": "الرئيسية",
+      "products": "المنتجات",
+      "cart": "السلة",
+      "orders": "الطلبات",
+      "profile": "الملف",
+      "ledger": "دفتر الحسابات"
+    },
+    "hub": {
+      "title": "لوحة التحكم",
+      "subtitle": "اختر قسمًا أدناه أو من الروابط أعلى الصفحة.",
+      "welcome": "مرحبًا بعودتك",
+      "welcomeSubtitle": "أدِر طلباتك ومنتجاتك وحسابك من هنا.",
+      "desc": {
+        "products": "تصفّح واطلب",
+        "cart": "راجع العناصر",
+        "orders": "تتبّع السجل",
+        "profile": "تفاصيل الحساب",
+        "ledger": "فواتير وشيكات وأرصدة"
+      }
+    },
+    "assistant": {
+      "launch": "مساعد AI",
+      "title": "مساعد الطلبات الذكي",
+      "subtitle": "فهم أسرع وتوضيح ذكي ومقارنة دقيقة",
+      "close": "إغلاق",
+      "placeholder": "اكتب ما تريد طلبه...",
+      "emptyHint": "جرّب اختصارًا سريعًا أو اكتب أمرًا أدناه.",
+      "send": "إرسال",
+      "sending": "جارٍ الإرسال…",
+      "thinking": "المساعد يفكّر…",
+      "choose": "اختر",
+      "choosing": "…",
+      "sku": "SKU",
+      "price": "السعر",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى.",
+      "failed": "تعذّر إكمال الطلب.",
+      "followUpWithSelection": "اخترت {name}. {original}",
+      "viewCart": "فتح السلة",
+      "tagOption": "خيار",
+      "tagInfo": "معلومات",
+      "tagCompared": "مقارنة",
+      "tagSelected": "محدّد",
+      "compareProductA": "المنتج A",
+      "compareProductB": "المنتج B",
+      "compareCheaper": "أرخص",
+      "compareCategoryDiff": "اختلاف الفئة",
+      "chipAdd": "إضافة منتج",
+      "chipCompare": "مقارنة منتجات",
+      "chipInfo": "معلومات عن منتج",
+      "chipReorder": "إعادة طلب المعتاد"
+    },
+    "home": {
+      "eyebrow": "SARI · تجارة الجملة",
+      "statsOrders": "طلبات هذا الشهر",
+      "statsFavorites": "المفضّلة المحفوظة",
+      "statsCatalog": "منتجات في الكتالوج",
+      "spotlightBadge": "مختار لك",
+      "spotlightTitle": "أعد الطلب بنقرة واحدة",
+      "spotlightEmpty": "بعد طلبك الأول، ستظهر منتجاتك المعتادة هنا لإعادة الطلب فورًا.",
+      "quickNav": "تنقّل سريع",
+      "quickNavSub": "وصول سريع إلى أهم الإجراءات.",
+      "benefitsTitle": "لماذا يختار التجّار SARI",
+      "benefit1Title": "توصيل في اليوم التالي",
+      "benefit1Desc": "توريد سريع وموثوق مباشرة إلى عملك.",
+      "benefit2Title": "أسعار الجملة",
+      "benefit2Desc": "أفضل الشروط، مباشرة من المستودع.",
+      "benefit3Title": "مساعد ذكي 24/7",
+      "benefit3Desc": "ابحث وقارن واطلب في ثوانٍ.",
+      "added": "أُضيف!"
+    }
+  },
+  "products": {
+    "title": "المنتجات",
+    "subtitle": "تصفح المنتجات النشطة المتاحة للطلب.",
+    "categories": "الفئات",
+    "subtitleCategories": "اختر فئة لتصفّح المنتجات.",
+    "subtitleCategoryProducts": "تصفح المنتجات ضمن هذه الفئة.",
+    "allCategories": "كل الفئات",
+    "searchCategories": "ابحث في الفئات...",
+    "searchProducts": "ابحث في المنتجات...",
+    "noCategories": "لم يتم العثور على فئات.",
+    "noProducts": "لا توجد منتجات ضمن هذه الفئة.",
+    "category": "الفئة",
+    "fields": {
+      "price": "السعر",
+      "sku": "SKU",
+      "defaultUnit": "وحدة"
+    },
+    "actions": {
+      "addToCart": "أضف إلى السلة",
+      "adding": "جارٍ الإضافة…"
+    },
+    "messages": {
+      "loading": "جارٍ تحميل المنتجات...",
+      "empty": "لا توجد منتجات نشطة.",
+      "fetchError": "فشل تحميل المنتجات.",
+      "loadingCategories": "جارٍ تحميل الفئات...",
+      "fetchCategoriesError": "فشل تحميل الفئات.",
+      "addError": "تعذّرت الإضافة إلى السلة."
+    }
+  },
+  "smartOrdering": {
+    "recent": "مختارات حديثة",
+    "frequent": "الأكثر طلبًا",
+    "reorder": "إعادة الطلب",
+    "reordering": "جارٍ إعادة الطلب…",
+    "reorderSuccess": "تمت إضافة {added} عنصرًا إلى السلة. تم تخطي {skipped}.",
+    "reorderError": "تعذّرت إعادة الطلب. حاول مرة أخرى.",
+    "noRecent": "لا توجد منتجات حديثة بعد. بعد أول طلب ستظهر اقتراحات هنا.",
+    "noFrequent": "لا توجد منتجات متكررة بعد.",
+    "favorites": "المفضّلة",
+    "noFavorites": "لا توجد مفضّلات محفوظة بعد. استخدم «حفظ» على منتج لإضافته هنا.",
+    "addFavorite": "حفظ",
+    "removeFavorite": "إزالة",
+    "favoriteBusy": "جارٍ الحفظ…",
+    "favoriteError": "تعذّر تحديث المفضّلة. حاول مرة أخرى.",
+    "searchPlaceholder": "ابحث في الفئات والمنتجات (الاسم، الـ SKU، الفئة)…",
+    "orderedQty": "إجمالي الكمية المطلوبة: {count}",
+    "orderedTimes": "طُلب {count}×"
+  },
+  "cart": {
+    "title": "السلة",
+    "empty": "سلتك فارغة.",
+    "total": "الإجمالي",
+    "quantity": "الكمية",
+    "remove": "إزالة",
+    "added": "تمت الإضافة إلى السلة.",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "loading": "جارٍ تحميل السلة…",
+    "goToCart": "عرض السلة",
+    "backToProducts": "العودة إلى المنتجات",
+    "sku": "SKU",
+    "unitPrice": "سعر الوحدة",
+    "lineTotal": "إجمالي السطر",
+    "increase": "زيادة الكمية",
+    "decrease": "تقليل الكمية",
+    "clearCart": "إفراغ السلة",
+    "emptyCta": "تصفّح المنتجات",
+    "itemsUnit": "عناصر",
+    "freeDeliveryRemaining": "يفصلك ₪<strong>{amount}</strong> عن التوصيل المجاني",
+    "freeDeliveryMet": "رائع! لقد فتحت التوصيل المجاني"
+  },
+  "orders": {
+    "title": "الطلبات",
+    "empty": "لا توجد طلبات بعد.",
+    "total": "الإجمالي",
+    "status": "الحالة",
+    "createdAt": "التاريخ",
+    "placeOrder": "تأكيد الطلب",
+    "placingOrder": "جارٍ إرسال الطلب…",
+    "details": "تفاصيل الطلب",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "success": "تم إرسال الطلب.",
+    "loading": "جارٍ تحميل الطلبات…",
+    "backToCart": "العودة إلى السلة",
+    "backToList": "العودة إلى الطلبات",
+    "items": "العناصر",
+    "quantity": "الكمية",
+    "itemPrice": "سعر الوحدة",
+    "lineTotal": "إجمالي السطر",
+    "emptyCta": "تصفّح المنتجات",
+    "trackingTitle": "تتبّع الطلب",
+    "timeline": {
+      "aria": "تقدّم الطلب",
+      "placed": "تم الاستلام",
+      "confirmed": "تم التأكيد",
+      "packed": "تم التغليف",
+      "outForDelivery": "قيد التوصيل",
+      "delivered": "تم التسليم",
+      "cancelled": "ملغى"
+    }
+  },
+  "account": {
+    "title": "حساب العمل",
+    "businessProfile": "ملف العمل",
+    "businessName": "اسم العمل",
+    "phoneNumber": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "accountSummary": "ملخص الحساب",
+    "balance": "الرصيد",
+    "totalDebt": "إجمالي الدين",
+    "lastPaymentDate": "آخر دفعة",
+    "paymentsOverview": "نظرة على المدفوعات",
+    "paymentDate": "التاريخ",
+    "paymentAmount": "المبلغ",
+    "loading": "جارٍ التحميل…",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "noPayments": "لا توجد مدفوعات لعرضها."
+  },
+  "ledger": {
+    "title": "دفتر الحسابات",
+    "subtitle": "الفواتير والمدفوعات والشيكات وملخص الحساب في مكان واحد.",
+    "loading": "جارٍ تحميل دفتر الحسابات…",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "sections": {
+      "summary": "ملخص الحساب",
+      "payments": "المدفوعات",
+      "checks": "الشيكات",
+      "invoices": "الفواتير"
+    },
+    "checkNumber": "رقم الشيك",
+    "bank": "البنك",
+    "checkDate": "التاريخ",
+    "amount": "المبلغ",
+    "checkStatus": {
+      "cleared": "مسدد",
+      "pending": "قيد الانتظار",
+      "returned": "مرتجع"
+    },
+    "checksEmpty": "لا توجد شيكات لعرضها."
+  },
+  "invoices": {
+    "title": "الفواتير",
+    "invoiceNumber": "رقم الفاتورة",
+    "date": "التاريخ",
+    "dueDate": "تاريخ الاستحقاق",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "paid": "مدفوعة",
+    "unpaid": "غير مدفوعة",
+    "overdue": "متأخرة",
+    "loading": "جارٍ تحميل الفواتير…",
+    "empty": "لا توجد فواتير لعرضها.",
+    "error": "حدث خطأ. حاول مرة أخرى."
+  },
+  "adminLogin": {
+    "title": "دخول المشرف",
+    "subtitle": "سجّل دخولك إلى لوحة الإدارة",
+    "fields": {
+      "identifier": "البريد الإلكتروني أو رقم الهاتف",
+      "password": "كلمة المرور"
+    },
+    "placeholders": {
+      "identifier": "name@company.com أو ‎053.... / +9725....‎",
+      "password": "كلمة المرور"
+    },
+    "actions": {
+      "submit": "دخول",
+      "submitting": "جارٍ تسجيل الدخول..."
+    },
+    "messages": {
+      "success": "تم تسجيل الدخول بنجاح",
+      "genericError": "فشل تسجيل الدخول. حاول مرة أخرى.",
+      "networkError": "خطأ في الشبكة. حاول مرة أخرى."
+    },
+    "errors": {
+      "required": "البريد/الهاتف وكلمة المرور مطلوبة."
+    }
+  },
+  "adminDashboard": {
+    "title": "لوحة إدارة المشرف",
+    "badge": "مشرف",
+    "actions": {
+      "logout": "تسجيل الخروج"
+    },
+    "messages": {
+      "loading": "جارٍ التحميل..."
+    },
+    "hub": {
+      "title": "لوحة إدارة المشرف",
+      "subtitle": "أدِر عملك من هنا.",
+      "cards": {
+        "overview": "نظرة عامة",
+        "overviewDesc": "المبيعات والإيرادات والنشاط",
+        "customers": "العملاء",
+        "customersDesc": "إدارة الحسابات والملفات",
+        "orders": "الطلبات",
+        "ordersDesc": "تتبع ومعالجة الطلبات",
+        "products": "المنتجات",
+        "productsDesc": "الكتالوج والمخزون"
+      },
+      "backToDashboard": "العودة إلى لوحة الإدارة",
+      "comingSoon": "هذا القسم قيد الإنشاء."
+    },
+    "customers": {
+      "title": "العملاء",
+      "columns": {
+        "businessName": "اسم النشاط التجاري",
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "verified": "موثّق",
+        "joined": "تاريخ الانضمام"
+      },
+      "verified": "نعم",
+      "notVerified": "لا",
+      "loading": "جارٍ تحميل العملاء…",
+      "empty": "لا يوجد عملاء.",
+      "error": "فشل تحميل العملاء."
+    },
+    "orders": {
+      "title": "الطلبات",
+      "subtitle": "تابع طلبات العملاء وحدّث حالتها.",
+      "loading": "جارٍ تحميل الطلبات…",
+      "empty": "لا توجد طلبات من العملاء بعد.",
+      "error": "فشل تحميل الطلبات.",
+      "updateError": "فشل تحديث الحالة.",
+      "unknownCustomer": "عميل غير معروف",
+      "columns": {
+        "customer": "العميل",
+        "phone": "الهاتف",
+        "date": "التاريخ",
+        "items": "العناصر",
+        "total": "الإجمالي",
+        "status": "الحالة"
+      },
+      "status": {
+        "pending": "تم الاستلام",
+        "confirmed": "تم التأكيد",
+        "packed": "تم التغليف",
+        "out_for_delivery": "قيد التوصيل",
+        "delivered": "تم التسليم",
+        "cancelled": "ملغى"
+      }
+    }
+  }
+}

@@ -1,0 +1,425 @@
+{
+  "home": {
+    "title": "B2B Ordering System",
+    "description": "MVP foundation with multilingual and SMS verification support."
+  },
+  "register": {
+    "title": "Create your business account",
+    "subtitle": "Fill in the details below to get started",
+    "links": {
+      "login": "Already have an account? Log in"
+    },
+    "fields": {
+      "businessName": "Business name",
+      "email": "Email",
+      "phoneNumber": "Phone number",
+      "password": "Password",
+      "confirmPassword": "Confirm password"
+    },
+    "placeholders": {
+      "businessName": "Enter business name",
+      "email": "name@company.com",
+      "phoneNumber": "+972501234567",
+      "password": "At least 8 chars, upper/lower/number",
+      "confirmPassword": "Re-enter your password"
+    },
+    "actions": {
+      "submit": "Register",
+      "submitting": "Registering..."
+    },
+    "messages": {
+      "success": "Registration successful, check your SMS for verification code",
+      "genericError": "Registration failed. Please try again.",
+      "networkError": "Network error. Please try again.",
+      "developmentHint": "Development mode: verification code is printed in the server console."
+    },
+    "errors": {
+      "businessNameRequired": "Business name is required.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "phoneRequired": "Phone number is required.",
+      "phoneInvalid": "Enter a valid phone number.",
+      "passwordRequired": "Password is required.",
+      "passwordInvalid": "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+      "confirmPasswordRequired": "Confirm password is required.",
+      "confirmPasswordMismatch": "Passwords do not match."
+    }
+  },
+  "verify": {
+    "title": "Verify your phone",
+    "subtitle": "Enter the 6-digit code sent to your phone",
+    "fields": {
+      "verificationCode": "Verification code"
+    },
+    "placeholders": {
+      "verificationCode": "6-digit code"
+    },
+    "actions": {
+      "submit": "Verify",
+      "submitting": "Verifying..."
+    },
+    "messages": {
+      "success": "Verification successful, you can now login",
+      "genericError": "Verification failed. Please try again.",
+      "networkError": "Network error. Please try again.",
+      "missingPhoneNumber": "Missing phone number context. Please register again or open this page with ?phoneNumber=+972....",
+      "developmentHint": "Development mode: verification code is printed in the server console."
+    },
+    "errors": {
+      "codeRequired": "Verification code is required.",
+      "codeInvalid": "Enter a valid 6-digit code."
+    }
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "Sign in to your business account",
+    "fields": {
+      "identifier": "Email or phone number",
+      "password": "Password"
+    },
+    "placeholders": {
+      "identifier": "name@company.com or 053.... / +9725....",
+      "password": "Your password"
+    },
+    "actions": {
+      "submit": "Login",
+      "submitting": "Logging in..."
+    },
+    "messages": {
+      "success": "Login successful",
+      "genericError": "Login failed. Please try again.",
+      "networkError": "Network error. Please try again."
+    },
+    "errors": {
+      "required": "Email/phone and password are required."
+    },
+    "links": {
+      "register": "Don't have an account? Register"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "actions": {
+      "logout": "Logout"
+    },
+    "messages": {
+      "welcome": "You are logged in.",
+      "loading": "Loading..."
+    },
+    "nav": {
+      "home": "Home",
+      "products": "Products",
+      "cart": "Cart",
+      "orders": "Orders",
+      "profile": "Profile",
+      "ledger": "Ledger"
+    },
+    "hub": {
+      "title": "Your dashboard",
+      "subtitle": "Open a section below or use the links at the top.",
+      "welcome": "Welcome back",
+      "welcomeSubtitle": "Manage your orders, products, and account from here.",
+      "desc": {
+        "products": "Browse & order",
+        "cart": "Review items",
+        "orders": "Track history",
+        "profile": "Account details",
+        "ledger": "Invoices, checks & balances"
+      }
+    },
+    "assistant": {
+      "launch": "AI Assistant",
+      "title": "Smart Ordering Assistant",
+      "subtitle": "Fast recognition, smart clarification, accurate compare",
+      "close": "Close",
+      "placeholder": "Tell me what you want to order...",
+      "emptyHint": "Try a quick prompt or type a command below.",
+      "send": "Send",
+      "sending": "Processing…",
+      "thinking": "Assistant is thinking…",
+      "choose": "Choose",
+      "choosing": "…",
+      "sku": "SKU",
+      "price": "Price",
+      "networkError": "Network error. Please try again.",
+      "failed": "Could not complete the request.",
+      "followUpWithSelection": "I chose {name}. {original}",
+      "viewCart": "Open cart",
+      "tagOption": "Option",
+      "tagInfo": "Info",
+      "tagCompared": "Compared",
+      "tagSelected": "Selected",
+      "compareProductA": "Product A",
+      "compareProductB": "Product B",
+      "compareCheaper": "is cheaper",
+      "compareCategoryDiff": "Category difference",
+      "chipAdd": "Add product",
+      "chipCompare": "Compare products",
+      "chipInfo": "Product info",
+      "chipReorder": "Reorder usual item"
+    },
+    "home": {
+      "eyebrow": "SARI · Wholesale Trade",
+      "statsOrders": "Orders this month",
+      "statsFavorites": "Saved favorites",
+      "statsCatalog": "Products in catalog",
+      "spotlightBadge": "Picked for you",
+      "spotlightTitle": "Reorder in one tap",
+      "spotlightEmpty": "After your first order, your regular items appear here for instant reordering.",
+      "quickNav": "Quick navigation",
+      "quickNavSub": "Fast access to the actions that matter most.",
+      "benefitsTitle": "Why traders choose SARI",
+      "benefit1Title": "Next-day delivery",
+      "benefit1Desc": "Fast, reliable supply straight to your business.",
+      "benefit2Title": "Wholesale pricing",
+      "benefit2Desc": "The best terms, direct from the warehouse.",
+      "benefit3Title": "Smart assistant 24/7",
+      "benefit3Desc": "Find, compare and order in seconds.",
+      "added": "Added!"
+    }
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Browse active products available for ordering.",
+    "categories": "Categories",
+    "subtitleCategories": "Choose a category to browse products.",
+    "subtitleCategoryProducts": "Browse products in this category.",
+    "allCategories": "All categories",
+    "searchCategories": "Search categories...",
+    "searchProducts": "Search products...",
+    "noCategories": "No categories found.",
+    "noProducts": "No products found in this category.",
+    "category": "Category",
+    "fields": {
+      "price": "Price",
+      "sku": "SKU",
+      "defaultUnit": "unit"
+    },
+    "actions": {
+      "addToCart": "Add to cart",
+      "adding": "Adding…"
+    },
+    "messages": {
+      "loading": "Loading products...",
+      "empty": "No active products found.",
+      "fetchError": "Failed to load products.",
+      "loadingCategories": "Loading categories...",
+      "fetchCategoriesError": "Failed to load categories.",
+      "addError": "Could not add to cart."
+    }
+  },
+  "smartOrdering": {
+    "recent": "Recent picks",
+    "frequent": "Often ordered",
+    "reorder": "Reorder",
+    "reordering": "Reordering…",
+    "reorderSuccess": "{added} items added to your cart. {skipped} skipped.",
+    "reorderError": "Could not reorder. Try again.",
+    "noRecent": "No recent products yet. Place an order to see suggestions here.",
+    "noFrequent": "No frequent products yet.",
+    "favorites": "Favorites",
+    "noFavorites": "No saved favorites yet. Use “Save” on a product to add it here.",
+    "addFavorite": "Save",
+    "removeFavorite": "Remove",
+    "favoriteBusy": "Saving…",
+    "favoriteError": "Could not update favorites. Try again.",
+    "searchPlaceholder": "Search categories and products (name, SKU, category)…",
+    "orderedQty": "Total ordered: {count}",
+    "orderedTimes": "Ordered {count}×"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "total": "Total",
+    "quantity": "Qty",
+    "remove": "Remove",
+    "added": "Added to cart.",
+    "error": "Something went wrong. Try again.",
+    "loading": "Loading cart…",
+    "goToCart": "View cart",
+    "backToProducts": "Back to products",
+    "sku": "SKU",
+    "unitPrice": "Unit price",
+    "lineTotal": "Line total",
+    "increase": "Increase quantity",
+    "decrease": "Decrease quantity",
+    "clearCart": "Clear cart",
+    "emptyCta": "Browse products",
+    "itemsUnit": "items",
+    "freeDeliveryRemaining": "You're ₪<strong>{amount}</strong> away from free delivery",
+    "freeDeliveryMet": "Nice! You've unlocked free delivery"
+  },
+  "orders": {
+    "title": "Orders",
+    "empty": "No orders yet.",
+    "total": "Total",
+    "status": "Status",
+    "createdAt": "Date",
+    "placeOrder": "Place order",
+    "placingOrder": "Placing order…",
+    "details": "Order details",
+    "error": "Something went wrong. Try again.",
+    "success": "Order placed.",
+    "loading": "Loading orders…",
+    "backToCart": "Back to cart",
+    "backToList": "Back to orders",
+    "items": "Items",
+    "quantity": "Qty",
+    "itemPrice": "Unit price",
+    "lineTotal": "Line total",
+    "emptyCta": "Browse products",
+    "trackingTitle": "Order status",
+    "timeline": {
+      "aria": "Order progress",
+      "placed": "Placed",
+      "confirmed": "Confirmed",
+      "packed": "Packed",
+      "outForDelivery": "Out for delivery",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    }
+  },
+  "account": {
+    "title": "Business account",
+    "businessProfile": "Business profile",
+    "businessName": "Business name",
+    "phoneNumber": "Phone",
+    "email": "Email",
+    "accountSummary": "Account summary",
+    "balance": "Balance",
+    "totalDebt": "Total debt",
+    "lastPaymentDate": "Last payment",
+    "paymentsOverview": "Payments overview",
+    "paymentDate": "Date",
+    "paymentAmount": "Amount",
+    "loading": "Loading…",
+    "error": "Something went wrong. Try again.",
+    "noPayments": "No payments to show."
+  },
+  "ledger": {
+    "title": "Ledger",
+    "subtitle": "Invoices, payments, checks, and your account summary in one place.",
+    "loading": "Loading ledger…",
+    "error": "Something went wrong. Try again.",
+    "sections": {
+      "summary": "Account summary",
+      "payments": "Payments",
+      "checks": "Checks",
+      "invoices": "Invoices"
+    },
+    "checkNumber": "Check #",
+    "bank": "Bank",
+    "checkDate": "Date",
+    "amount": "Amount",
+    "checkStatus": {
+      "cleared": "Cleared",
+      "pending": "Pending",
+      "returned": "Returned"
+    },
+    "checksEmpty": "No checks to show."
+  },
+  "invoices": {
+    "title": "Invoices",
+    "invoiceNumber": "Invoice #",
+    "date": "Date",
+    "dueDate": "Due date",
+    "amount": "Amount",
+    "status": "Status",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "overdue": "Overdue",
+    "loading": "Loading invoices…",
+    "empty": "No invoices to show.",
+    "error": "Something went wrong. Try again."
+  },
+  "adminLogin": {
+    "title": "Admin Login",
+    "subtitle": "Sign in to the admin panel",
+    "fields": {
+      "identifier": "Email or phone number",
+      "password": "Password"
+    },
+    "placeholders": {
+      "identifier": "name@company.com or 053.... / +9725....",
+      "password": "Your password"
+    },
+    "actions": {
+      "submit": "Login",
+      "submitting": "Logging in..."
+    },
+    "messages": {
+      "success": "Login successful",
+      "genericError": "Login failed. Please try again.",
+      "networkError": "Network error. Please try again."
+    },
+    "errors": {
+      "required": "Email/phone and password are required."
+    }
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "badge": "Admin",
+    "actions": {
+      "logout": "Logout"
+    },
+    "messages": {
+      "loading": "Loading..."
+    },
+    "hub": {
+      "title": "Admin Dashboard",
+      "subtitle": "Manage your business from here.",
+      "cards": {
+        "overview": "Overview",
+        "overviewDesc": "Sales, revenue & activity",
+        "customers": "Customers",
+        "customersDesc": "Manage accounts & profiles",
+        "orders": "Orders",
+        "ordersDesc": "Track & process orders",
+        "products": "Products",
+        "productsDesc": "Catalog & inventory"
+      },
+      "backToDashboard": "Back to dashboard",
+      "comingSoon": "This section is under construction."
+    },
+    "customers": {
+      "title": "Customers",
+      "columns": {
+        "businessName": "Business Name",
+        "email": "Email",
+        "phone": "Phone",
+        "verified": "Verified",
+        "joined": "Joined"
+      },
+      "verified": "Yes",
+      "notVerified": "No",
+      "loading": "Loading customers…",
+      "empty": "No customers found.",
+      "error": "Failed to load customers."
+    },
+    "orders": {
+      "title": "Orders",
+      "subtitle": "Track customer orders and update their status.",
+      "loading": "Loading orders…",
+      "empty": "No customer orders yet.",
+      "error": "Failed to load orders.",
+      "updateError": "Failed to update status.",
+      "unknownCustomer": "Unknown customer",
+      "columns": {
+        "customer": "Customer",
+        "phone": "Phone",
+        "date": "Date",
+        "items": "Items",
+        "total": "Total",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Placed",
+        "confirmed": "Confirmed",
+        "packed": "Packed",
+        "out_for_delivery": "Out for delivery",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled"
+      }
+    }
+  }
+}

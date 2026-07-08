@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Recurse -Path \"src\\\\app\" -Filter \"page.tsx\" | Where-Object { $_.FullName -match \"orders|cart|products\" } | Select-Object FullName)",
+      "PowerShell(Get-ChildItem -Recurse -Path \"src\\\\app\\\\api\" -Filter \"route.ts\" | Where-Object { $_.FullName -match \"admin\" } | Select-Object FullName)",
+      "PowerShell(\\(Get-Content \"src\\\\i18n\\\\messages\\\\he.json\" | Measure-Object -Line\\).Lines; \\(Get-Content \"src\\\\i18n\\\\messages\\\\en.json\" | Measure-Object -Line\\).Lines; \\(Get-Content \"src\\\\i18n\\\\messages\\\\ar.json\" | Measure-Object -Line\\).Lines)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 40; Write-Output \"---EXIT:$LASTEXITCODE---\")",
+      "PowerShell(foreach \\($f in @\\(\"src\\\\i18n\\\\messages\\\\he.json\",\"src\\\\i18n\\\\messages\\\\en.json\",\"src\\\\i18n\\\\messages\\\\ar.json\"\\)\\) { try { Get-Content $f -Raw | ConvertFrom-Json | Out-Null; Write-Output \"$f OK\" } catch { Write-Output \"$f INVALID: $_\" } })",
+      "PowerShell(npx eslint \"src/app/[locale]/\\(customer\\)/dashboard/orders/page.tsx\" \"src/app/[locale]/\\(customer\\)/dashboard/orders/[id]/page.tsx\" \"src/app/[locale]/\\(customer\\)/dashboard/orders/OrderTimeline.tsx\" 2>&1 | Select-Object -First 40; Write-Output \"---EXIT:$LASTEXITCODE---\")"
+    ]
+  }
+}

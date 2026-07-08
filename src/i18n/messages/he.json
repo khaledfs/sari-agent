@@ -1,0 +1,425 @@
+{
+  "home": {
+    "title": "מערכת הזמנות לעסקים",
+    "description": "תשתית MVP עם תמיכה בריבוי שפות ואימות SMS."
+  },
+  "register": {
+    "title": "יצירת חשבון עסקי",
+    "subtitle": "מלא את הפרטים להלן כדי להתחיל",
+    "links": {
+      "login": "כבר יש לך חשבון? התחבר"
+    },
+    "fields": {
+      "businessName": "שם העסק",
+      "email": "אימייל",
+      "phoneNumber": "מספר טלפון",
+      "password": "סיסמה",
+      "confirmPassword": "אימות סיסמה"
+    },
+    "placeholders": {
+      "businessName": "הזן שם עסק",
+      "email": "name@company.com",
+      "phoneNumber": "+972501234567",
+      "password": "לפחות 8 תווים עם אותיות גדולות/קטנות ומספר",
+      "confirmPassword": "הזן שוב את הסיסמה"
+    },
+    "actions": {
+      "submit": "הרשמה",
+      "submitting": "נרשם..."
+    },
+    "messages": {
+      "success": "ההרשמה הצליחה, בדוק את ה-SMS שלך לקבלת קוד אימות",
+      "genericError": "ההרשמה נכשלה. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב.",
+      "developmentHint": "מצב פיתוח: קוד האימות מודפס בקונסול השרת."
+    },
+    "errors": {
+      "businessNameRequired": "שם העסק הוא שדה חובה.",
+      "emailRequired": "אימייל הוא שדה חובה.",
+      "emailInvalid": "יש להזין כתובת אימייל תקינה.",
+      "phoneRequired": "מספר טלפון הוא שדה חובה.",
+      "phoneInvalid": "יש להזין מספר טלפון תקין.",
+      "passwordRequired": "סיסמה היא שדה חובה.",
+      "passwordInvalid": "הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה ומספר.",
+      "confirmPasswordRequired": "אימות סיסמה הוא שדה חובה.",
+      "confirmPasswordMismatch": "הסיסמאות אינן תואמות."
+    }
+  },
+  "verify": {
+    "title": "אימות טלפון",
+    "subtitle": "הזן את הקוד בן 6 הספרות שנשלח לטלפון שלך",
+    "fields": {
+      "verificationCode": "קוד אימות"
+    },
+    "placeholders": {
+      "verificationCode": "קוד בן 6 ספרות"
+    },
+    "actions": {
+      "submit": "אימות",
+      "submitting": "מאמת..."
+    },
+    "messages": {
+      "success": "האימות הצליח, כעת ניתן להתחבר",
+      "genericError": "האימות נכשל. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב.",
+      "missingPhoneNumber": "חסר מספר טלפון. בצע הרשמה מחדש או פתח את הדף עם ‎?phoneNumber=+972....‎",
+      "developmentHint": "מצב פיתוח: קוד האימות מודפס בקונסול השרת."
+    },
+    "errors": {
+      "codeRequired": "קוד אימות הוא שדה חובה.",
+      "codeInvalid": "יש להזין קוד תקין בן 6 ספרות."
+    }
+  },
+  "login": {
+    "title": "התחברות",
+    "subtitle": "התחבר לחשבון העסקי שלך",
+    "fields": {
+      "identifier": "אימייל או מספר טלפון",
+      "password": "סיסמה"
+    },
+    "placeholders": {
+      "identifier": "name@company.com או ‎053.... / +9725....‎",
+      "password": "הסיסמה שלך"
+    },
+    "actions": {
+      "submit": "התחבר",
+      "submitting": "מתחבר..."
+    },
+    "messages": {
+      "success": "ההתחברות הצליחה",
+      "genericError": "ההתחברות נכשלה. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב."
+    },
+    "errors": {
+      "required": "יש להזין אימייל/טלפון וסיסמה."
+    },
+    "links": {
+      "register": "אין לך חשבון? הירשם"
+    }
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "actions": {
+      "logout": "התנתק"
+    },
+    "messages": {
+      "welcome": "אתה מחובר.",
+      "loading": "טוען..."
+    },
+    "nav": {
+      "home": "בית",
+      "products": "מוצרים",
+      "cart": "עגלה",
+      "orders": "הזמנות",
+      "profile": "פרופיל",
+      "ledger": "כרטסת"
+    },
+    "hub": {
+      "title": "לוח הבקרה שלך",
+      "subtitle": "בחר מקטע למטה או מהקישורים למעלה.",
+      "welcome": "ברוך הבא",
+      "welcomeSubtitle": "נהל הזמנות, מוצרים וחשבון מכאן.",
+      "desc": {
+        "products": "עיון והזמנה",
+        "cart": "סקירת פריטים",
+        "orders": "מעקב היסטוריה",
+        "profile": "פרטי חשבון",
+        "ledger": "חשבוניות, צ'קים ויתרות"
+      }
+    },
+    "assistant": {
+      "launch": "עוזר AI",
+      "title": "עוזר הזמנות חכם",
+      "subtitle": "זיהוי מהיר, הבהרות חכמות והשוואה מדויקת",
+      "close": "סגור",
+      "placeholder": "כתוב מה שאתה רוצה להזמין...",
+      "emptyHint": "בחר קיצור דרך למטה או כתוב פקודה.",
+      "send": "שלח",
+      "sending": "שולח…",
+      "thinking": "העוזר חושב…",
+      "choose": "בחר",
+      "choosing": "…",
+      "sku": "מק\"ט",
+      "price": "מחיר",
+      "networkError": "שגיאת רשת. נסה שוב.",
+      "failed": "לא ניתן להשלים את הבקשה.",
+      "followUpWithSelection": "בחרתי את {name}. {original}",
+      "viewCart": "פתח עגלה",
+      "tagOption": "אפשרות",
+      "tagInfo": "מידע",
+      "tagCompared": "השוואה",
+      "tagSelected": "נבחר",
+      "compareProductA": "מוצר A",
+      "compareProductB": "מוצר B",
+      "compareCheaper": "זול יותר",
+      "compareCategoryDiff": "שוני בקטגוריה",
+      "chipAdd": "הוסף מוצר",
+      "chipCompare": "השווה מוצרים",
+      "chipInfo": "מידע על מוצר",
+      "chipReorder": "הזמן שוב פריט קבוע"
+    },
+    "home": {
+      "eyebrow": "SARI · סחר סיטונאי",
+      "statsOrders": "הזמנות החודש",
+      "statsFavorites": "מוצרים מועדפים",
+      "statsCatalog": "מוצרים בקטלוג",
+      "spotlightBadge": "מומלץ עבורך",
+      "spotlightTitle": "הזמן שוב בלחיצה אחת",
+      "spotlightEmpty": "לאחר ההזמנה הראשונה, הפריטים הקבועים שלך יופיעו כאן להזמנה מהירה.",
+      "quickNav": "ניווט מהיר",
+      "quickNavSub": "גישה מהירה לפעולות החשובות ביותר במערכת.",
+      "benefitsTitle": "למה סוחרים בוחרים ב-SARI",
+      "benefit1Title": "משלוח למחרת",
+      "benefit1Desc": "אספקה מהירה ואמינה ישירות לעסק שלך.",
+      "benefit2Title": "מחירי סיטונאות",
+      "benefit2Desc": "התנאים הטובים ביותר, ישירות מהמחסן.",
+      "benefit3Title": "עוזר חכם 24/7",
+      "benefit3Desc": "מצא, השווה והזמן תוך שניות.",
+      "added": "נוסף!"
+    }
+  },
+  "products": {
+    "title": "מוצרים",
+    "subtitle": "עיון במוצרים פעילים הזמינים להזמנה.",
+    "categories": "קטגוריות",
+    "subtitleCategories": "בחר קטגוריה כדי לעיין במוצרים.",
+    "subtitleCategoryProducts": "עיון במוצרים בקטגוריה זו.",
+    "allCategories": "כל הקטגוריות",
+    "searchCategories": "חיפוש קטגוריות...",
+    "searchProducts": "חיפוש מוצרים...",
+    "noCategories": "לא נמצאו קטגוריות.",
+    "noProducts": "לא נמצאו מוצרים בקטגוריה זו.",
+    "category": "קטגוריה",
+    "fields": {
+      "price": "מחיר",
+      "sku": "מק\"ט",
+      "defaultUnit": "יחידה"
+    },
+    "actions": {
+      "addToCart": "הוסף לעגלה",
+      "adding": "מוסיף…"
+    },
+    "messages": {
+      "loading": "טוען מוצרים...",
+      "empty": "לא נמצאו מוצרים פעילים.",
+      "fetchError": "טעינת המוצרים נכשלה.",
+      "loadingCategories": "טוען קטגוריות...",
+      "fetchCategoriesError": "טעינת הקטגוריות נכשלה.",
+      "addError": "לא ניתן להוסיף לעגלה."
+    }
+  },
+  "smartOrdering": {
+    "recent": "מוצרים אחרונים",
+    "frequent": "נרכשים לעתים קרובות",
+    "reorder": "הזמן שוב",
+    "reordering": "מבצע הזמנה חוזרת…",
+    "reorderSuccess": "נוספו {added} פריטים לעגלה. {skipped} דולגו.",
+    "reorderError": "לא ניתן להזמין שוב. נסה שוב.",
+    "noRecent": "אין עדיין מוצרים אחרונים. לאחר הזמנה יופיעו כאן הצעות.",
+    "noFrequent": "אין עדיין מוצרים תכופים.",
+    "favorites": "מועדפים",
+    "noFavorites": "אין עדיין מועדפים שמורים. לחץ על \"שמור\" על מוצר כדי להוסיף.",
+    "addFavorite": "שמור",
+    "removeFavorite": "הסר",
+    "favoriteBusy": "שומר…",
+    "favoriteError": "לא ניתן לעדכן מועדפים. נסה שוב.",
+    "searchPlaceholder": "חיפוש קטגוריות ומוצרים (שם, מק\"ט, קטגוריה)…",
+    "orderedQty": "סה\"כ הוזמן: {count}",
+    "orderedTimes": "הוזמן {count}×"
+  },
+  "cart": {
+    "title": "עגלה",
+    "empty": "העגלה ריקה.",
+    "total": "סה\"כ",
+    "quantity": "כמות",
+    "remove": "הסר",
+    "added": "נוסף לעגלה.",
+    "error": "משהו השתבש. נסה שוב.",
+    "loading": "טוען עגלה…",
+    "goToCart": "לעגלה",
+    "backToProducts": "חזרה למוצרים",
+    "sku": "מק\"ט",
+    "unitPrice": "מחיר ליחידה",
+    "lineTotal": "סה\"כ שורה",
+    "increase": "הגדל כמות",
+    "decrease": "הקטן כמות",
+    "clearCart": "רוקן עגלה",
+    "emptyCta": "עברו למוצרים",
+    "itemsUnit": "פריטים",
+    "freeDeliveryRemaining": "עוד ₪<strong>{amount}</strong> למשלוח חינם",
+    "freeDeliveryMet": "כל הכבוד! פתחתם משלוח חינם"
+  },
+  "orders": {
+    "title": "הזמנות",
+    "empty": "אין הזמנות עדיין.",
+    "total": "סה\"כ",
+    "status": "סטטוס",
+    "createdAt": "תאריך",
+    "placeOrder": "בצע הזמנה",
+    "placingOrder": "שולח הזמנה…",
+    "details": "פרטי הזמנה",
+    "error": "משהו השתבש. נסה שוב.",
+    "success": "ההזמנה נשלחה.",
+    "loading": "טוען הזמנות…",
+    "backToCart": "חזרה לעגלה",
+    "backToList": "חזרה להזמנות",
+    "items": "פריטים",
+    "quantity": "כמות",
+    "itemPrice": "מחיר ליחידה",
+    "lineTotal": "סה\"כ שורה",
+    "emptyCta": "עברו למוצרים",
+    "trackingTitle": "מעקב הזמנה",
+    "timeline": {
+      "aria": "התקדמות ההזמנה",
+      "placed": "התקבלה",
+      "confirmed": "אושרה",
+      "packed": "נארזה",
+      "outForDelivery": "יצאה למשלוח",
+      "delivered": "נמסרה",
+      "cancelled": "בוטלה"
+    }
+  },
+  "account": {
+    "title": "חשבון עסקי",
+    "businessProfile": "פרופיל עסק",
+    "businessName": "שם העסק",
+    "phoneNumber": "טלפון",
+    "email": "אימייל",
+    "accountSummary": "סיכום חשבון",
+    "balance": "יתרה",
+    "totalDebt": "סה\"כ חוב",
+    "lastPaymentDate": "תשלום אחרון",
+    "paymentsOverview": "סקירת תשלומים",
+    "paymentDate": "תאריך",
+    "paymentAmount": "סכום",
+    "loading": "טוען…",
+    "error": "משהו השתבש. נסה שוב.",
+    "noPayments": "אין תשלומים להצגה."
+  },
+  "ledger": {
+    "title": "כרטסת",
+    "subtitle": "חשבוניות, תשלומים, צ'קים וסיכום חשבון במקום אחד.",
+    "loading": "טוען כרטסת…",
+    "error": "משהו השתבש. נסה שוב.",
+    "sections": {
+      "summary": "סיכום חשבון",
+      "payments": "תשלומים",
+      "checks": "צ'קים",
+      "invoices": "חשבוניות"
+    },
+    "checkNumber": "מספר צ'ק",
+    "bank": "בנק",
+    "checkDate": "תאריך",
+    "amount": "סכום",
+    "checkStatus": {
+      "cleared": "פרוע",
+      "pending": "ממתין",
+      "returned": "חוזר"
+    },
+    "checksEmpty": "אין צ'קים להצגה."
+  },
+  "invoices": {
+    "title": "חשבוניות",
+    "invoiceNumber": "מספר חשבונית",
+    "date": "תאריך",
+    "dueDate": "תאריך יעד",
+    "amount": "סכום",
+    "status": "סטטוס",
+    "paid": "שולם",
+    "unpaid": "לא שולם",
+    "overdue": "באיחור",
+    "loading": "טוען חשבוניות…",
+    "empty": "אין חשבוניות להצגה.",
+    "error": "משהו השתבש. נסה שוב."
+  },
+  "adminLogin": {
+    "title": "כניסת מנהל",
+    "subtitle": "התחבר ללוח הניהול",
+    "fields": {
+      "identifier": "אימייל או מספר טלפון",
+      "password": "סיסמה"
+    },
+    "placeholders": {
+      "identifier": "name@company.com או ‎053.... / +9725....‎",
+      "password": "הסיסמה שלך"
+    },
+    "actions": {
+      "submit": "התחבר",
+      "submitting": "מתחבר..."
+    },
+    "messages": {
+      "success": "ההתחברות הצליחה",
+      "genericError": "ההתחברות נכשלה. נסה שוב.",
+      "networkError": "שגיאת רשת. נסה שוב."
+    },
+    "errors": {
+      "required": "יש להזין אימייל/טלפון וסיסמה."
+    }
+  },
+  "adminDashboard": {
+    "title": "לוח בקרה - מנהל",
+    "badge": "מנהל",
+    "actions": {
+      "logout": "התנתק"
+    },
+    "messages": {
+      "loading": "טוען..."
+    },
+    "hub": {
+      "title": "לוח בקרה - מנהל",
+      "subtitle": "נהל את העסק שלך מכאן.",
+      "cards": {
+        "overview": "סקירה",
+        "overviewDesc": "מכירות, הכנסות ופעילות",
+        "customers": "לקוחות",
+        "customersDesc": "ניהול חשבונות ופרופילים",
+        "orders": "הזמנות",
+        "ordersDesc": "מעקב ועיבוד הזמנות",
+        "products": "מוצרים",
+        "productsDesc": "קטלוג ומלאי"
+      },
+      "backToDashboard": "חזרה ללוח הבקרה",
+      "comingSoon": "חלק זה בבנייה."
+    },
+    "customers": {
+      "title": "לקוחות",
+      "columns": {
+        "businessName": "שם העסק",
+        "email": "אימייל",
+        "phone": "טלפון",
+        "verified": "מאומת",
+        "joined": "תאריך הצטרפות"
+      },
+      "verified": "כן",
+      "notVerified": "לא",
+      "loading": "טוען לקוחות…",
+      "empty": "לא נמצאו לקוחות.",
+      "error": "טעינת הלקוחות נכשלה."
+    },
+    "orders": {
+      "title": "הזמנות",
+      "subtitle": "עקוב אחר ההזמנות ועדכן את הסטטוס שלהן.",
+      "loading": "טוען הזמנות…",
+      "empty": "אין עדיין הזמנות מלקוחות.",
+      "error": "טעינת ההזמנות נכשלה.",
+      "updateError": "עדכון הסטטוס נכשל.",
+      "unknownCustomer": "לקוח לא ידוע",
+      "columns": {
+        "customer": "לקוח",
+        "phone": "טלפון",
+        "date": "תאריך",
+        "items": "פריטים",
+        "total": "סה\"כ",
+        "status": "סטטוס"
+      },
+      "status": {
+        "pending": "התקבלה",
+        "confirmed": "אושרה",
+        "packed": "נארזה",
+        "out_for_delivery": "יצאה למשלוח",
+        "delivered": "נמסרה",
+        "cancelled": "בוטלה"
+      }
+    }
+  }
+}

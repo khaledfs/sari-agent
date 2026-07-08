@@ -1,0 +1,1111 @@
+/**
+ * SARI — "Golden Trade" enhancement layer.
+ * Loaded AFTER dashboard-ui.css so equal-specificity rules win.
+ * Adds ambient motion, gold light-sweep signature, staggered reveals,
+ * a live engagement hero, and richer micro-interactions.
+ * RTL-safe (logical properties) and fully reduced-motion aware.
+ */
+
+.ds-dash-shell {
+  --sari-gold: #c9a54c;
+  --sari-gold-deep: #a67c00;
+  --sari-gold-bright: #f0d488;
+  --sari-gold-glow: rgba(201, 165, 76, 0.38);
+  --sari-ink: #1a1814;
+}
+
+/* ══════════════════════════════════════════
+   Ambient page atmosphere
+   A faint gold aura sits behind the whole shell.
+   ══════════════════════════════════════════ */
+.ds-dash-shell {
+  position: relative;
+}
+
+.ds-dash-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 85% -10%, rgba(201, 165, 76, 0.10) 0%, transparent 60%),
+    radial-gradient(50rem 40rem at -10% 20%, rgba(240, 212, 136, 0.08) 0%, transparent 55%);
+}
+
+/* ══════════════════════════════════════════
+   Keyframes
+   ══════════════════════════════════════════ */
+@keyframes sari-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sari-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sari-sheen {
+  0%   { transform: translateX(-120%) rotate(8deg); opacity: 0; }
+  12%  { opacity: 0.9; }
+  60%  { opacity: 0.9; }
+  100% { transform: translateX(320%) rotate(8deg); opacity: 0; }
+}
+
+@keyframes sari-drift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes sari-float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-14px, 16px) scale(1.08); }
+}
+
+@keyframes sari-float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(18px, -12px) scale(1.12); }
+}
+
+@keyframes sari-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  55%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sari-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--sari-gold-glow); }
+  70%  { box-shadow: 0 0 0 12px rgba(201, 165, 76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 165, 76, 0); }
+}
+
+@keyframes sari-shimmer-text {
+  to { background-position: 200% center; }
+}
+
+/* Gold-tinted sweep for loading skeletons */
+@keyframes sari-shimmer {
+  to { background-position: 200% 0; }
+}
+
+/* ══════════════════════════════════════════
+   HERO — the thesis: light gliding over gold
+   ══════════════════════════════════════════ */
+.ds-home-hero {
+  background:
+    linear-gradient(135deg, #c9a54c 0%, #d8b760 42%, #b8892d 100%);
+  background-size: 180% 180%;
+  animation: sari-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both,
+             sari-drift 14s ease-in-out infinite;
+  isolation: isolate;
+}
+
+/* Diagonal light-sweep — the signature */
+.ds-home-hero::before {
+  content: "";
+  position: absolute;
+  inset-block: -40%;
+  inset-inline-start: -30%;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  filter: blur(6px);
+  transform: translateX(-120%) rotate(8deg);
+  animation: sari-sheen 6.5s ease-in-out 1.2s infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* A second, slower floating orb to add depth */
+.ds-home-hero::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: -3rem;
+  inset-block-end: -5rem;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 245, 214, 0.42) 0%, rgba(255, 245, 214, 0) 70%);
+  animation: sari-float-b 11s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ds-home-hero__glow {
+  animation: sari-float-a 9s ease-in-out infinite;
+}
+
+.ds-home-hero__content { z-index: 2; }
+
+.ds-home-hero__eyebrow {
+  animation: sari-fade 0.8s ease 0.15s both;
+  box-shadow: 0 4px 14px rgba(95, 68, 13, 0.18);
+}
+
+.ds-home-hero__title {
+  text-shadow: 0 2px 18px rgba(120, 80, 8, 0.28);
+}
+
+/* ══════════════════════════════════════════
+   STAGGERED REVEALS
+   Cards, stats and strips fade up in sequence.
+   ══════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .ds-hub-grid--premium .ds-hub-card,
+  .ds-sari-stat,
+  .ds-sari-benefit,
+  .ds-grid--categories > .ds-category-card,
+  .ds-grid--products > .ds-product-card,
+  .ds-smart-strip > li {
+    animation: sari-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .ds-hub-grid--premium .ds-hub-card:nth-child(1) { animation-delay: 0.05s; }
+  .ds-hub-grid--premium .ds-hub-card:nth-child(2) { animation-delay: 0.12s; }
+  .ds-hub-grid--premium .ds-hub-card:nth-child(3) { animation-delay: 0.19s; }
+  .ds-hub-grid--premium .ds-hub-card:nth-child(4) { animation-delay: 0.26s; }
+  .ds-hub-grid--premium .ds-hub-card:nth-child(5) { animation-delay: 0.33s; }
+
+  .ds-smart-strip > li:nth-child(1) { animation-delay: 0.04s; }
+  .ds-smart-strip > li:nth-child(2) { animation-delay: 0.10s; }
+  .ds-smart-strip > li:nth-child(3) { animation-delay: 0.16s; }
+  .ds-smart-strip > li:nth-child(4) { animation-delay: 0.22s; }
+  .ds-smart-strip > li:nth-child(5) { animation-delay: 0.28s; }
+  .ds-smart-strip > li:nth-child(n + 6) { animation-delay: 0.34s; }
+
+  .ds-grid--products > .ds-product-card:nth-child(odd)  { animation-delay: 0.06s; }
+  .ds-grid--products > .ds-product-card:nth-child(even) { animation-delay: 0.13s; }
+  .ds-grid--categories > .ds-category-card:nth-child(3n+1) { animation-delay: 0.04s; }
+  .ds-grid--categories > .ds-category-card:nth-child(3n+2) { animation-delay: 0.11s; }
+  .ds-grid--categories > .ds-category-card:nth-child(3n)   { animation-delay: 0.18s; }
+}
+
+/* ══════════════════════════════════════════
+   HUB CARDS — premium hover
+   ══════════════════════════════════════════ */
+.ds-hub-card--premium {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+/* Gold hairline that grows across the top on hover */
+.ds-hub-card--premium::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sari-gold-deep), var(--sari-gold-bright), var(--sari-gold-deep));
+  transform: scaleX(0);
+  transform-origin: inline-start;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-hub-card--premium:hover::after { transform: scaleX(1); }
+
+.ds-hub-card--premium:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 44px rgba(166, 124, 0, 0.20);
+  border-color: color-mix(in srgb, var(--ds-border-strong) 60%, var(--sari-gold));
+}
+
+.ds-hub-icon--premium {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+}
+
+.ds-hub-card--premium:hover .ds-hub-icon--premium {
+  transform: scale(1.12) rotate(-4deg);
+  background: rgba(201, 165, 76, 0.22);
+}
+
+.ds-hub-card--premium:hover .ds-hub-arrow {
+  background: var(--sari-gold);
+  color: #fff;
+  border-color: var(--sari-gold);
+}
+
+/* ══════════════════════════════════════════
+   PRODUCT CARDS — shine sweep on the image
+   ══════════════════════════════════════════ */
+.ds-product-media { isolation: isolate; }
+
+.ds-product-media::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.45) 48%,
+    transparent 66%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
+}
+
+.ds-product-card--redesign:hover .ds-product-media::before {
+  transform: translateX(130%);
+}
+
+.ds-product-card--redesign {
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.26s ease,
+    border-color 0.26s ease;
+}
+
+.ds-product-card--redesign:hover {
+  box-shadow: 0 22px 48px rgba(166, 124, 0, 0.18);
+}
+
+.ds-product-price { position: relative; }
+
+/* "Added to cart" confirmation pops in */
+.ds-success-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  animation: sari-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ds-success-text::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: var(--ds-success);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+/* ══════════════════════════════════════════
+   CATEGORY CARDS — deeper lift + sweep
+   ══════════════════════════════════════════ */
+.ds-category-card {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.ds-category-card:hover {
+  box-shadow: 0 24px 52px rgba(166, 124, 0, 0.20);
+}
+
+.ds-category-title-on-media {
+  transition: transform 0.3s ease;
+}
+
+.ds-category-card:hover .ds-category-title-on-media {
+  transform: translateY(-3px);
+}
+
+/* ══════════════════════════════════════════
+   BUTTONS — moving sheen on primary
+   ══════════════════════════════════════════ */
+.ds-btn--primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-btn--primary::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -60%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg);
+  transition: transform 0.6s ease;
+  opacity: 0;
+}
+
+.ds-btn--primary:hover:not(:disabled)::after {
+  transform: translateX(340%) skewX(-18deg);
+  opacity: 1;
+}
+
+/* ══════════════════════════════════════════
+   NAV — sliding gold underline
+   ══════════════════════════════════════════ */
+.ds-tab { position: relative; }
+
+.ds-tab--active {
+  animation: sari-fade 0.3s ease both;
+}
+
+/* ══════════════════════════════════════════
+   NEW: engagement hero widgets on the home hub
+   ══════════════════════════════════════════ */
+
+/* Stats row */
+.ds-sari-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-block: 1.4rem 1.75rem;
+}
+
+@media (max-width: 560px) {
+  .ds-sari-stats { grid-template-columns: 1fr; gap: 0.7rem; }
+}
+
+.ds-sari-stat {
+  position: relative;
+  overflow: hidden;
+  padding: 1.05rem 1.15rem;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--ds-border) 70%, var(--sari-gold));
+  background: linear-gradient(180deg, #ffffff 0%, #fdfaf1 100%);
+  box-shadow: 0 8px 22px rgba(166, 124, 0, 0.08);
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease;
+}
+
+.ds-sari-stat:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(166, 124, 0, 0.16);
+}
+
+.ds-sari-stat::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: 1.1rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sari-gold-deep), var(--sari-gold-bright));
+}
+
+.ds-sari-stat__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 14px;
+  background: rgba(201, 165, 76, 0.14);
+  color: var(--sari-gold-deep);
+  margin-block-end: 0.6rem;
+}
+
+.ds-sari-stat__icon svg { width: 1.15rem; height: 1.15rem; }
+
+.ds-sari-stat__value {
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ds-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-sari-stat__label {
+  margin-block-start: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ds-muted);
+}
+
+/* Spotlight / quick-reorder band */
+.ds-sari-spotlight {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 1.25rem;
+  margin-block-end: 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--ds-border) 60%, var(--sari-gold));
+  background:
+    radial-gradient(30rem 16rem at 100% 0%, rgba(201, 165, 76, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #fffdf7 0%, #fbf5e6 100%);
+  box-shadow: 0 12px 32px rgba(166, 124, 0, 0.10);
+}
+
+.ds-sari-spotlight__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-block-end: 0.9rem;
+}
+
+.ds-sari-spotlight__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #5f440d;
+  background: rgba(255, 244, 214, 0.9);
+  border: 1px solid rgba(201, 165, 76, 0.4);
+  animation: sari-pulse-ring 2.6s ease-out infinite;
+}
+
+.ds-sari-spotlight__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+.ds-sari-reorder-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.3rem;
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ds-sari-reorder-strip::-webkit-scrollbar { display: none; }
+
+.ds-sari-reorder-item {
+  flex: 0 0 auto;
+  width: 9.5rem;
+  padding: 0.6rem;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--ds-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.ds-sari-reorder-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(166, 124, 0, 0.16);
+  border-color: color-mix(in srgb, var(--ds-border-strong) 60%, var(--sari-gold));
+}
+
+.ds-sari-reorder-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ds-surface-2);
+  position: relative;
+}
+
+.ds-sari-reorder-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.ds-sari-reorder-item:hover .ds-sari-reorder-thumb img { transform: scale(1.08); }
+
+.ds-sari-reorder-fallback {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(201, 165, 76, 0.20) 0%, transparent 55%),
+    linear-gradient(180deg, var(--ds-surface-2) 0%, var(--ds-surface-3) 100%);
+}
+
+.ds-sari-reorder-name {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ds-sari-reorder-price {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--sari-gold-deep);
+}
+
+.ds-sari-reorder-btn {
+  margin-block-start: 0.15rem;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #d4af37 0%, #b8962e 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.ds-sari-reorder-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(201, 165, 76, 0.32);
+}
+
+.ds-sari-reorder-btn:active:not(:disabled) { transform: scale(0.97); }
+.ds-sari-reorder-btn:disabled { opacity: 0.7; cursor: default; }
+.ds-sari-reorder-btn--done {
+  background: var(--ds-success);
+  animation: sari-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Benefits / trust strip */
+.ds-sari-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+  margin-block-start: 1.75rem;
+}
+
+@media (max-width: 620px) {
+  .ds-sari-benefits { grid-template-columns: 1fr; }
+}
+
+.ds-sari-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.ds-sari-benefit:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(166, 124, 0, 0.12);
+}
+
+.ds-sari-benefit__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 13px;
+  background: rgba(201, 165, 76, 0.14);
+  color: var(--sari-gold-deep);
+}
+
+.ds-sari-benefit__icon svg { width: 1.2rem; height: 1.2rem; }
+
+.ds-sari-benefit__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+.ds-sari-benefit__desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ds-muted);
+  line-height: 1.4;
+}
+
+/* Section heading with a small gold marker */
+.ds-sari-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sari-gold-deep);
+  margin-block-end: 0.35rem;
+}
+
+.ds-sari-eyebrow::before {
+  content: "";
+  width: 1.4rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sari-gold-deep), var(--sari-gold-bright));
+}
+
+/* ══════════════════════════════════════════
+   NEW: Order status timeline (orders detail + list)
+   Stage is derived from the order's existing free-form `status`
+   field — see deriveOrderStage() in orders/OrderTimeline.tsx.
+   Fully RTL-safe: the fill runs along the inline axis, so it
+   grows from the start edge (right in he/ar) automatically.
+   ══════════════════════════════════════════ */
+.ds-timeline {
+  --ds-timeline-track: color-mix(in srgb, var(--ds-border) 62%, var(--sari-gold));
+  position: relative;
+  margin-block: 0.5rem 0.25rem;
+}
+
+/* The connecting rail sits behind the dots, inset by half a step
+   on each side so its ends line up with the first/last dot centers.
+   10% == (100% / 5 steps) / 2. Keep in sync with STEP count. */
+.ds-timeline__track {
+  position: absolute;
+  inset-block-start: 0.75rem; /* vertical center of a 1.5rem dot */
+  inset-inline: 10%;
+  block-size: 3px;
+  border-radius: 999px;
+  background: var(--ds-timeline-track);
+  overflow: hidden;
+}
+
+.ds-timeline__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sari-gold-deep), var(--sari-gold-bright));
+  transition: inline-size 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-timeline__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+.ds-timeline__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.42rem;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  text-align: center;
+}
+
+.ds-timeline__dot {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: 999px;
+  border: 2px solid var(--ds-timeline-track);
+  background: var(--ds-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
+}
+
+.ds-timeline__step--done .ds-timeline__dot,
+.ds-timeline__step--active .ds-timeline__dot {
+  border-color: var(--sari-gold-deep);
+  background: linear-gradient(135deg, var(--sari-gold-bright), var(--sari-gold-deep));
+}
+
+/* Completed steps get a checkmark */
+.ds-timeline__step--done .ds-timeline__dot::after {
+  content: "✓";
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* Active step gets a solid centre + a soft pulse ring */
+.ds-timeline__step--active .ds-timeline__dot::after {
+  content: "";
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.ds-timeline__step--active .ds-timeline__dot {
+  animation: sari-pulse-ring 2.2s ease-out infinite;
+}
+
+.ds-timeline__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ds-muted);
+}
+
+.ds-timeline__step--done .ds-timeline__label {
+  color: var(--ds-text);
+}
+
+.ds-timeline__step--active .ds-timeline__label {
+  color: var(--sari-gold-deep);
+}
+
+/* Cancelled / failed — halt the happy path */
+.ds-timeline--cancelled .ds-timeline__fill {
+  background: var(--ds-border-strong);
+}
+
+.ds-timeline--cancelled .ds-timeline__step--active .ds-timeline__dot {
+  border-color: var(--ds-danger);
+  background: var(--ds-danger);
+  animation: none;
+}
+
+/* Compact variant for order-list cards: smaller dots, labels hidden
+   but kept in the DOM for screen readers */
+.ds-timeline--compact .ds-timeline__track {
+  inset-block-start: 0.45rem; /* centre of a 0.9rem dot */
+}
+
+.ds-timeline--compact .ds-timeline__dot {
+  inline-size: 0.9rem;
+  block-size: 0.9rem;
+}
+
+.ds-timeline--compact .ds-timeline__step--done .ds-timeline__dot::after {
+  font-size: 0.52rem;
+}
+
+.ds-timeline--compact .ds-timeline__step--active .ds-timeline__dot::after {
+  inline-size: 0.3rem;
+  block-size: 0.3rem;
+}
+
+.ds-timeline--compact .ds-timeline__label {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ══════════════════════════════════════════
+   NEW: Loading skeletons (gold-tinted shimmer)
+   Reused across cart / orders / products sub-pages.
+   ══════════════════════════════════════════ */
+.ds-skeleton {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      100deg,
+      var(--ds-surface-2) 30%,
+      color-mix(in srgb, var(--sari-gold-bright) 34%, var(--ds-surface-2)) 50%,
+      var(--ds-surface-2) 70%
+    );
+  background-size: 200% 100%;
+  background-position: -200% 0;
+  animation: sari-shimmer 1.4s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+.ds-skeleton-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ds-skeleton-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ds-skeleton-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.ds-skeleton-strip > .ds-skeleton-card {
+  flex: 0 0 auto;
+  inline-size: min(12rem, 78vw);
+}
+
+.ds-skeleton-card {
+  border-radius: 18px;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.ds-skeleton-line {
+  block-size: 0.85rem;
+  border-radius: 999px;
+}
+
+.ds-skeleton-line--title {
+  block-size: 1.1rem;
+  inline-size: 45%;
+}
+
+.ds-skeleton-line--sm {
+  inline-size: 30%;
+}
+
+.ds-skeleton-line--wide {
+  inline-size: 72%;
+}
+
+.ds-skeleton-thumb {
+  inline-size: 100%;
+  aspect-ratio: 1 / 0.88;
+  border-radius: 14px;
+}
+
+.ds-skeleton-block {
+  block-size: 2.85rem;
+  border-radius: 14px;
+}
+
+/* ══════════════════════════════════════════
+   NEW: Friendly empty states
+   A centred gold icon, one line of guidance, one primary CTA.
+   ══════════════════════════════════════════ */
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.7rem;
+  padding: 2.75rem 1.25rem;
+  margin-block-start: 0.5rem;
+  border-radius: 22px;
+  border: 1px dashed color-mix(in srgb, var(--ds-border) 62%, var(--sari-gold));
+  background: linear-gradient(180deg, #fffdf8 0%, #faf7ef 100%);
+}
+
+.ds-empty-state__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 3.5rem;
+  block-size: 3.5rem;
+  border-radius: 999px;
+  background: rgba(201, 165, 76, 0.15);
+  color: var(--sari-gold-deep);
+  animation: sari-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ds-empty-state__icon svg {
+  inline-size: 1.65rem;
+  block-size: 1.65rem;
+}
+
+.ds-empty-state__title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--ds-text);
+}
+
+.ds-empty-state__text {
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-inline-size: 26rem;
+}
+
+.ds-empty-state__cta {
+  margin-block-start: 0.5rem;
+}
+
+/* ══════════════════════════════════════════
+   NEW: Products — reorder-frequency badge on "often ordered"
+   ══════════════════════════════════════════ */
+.ds-freq-badge {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.5rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.26rem 0.56rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #5f440d;
+  background: linear-gradient(135deg, #f6e4a8 0%, #e9c766 100%);
+  border: 1px solid rgba(166, 124, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(166, 124, 0, 0.24);
+  animation: sari-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ds-freq-badge svg {
+  inline-size: 0.8rem;
+  block-size: 0.8rem;
+}
+
+/* ══════════════════════════════════════════
+   NEW: Cart — free-delivery / savings progress
+   ══════════════════════════════════════════ */
+.ds-cart-progress {
+  position: relative;
+  overflow: hidden;
+  margin-block-end: 1.1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--ds-border) 60%, var(--sari-gold));
+  background:
+    radial-gradient(26rem 12rem at 100% 0%, rgba(201, 165, 76, 0.12) 0%, transparent 62%),
+    linear-gradient(180deg, #fffdf7 0%, #fbf5e6 100%);
+  box-shadow: 0 8px 22px rgba(166, 124, 0, 0.08);
+}
+
+.ds-cart-progress__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-block-end: 0.65rem;
+}
+
+.ds-cart-progress__msg {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ds-text);
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-inline-size: 0;
+}
+
+.ds-cart-progress__msg strong {
+  color: var(--sari-gold-deep);
+}
+
+.ds-cart-progress--met .ds-cart-progress__msg strong {
+  color: var(--ds-success);
+}
+
+.ds-cart-progress__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--sari-gold-deep);
+}
+
+.ds-cart-progress--met .ds-cart-progress__icon {
+  color: var(--ds-success);
+  animation: sari-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.ds-cart-progress__icon svg {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+}
+
+.ds-cart-progress__count {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.62rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #5f440d;
+  background: rgba(255, 244, 214, 0.9);
+  border: 1px solid rgba(201, 165, 76, 0.4);
+  white-space: nowrap;
+}
+
+.ds-cart-progress__count-num {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  animation: sari-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ds-cart-progress__track {
+  position: relative;
+  block-size: 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ds-border) 68%, #fff);
+  overflow: hidden;
+}
+
+.ds-cart-progress__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sari-gold-deep), var(--sari-gold-bright));
+  transition: inline-size 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ds-cart-progress--met .ds-cart-progress__fill {
+  background: linear-gradient(90deg, var(--ds-success), #34d17a);
+}
+
+/* ══════════════════════════════════════════
+   Reduced motion — disable all decorative motion
+   ══════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .ds-home-hero,
+  .ds-home-hero::before,
+  .ds-home-hero::after,
+  .ds-home-hero__glow,
+  .ds-home-hero__eyebrow,
+  .ds-sari-spotlight__badge,
+  .ds-hub-grid--premium .ds-hub-card,
+  .ds-sari-stat,
+  .ds-sari-benefit,
+  .ds-grid--categories > .ds-category-card,
+  .ds-grid--products > .ds-product-card,
+  .ds-smart-strip > li,
+  .ds-success-text,
+  .ds-btn--primary::after,
+  .ds-product-media::before,
+  .ds-timeline__fill,
+  .ds-timeline__step--active .ds-timeline__dot,
+  .ds-skeleton,
+  .ds-empty-state__icon,
+  .ds-cart-progress__fill,
+  .ds-cart-progress__count-num,
+  .ds-cart-progress--met .ds-cart-progress__icon,
+  .ds-freq-badge {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .ds-home-hero { background-size: 100% 100%; }
+}
