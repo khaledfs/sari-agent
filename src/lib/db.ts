@@ -1,4 +1,10 @@
+import dns from "dns";
 import mongoose from "mongoose";
+
+// Force Node's DNS resolver to use Google DNS — some Windows networks
+// register an IPv6 link-local resolver (fe80::1) that Node's SRV lookups
+// (querySrv) cannot reach, even though the OS-level resolver works fine.
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const mongoUri = process.env.MONGODB_URI;
 
