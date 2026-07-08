@@ -8,6 +8,7 @@ export const assistantIntentSchema = z.enum([
   "compare",
   "reorder_habit",
   "clarify",
+  "advice",
 ]);
 
 export const parsedAssistantCommandSchema = z.object({
@@ -65,6 +66,7 @@ export type AssistantActionResult =
   | "removed"
   | "info"
   | "compare"
+  | "advice"
   | "clarification_required"
   | "failed";
 

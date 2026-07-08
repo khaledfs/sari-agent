@@ -149,6 +149,7 @@
       "tagInfo": "معلومات",
       "tagCompared": "مقارنة",
       "tagSelected": "محدّد",
+      "tagAdvice": "اقتراح مناسب",
       "compareProductA": "المنتج A",
       "compareProductB": "المنتج B",
       "compareCheaper": "أرخص",
@@ -156,7 +157,8 @@
       "chipAdd": "إضافة منتج",
       "chipCompare": "مقارنة منتجات",
       "chipInfo": "معلومات عن منتج",
-      "chipReorder": "إعادة طلب المعتاد"
+      "chipReorder": "إعادة طلب المعتاد",
+      "chipAdvice": "اطلب نصيحة"
     },
     "home": {
       "eyebrow": "SARI · تجارة الجملة",

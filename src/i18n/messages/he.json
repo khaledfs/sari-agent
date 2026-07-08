@@ -149,6 +149,7 @@
       "tagInfo": "מידע",
       "tagCompared": "השוואה",
       "tagSelected": "נבחר",
+      "tagAdvice": "הצעה מתאימה",
       "compareProductA": "מוצר A",
       "compareProductB": "מוצר B",
       "compareCheaper": "זול יותר",
@@ -156,7 +157,8 @@
       "chipAdd": "הוסף מוצר",
       "chipCompare": "השווה מוצרים",
       "chipInfo": "מידע על מוצר",
-      "chipReorder": "הזמן שוב פריט קבוע"
+      "chipReorder": "הזמן שוב פריט קבוע",
+      "chipAdvice": "בקש עצה"
     },
     "home": {
       "eyebrow": "SARI · סחר סיטונאי",

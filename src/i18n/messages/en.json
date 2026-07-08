@@ -149,6 +149,7 @@
       "tagInfo": "Info",
       "tagCompared": "Compared",
       "tagSelected": "Selected",
+      "tagAdvice": "Suggested pick",
       "compareProductA": "Product A",
       "compareProductB": "Product B",
       "compareCheaper": "is cheaper",
@@ -156,7 +157,8 @@
       "chipAdd": "Add product",
       "chipCompare": "Compare products",
       "chipInfo": "Product info",
-      "chipReorder": "Reorder usual item"
+      "chipReorder": "Reorder usual item",
+      "chipAdvice": "Ask for advice"
     },
     "home": {
       "eyebrow": "SARI · Wholesale Trade",

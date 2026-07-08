@@ -70,7 +70,8 @@ function classifyAssistantEntryWithId(seq: React.MutableRefObject<number>, data:
     data.actionResult === "compare" ||
     data.actionResult === "added" ||
     data.actionResult === "updated" ||
-    data.actionResult === "removed"
+    data.actionResult === "removed" ||
+    data.actionResult === "advice"
   ) {
     return { id, type: "assistant_cards", data };
   }
@@ -258,6 +259,10 @@ function AssistantCardsBlock({
         <ProductMiniCard p={data.chosenProduct} locale={locale} t={t} badge={t("tagInfo")} />
       ) : null}
 
+      {data.actionResult === "advice" && data.chosenProduct ? (
+        <ProductMiniCard p={data.chosenProduct} locale={locale} t={t} badge={t("tagAdvice")} />
+      ) : null}
+
       {data.actionResult === "compare" && data.matchedProducts?.length ? (
         <div className="ds-ai-compare">
           <p className="ds-ai-compare-title">{t("tagCompared")}</p>
@@ -353,6 +358,18 @@ export function AIAssistant() {
     return { res, json };
   }
 
+  /** New messages go through the intent router (cart vs advice); clarification
+   *  continuations keep using postAssistant/cart-command directly above. */
+  async function postAssistantMessage(text: string) {
+    const res = await fetch("/api/assistant/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, locale }),
+    });
+    const json = (await res.json()) as ApiResponse;
+    return { res, json };
+  }
+
   async function postResolveClarification(clarificationId: string, selectedProductId: string) {
     const res = await fetch("/api/assistant/resolve-clarification", {
       method: "POST",
@@ -377,7 +394,7 @@ export function AIAssistant() {
     setHistory((h) => [...h, userEntry, { id: loadingId, type: "assistant_loading" }]);
 
     try {
-      const { res, json } = await postAssistant({ message: input });
+      const { res, json } = await postAssistantMessage(input);
 
       if (res.ok && json.success) {
         const data = json.data;
@@ -540,6 +557,9 @@ export function AIAssistant() {
                   </button>
                   <button type="button" className="ds-ai-chip" onClick={() => applyChip(t("chipReorder"))}>
                     <span aria-hidden>↻</span> {t("chipReorder")}
+                  </button>
+                  <button type="button" className="ds-ai-chip" onClick={() => applyChip(t("chipAdvice"))}>
+                    <span aria-hidden>💡</span> {t("chipAdvice")}
                   </button>
                 </div>
               ) : null}
