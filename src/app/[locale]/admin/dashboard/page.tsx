@@ -8,6 +8,7 @@ const CARDS = [
   { key: "customers", icon: "👥", href: "/admin/dashboard/customers" },
   { key: "orders", icon: "📦", href: "/admin/dashboard/orders" },
   { key: "products", icon: "🏷️", href: "/admin/dashboard/products" },
+  { key: "settings", icon: "⚙️", href: "/admin/dashboard/settings" },
 ] as const;
 
 export default function AdminDashboardPage() {

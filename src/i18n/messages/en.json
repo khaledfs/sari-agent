@@ -376,7 +376,9 @@
         "orders": "Orders",
         "ordersDesc": "Track & process orders",
         "products": "Products",
-        "productsDesc": "Catalog & inventory"
+        "productsDesc": "Catalog & inventory",
+        "settings": "Settings",
+        "settingsDesc": "Change your password"
       },
       "backToDashboard": "Back to dashboard",
       "comingSoon": "This section is under construction."
@@ -419,6 +421,31 @@
         "out_for_delivery": "Out for delivery",
         "delivered": "Delivered",
         "cancelled": "Cancelled"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Change your admin password.",
+      "fields": {
+        "currentPassword": "Current password",
+        "newPassword": "New password",
+        "confirmNewPassword": "Confirm new password"
+      },
+      "placeholders": {
+        "newPassword": "At least 8 chars, upper/lower/number"
+      },
+      "actions": {
+        "submit": "Update password",
+        "submitting": "Updating..."
+      },
+      "messages": {
+        "success": "Password updated successfully.",
+        "genericError": "Failed to update password. Please try again.",
+        "networkError": "Network error. Please try again."
+      },
+      "errors": {
+        "required": "All fields are required.",
+        "mismatch": "New password and confirmation do not match."
       }
     }
   }

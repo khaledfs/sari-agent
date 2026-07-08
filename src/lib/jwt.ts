@@ -2,19 +2,25 @@ import jwt from "jsonwebtoken";
 
 import type { JwtPayload } from "@/types/session";
 
-function getJwtSecret() {
+const MIN_JWT_SECRET_LENGTH = 32;
+
+function loadJwtSecret() {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("Missing JWT_SECRET environment variable.");
+  if (!secret || secret.length < MIN_JWT_SECRET_LENGTH) {
+    throw new Error(
+      `JWT_SECRET environment variable is missing or too short (must be at least ${MIN_JWT_SECRET_LENGTH} characters).`
+    );
   }
   return secret;
 }
 
+const JWT_SECRET = loadJwtSecret();
+
 export function signAuthToken(payload: JwtPayload) {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
 export function verifyAuthToken(token: string) {
-  return jwt.verify(token, getJwtSecret()) as JwtPayload;
+  return jwt.verify(token, JWT_SECRET) as JwtPayload;
 }
 

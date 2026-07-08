@@ -376,7 +376,9 @@
         "orders": "الطلبات",
         "ordersDesc": "تتبع ومعالجة الطلبات",
         "products": "المنتجات",
-        "productsDesc": "الكتالوج والمخزون"
+        "productsDesc": "الكتالوج والمخزون",
+        "settings": "الإعدادات",
+        "settingsDesc": "تغيير كلمة المرور الخاصة بك"
       },
       "backToDashboard": "العودة إلى لوحة الإدارة",
       "comingSoon": "هذا القسم قيد الإنشاء."
@@ -419,6 +421,31 @@
         "out_for_delivery": "قيد التوصيل",
         "delivered": "تم التسليم",
         "cancelled": "ملغى"
+      }
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "subtitle": "غيّر كلمة مرور المشرف الخاصة بك.",
+      "fields": {
+        "currentPassword": "كلمة المرور الحالية",
+        "newPassword": "كلمة المرور الجديدة",
+        "confirmNewPassword": "تأكيد كلمة المرور الجديدة"
+      },
+      "placeholders": {
+        "newPassword": "8 أحرف على الأقل، حرف كبير/صغير ورقم"
+      },
+      "actions": {
+        "submit": "تحديث كلمة المرور",
+        "submitting": "جارٍ التحديث..."
+      },
+      "messages": {
+        "success": "تم تحديث كلمة المرور بنجاح.",
+        "genericError": "فشل تحديث كلمة المرور. حاول مرة أخرى.",
+        "networkError": "خطأ في الشبكة. حاول مرة أخرى."
+      },
+      "errors": {
+        "required": "جميع الحقول مطلوبة.",
+        "mismatch": "كلمة المرور الجديدة والتأكيد غير متطابقين."
       }
     }
   }

@@ -128,6 +128,39 @@ export async function loginWithPassword(input: { identifier: string; password: s
   return { success: true, token };
 }
 
+export async function changeAdminPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+) {
+  if (!currentPassword || !newPassword) {
+    throw new Error("Current password and new password are required.");
+  }
+
+  if (!isStrongPassword(newPassword)) {
+    throw new Error(
+      "Password must be at least 8 characters and include uppercase, lowercase, and number."
+    );
+  }
+
+  await connectDB();
+
+  const user = await UserModel.findById(userId);
+  if (!user || user.role !== "admin") {
+    throw new Error("Access denied.");
+  }
+
+  const ok = await bcrypt.compare(currentPassword, user.password);
+  if (!ok) {
+    throw new Error("Current password is incorrect.");
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  return { success: true };
+}
+
 export async function loginAdmin(input: { identifier: string; password: string }) {
   const identifier = input.identifier.trim();
   const password = input.password;

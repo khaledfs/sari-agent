@@ -27,7 +27,7 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
     if (phase !== "allowed" || didPrefetch.current) return;
     didPrefetch.current = true;
     const base = `/${locale}/admin/dashboard`;
-    const paths = [base, `${base}/overview`, `${base}/customers`, `${base}/orders`, `${base}/products`];
+    const paths = [base, `${base}/overview`, `${base}/customers`, `${base}/orders`, `${base}/products`, `${base}/settings`];
     for (const href of paths) {
       router.prefetch(href);
     }

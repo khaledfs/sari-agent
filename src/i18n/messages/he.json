@@ -376,7 +376,9 @@
         "orders": "הזמנות",
         "ordersDesc": "מעקב ועיבוד הזמנות",
         "products": "מוצרים",
-        "productsDesc": "קטלוג ומלאי"
+        "productsDesc": "קטלוג ומלאי",
+        "settings": "הגדרות",
+        "settingsDesc": "שינוי הסיסמה שלך"
       },
       "backToDashboard": "חזרה ללוח הבקרה",
       "comingSoon": "חלק זה בבנייה."
@@ -419,6 +421,31 @@
         "out_for_delivery": "יצאה למשלוח",
         "delivered": "נמסרה",
         "cancelled": "בוטלה"
+      }
+    },
+    "settings": {
+      "title": "הגדרות",
+      "subtitle": "שנה את סיסמת המנהל שלך.",
+      "fields": {
+        "currentPassword": "סיסמה נוכחית",
+        "newPassword": "סיסמה חדשה",
+        "confirmNewPassword": "אימות סיסמה חדשה"
+      },
+      "placeholders": {
+        "newPassword": "לפחות 8 תווים, אות גדולה/קטנה ומספר"
+      },
+      "actions": {
+        "submit": "עדכן סיסמה",
+        "submitting": "מעדכן..."
+      },
+      "messages": {
+        "success": "הסיסמה עודכנה בהצלחה.",
+        "genericError": "עדכון הסיסמה נכשל. נסה שוב.",
+        "networkError": "שגיאת רשת. נסה שוב."
+      },
+      "errors": {
+        "required": "יש למלא את כל השדות.",
+        "mismatch": "הסיסמה החדשה ואימותה אינם תואמים."
       }
     }
   }
