@@ -34,6 +34,18 @@ const tokenReplacements = new Map<string, string>([
   ["خميرة", "שמרים"],
   ["شوكولاتة", "שוקולד"],
   ["كريم", "קרם"],
+  // Synonyms mapped toward the term the catalog actually uses (verified against
+  // live product names): catalog has סולת (not סמיד), עמילן תירס (not
+  // קורנפלור/פולנטה), וניל (not ונילין), גלטין (no apostrophe).
+  ["סמיד", "סולת"],
+  ["سميد", "סולת"],
+  ["semolina", "סולת"],
+  ["פולנטה", "תירס"],
+  ["polenta", "תירס"],
+  ["קורנפלור", "עמילן"],
+  ["cornflour", "עמילן"],
+  ["ונילין", "וניל"],
+  ["גלטינה", "גלטין"],
 ]);
 
 function sanitize(input: string): string {

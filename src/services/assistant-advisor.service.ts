@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import { getOpenAIClient } from "@/lib/openai";
 import { getAssistantRankedProductCandidates } from "@/services/assistant-candidates.service";
-import type { AssistantCommandResponse, AssistantMatchedProduct } from "@/types/assistant";
+import { buildMemorySystemPrompt, getMemoryForUser } from "@/services/customer-memory.service";
+import type { AssistantChatTurn, AssistantCommandResponse, AssistantMatchedProduct } from "@/types/assistant";
 
 export type AdvisorLocale = "he" | "en" | "ar";
 
@@ -53,6 +54,7 @@ function buildAdvisorSystemPrompt(localeName: string): string {
   return [
     "You are a culinary and wholesale-food advisor embedded in a B2B bakery/food-trade platform called SARI.",
     "The customer asks cooking, baking, ingredient, or wholesale-food-business questions.",
+    "Earlier turns of the same conversation may precede the final user message - use them to resolve follow-up references, but always answer the FINAL user message.",
     `Answer in ${localeName} only, in natural, concise prose (2-5 sentences), like a knowledgeable colleague.`,
     "Answer from your own general knowledge whenever you are reasonably confident - this is the default, fastest, and cheapest path.",
     "If the topic touches food safety (allergens, shelf life, storage temperature, spoilage), weave in one brief, natural, non-alarmist caution using soft language such as \"as a general rule\" or \"it's best to\" - never state definitive medical or food-safety guarantees.",
@@ -73,13 +75,50 @@ function extractJsonObject(text: string) {
   return text.slice(start, end + 1);
 }
 
-async function getAdvisorAnswerFromModel(message: string, locale: AdvisorLocale): Promise<AdvisorLLMResult> {
+/**
+ * Tolerant parsing of the advisor LLM output. The model occasionally wraps the
+ * JSON in markdown fences or answers in plain prose; that must degrade to a
+ * usable answer for the user, never to an "invalid JSON" error.
+ */
+function parseAdvisorOutput(raw: string): AdvisorLLMResult {
+  const cleaned = raw.replace(/```[a-z]*\n?/gi, "").trim();
+  try {
+    return advisorOutputSchema.parse(JSON.parse(extractJsonObject(cleaned)));
+  } catch {
+    // Salvage the "answer" string out of malformed JSON if present; otherwise
+    // the whole text is the answer (model ignored the JSON instruction).
+    const answerMatch = /"answer"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(cleaned);
+    let answer = cleaned;
+    if (answerMatch) {
+      try {
+        answer = JSON.parse(`"${answerMatch[1]}"`) as string;
+      } catch {
+        answer = answerMatch[1];
+      }
+    }
+    if (!answer.trim()) {
+      throw new Error("Advisor returned empty output.");
+    }
+    return { answer: answer.trim(), confidence: "low", needsFreshInfo: false, productSearchQuery: null };
+  }
+}
+
+async function getAdvisorAnswerFromModel(
+  message: string,
+  locale: AdvisorLocale,
+  memoryBlock: string,
+  conversationHistory: AssistantChatTurn[]
+): Promise<AdvisorLLMResult> {
   const client = getOpenAIClient();
+
+  const basePrompt = buildAdvisorSystemPrompt(LOCALE_NAMES[locale]);
+  const systemPrompt = memoryBlock ? `${memoryBlock}\n\n${basePrompt}` : basePrompt;
 
   const response = await client.responses.create({
     model: process.env.OPENAI_ADVISOR_MODEL?.trim() || "gpt-5-mini",
     input: [
-      { role: "system", content: buildAdvisorSystemPrompt(LOCALE_NAMES[locale]) },
+      { role: "system", content: systemPrompt },
+      ...conversationHistory.slice(-10).map((turn) => ({ role: turn.role, content: turn.content })),
       { role: "user", content: message },
     ],
   });
@@ -89,14 +128,7 @@ async function getAdvisorAnswerFromModel(message: string, locale: AdvisorLocale)
     throw new Error("Advisor returned empty output.");
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(extractJsonObject(raw));
-  } catch {
-    throw new Error("Advisor returned invalid JSON.");
-  }
-
-  return advisorOutputSchema.parse(parsed);
+  return parseAdvisorOutput(raw);
 }
 
 /**
@@ -108,9 +140,19 @@ async function getAdvisorAnswerFromModel(message: string, locale: AdvisorLocale)
 export async function runAssistantAdvisorQuery(
   userId: string,
   message: string,
-  locale: AdvisorLocale
+  locale: AdvisorLocale,
+  conversationHistory: AssistantChatTurn[] = []
 ): Promise<AssistantCommandResponse> {
-  const result = await getAdvisorAnswerFromModel(message, locale);
+  // Personalization context (business type, learned preferences) — fail soft:
+  // a memory outage must never block an advisory answer.
+  let memoryBlock = "";
+  try {
+    memoryBlock = buildMemorySystemPrompt(await getMemoryForUser(userId));
+  } catch {
+    memoryBlock = "";
+  }
+
+  const result = await getAdvisorAnswerFromModel(message, locale, memoryBlock, conversationHistory);
 
   const parts = [result.answer];
 

@@ -13,6 +13,7 @@
       "businessName": "שם העסק",
       "email": "אימייל",
       "phoneNumber": "מספר טלפון",
+      "businessType": "סוג עסק",
       "password": "סיסמה",
       "confirmPassword": "אימות סיסמה"
     },
@@ -22,6 +23,15 @@
       "phoneNumber": "+972501234567",
       "password": "לפחות 8 תווים עם אותיות גדולות/קטנות ומספר",
       "confirmPassword": "הזן שוב את הסיסמה"
+    },
+    "options": {
+      "businessType": {
+        "bakery": "מאפייה",
+        "eastern_sweets": "חנות מתוקים מזרחית",
+        "western_sweets_pastry": "חנות מתוקים מערבית",
+        "cafe": "בית קפה",
+        "ice_cream_shop": "חנות גלידות"
+      }
     },
     "actions": {
       "submit": "הרשמה",
@@ -39,6 +49,7 @@
       "emailInvalid": "יש להזין כתובת אימייל תקינה.",
       "phoneRequired": "מספר טלפון הוא שדה חובה.",
       "phoneInvalid": "יש להזין מספר טלפון תקין.",
+      "businessTypeRequired": "סוג עסק הוא שדה חובה.",
       "passwordRequired": "סיסמה היא שדה חובה.",
       "passwordInvalid": "הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה ומספר.",
       "confirmPasswordRequired": "אימות סיסמה הוא שדה חובה.",

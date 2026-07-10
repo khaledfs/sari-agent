@@ -3,8 +3,11 @@
 import { FormEvent, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+
+import { BUSINESS_ONBOARDING_TYPES, type BusinessOnboardingType } from "@/types/business-type";
 
 type RegisterForm = {
   businessName: string;
@@ -12,6 +15,7 @@ type RegisterForm = {
   phoneNumber: string;
   password: string;
   confirmPassword: string;
+  businessType: BusinessOnboardingType;
 };
 
 type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
@@ -58,6 +62,10 @@ function validateRegisterForm(values: RegisterForm, t: ReturnType<typeof useTran
     errors.phoneNumber = t("errors.phoneInvalid");
   }
 
+  if (!values.businessType.trim()) {
+    errors.businessType = t("errors.businessTypeRequired");
+  }
+
   if (!values.password) {
     errors.password = t("errors.passwordRequired");
   } else if (!PASSWORD_REGEX.test(values.password)) {
@@ -76,12 +84,14 @@ function validateRegisterForm(values: RegisterForm, t: ReturnType<typeof useTran
 export default function RegisterPage() {
   const t = useTranslations("register");
   const locale = useLocale();
+  const router = useRouter();
   const [values, setValues] = useState<RegisterForm>({
     businessName: "",
     email: "",
     phoneNumber: "+972",
     password: "",
     confirmPassword: "",
+    businessType: BUSINESS_ONBOARDING_TYPES[0],
   });
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [apiError, setApiError] = useState<string>("");
@@ -112,6 +122,7 @@ export default function RegisterPage() {
       email: normalizedValues.email,
       phoneNumber: normalizedValues.phoneNumber,
       password: normalizedValues.password,
+      businessType: normalizedValues.businessType,
     };
 
     setIsSubmitting(true);
@@ -128,7 +139,6 @@ export default function RegisterPage() {
       };
 
       if (response.status === 200 && payload.success === true) {
-        setSuccessMessage(t("messages.success"));
         try {
           localStorage.setItem(
             "pendingVerificationPhoneNumber",
@@ -140,6 +150,7 @@ export default function RegisterPage() {
         if (process.env.NODE_ENV === "development") {
           console.info(t("messages.developmentHint"));
         }
+        router.push(`/${locale}/verify`);
         return;
       }
 
@@ -190,6 +201,21 @@ export default function RegisterPage() {
               placeholder={t("placeholders.phoneNumber")}
             />
             {errors.phoneNumber ? <p className="auth-error">{errors.phoneNumber}</p> : null}
+          </label>
+
+          <label>
+            <span>{t("fields.businessType")}</span>
+            <select
+              value={values.businessType}
+              onChange={(e) => updateField("businessType", e.target.value as BusinessOnboardingType)}
+            >
+              {BUSINESS_ONBOARDING_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`options.businessType.${type}`)}
+                </option>
+              ))}
+            </select>
+            {errors.businessType ? <p className="auth-error">{errors.businessType}</p> : null}
           </label>
 
           <label>

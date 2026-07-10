@@ -1,0 +1,261 @@
+/* ============================================================
+   Golden Hour ambience system
+   Loaded after dashboard-ui.css / sari-enhance.css.
+   RULES: transform + opacity only; logical properties only (RTL-safe);
+   everything is decorative (aria-hidden) and pointer-events: none.
+   ============================================================ */
+
+:root {
+  --ambience-fallback: #3a2410;
+  --ambience-rim: rgba(255, 235, 205, 0.16);
+  --ambience-dust: rgba(255, 246, 224, 0.72);
+  --ambience-ray: rgba(255, 241, 210, 0.28);
+  --ambience-ray-strong: rgba(255, 241, 210, 0.44);
+}
+
+.lb-stage {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  inline-size: 100%;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--ambience-fallback);
+}
+
+.lb-stage--home {
+  block-size: min(40vh, 460px);
+  min-block-size: 300px;
+}
+
+.lb-stage--band {
+  block-size: 120px;
+}
+
+.lb-photo-layer {
+  position: absolute;
+  inset: 0;
+  background-color: var(--ambience-fallback);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  transform: scale(1);
+  animation: lb-photo-kenburns 45s ease-in-out infinite;
+}
+
+.lb-photo-layer--in {
+  animation: lb-fade-in 2s ease both;
+}
+
+.lb-photo-layer--out {
+  animation: lb-fade-out 2s ease both;
+}
+
+.lb-light-ray {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, transparent 24%, var(--ambience-ray) 34%, var(--ambience-ray-strong) 44%, transparent 68%);
+  opacity: 0.28;
+  mix-blend-mode: screen;
+  animation: lb-light-breathe 7s ease-in-out infinite;
+}
+
+.lb-steam {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lb-steam-wisp {
+  position: absolute;
+  width: 4px;
+  height: 160px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.04));
+  opacity: 0.02;
+  transform-origin: center bottom;
+  animation: lb-steam-rise 12s ease-out infinite;
+}
+
+.lb-steam-wisp:nth-child(1) {
+  width: 3px;
+  height: 140px;
+}
+
+.lb-steam-wisp:nth-child(2) {
+  width: 4px;
+  height: 165px;
+}
+
+.lb-steam-wisp:nth-child(3) {
+  width: 4px;
+  height: 150px;
+}
+
+.lb-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(58, 36, 16, 0.5), transparent 44%, rgba(58, 36, 16, 0.72));
+  pointer-events: none;
+}
+
+.lb-stage--band::before {
+  background: linear-gradient(to bottom, rgba(58, 36, 16, 0.8), transparent 36%);
+}
+
+.lb-stage[data-paused="true"] *,
+.lb-stage[data-paused="true"] {
+  animation-play-state: paused !important;
+}
+
+.lb-stage--band,
+.lb-stage--home {
+  will-change: transform, opacity;
+}
+
+@keyframes lb-photo-kenburns {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes lb-light-breathe {
+  0%, 100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes lb-steam-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scaleX(0.75);
+  }
+  20% {
+    opacity: 0.16;
+    transform: translateY(-20px) scaleX(0.85);
+  }
+  60% {
+    opacity: 0.12;
+    transform: translateY(-68px) scaleX(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-140px) scaleX(1.05);
+  }
+}
+
+@keyframes lb-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lb-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.lb-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.12), transparent 28%);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Flour dust overlay on top of photo */
+.lb-stage .lb-dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lb-stage .lb-dust span {
+  position: absolute;
+  display: block;
+  background: radial-gradient(circle, rgba(255, 248, 220, 0.92) 0%, rgba(255, 248, 220, 0.05) 60%);
+  border-radius: 999px;
+  opacity: 0.18;
+  transform: translateY(0) translateX(0) scale(0.6);
+  animation: lb-dust-drift linear infinite;
+}
+
+.lb-stage .lb-dust span:nth-child(1) { inline-size: 3px; block-size: 3px; animation-duration: 12s; animation-delay: -1s; }
+.lb-stage .lb-dust span:nth-child(2) { inline-size: 2px; block-size: 2px; animation-duration: 15s; animation-delay: -3.6s; }
+.lb-stage .lb-dust span:nth-child(3) { inline-size: 4px; block-size: 4px; animation-duration: 16s; animation-delay: -5.1s; }
+.lb-stage .lb-dust span:nth-child(4) { inline-size: 3px; block-size: 3px; animation-duration: 10s; animation-delay: -2.2s; }
+.lb-stage .lb-dust span:nth-child(5) { inline-size: 5px; block-size: 5px; animation-duration: 18s; animation-delay: -7.9s; }
+.lb-stage .lb-dust span:nth-child(6) { inline-size: 2px; block-size: 2px; animation-duration: 11s; animation-delay: -6.3s; }
+.lb-stage .lb-dust span:nth-child(7) { inline-size: 3px; block-size: 3px; animation-duration: 13s; animation-delay: -0.8s; }
+.lb-stage .lb-dust span:nth-child(8) { inline-size: 2px; block-size: 2px; animation-duration: 14s; animation-delay: -4.4s; }
+.lb-stage .lb-dust span:nth-child(9) { inline-size: 4px; block-size: 4px; animation-duration: 17s; animation-delay: -8.1s; }
+.lb-stage .lb-dust span:nth-child(10) { inline-size: 3px; block-size: 3px; animation-duration: 15s; animation-delay: -3.3s; }
+.lb-stage .lb-dust span:nth-child(11) { inline-size: 2px; block-size: 2px; animation-duration: 12s; animation-delay: -9.5s; }
+.lb-stage .lb-dust span:nth-child(12) { inline-size: 4px; block-size: 4px; animation-duration: 14s; animation-delay: -10s; }
+.lb-stage .lb-dust span:nth-child(13) { inline-size: 2px; block-size: 2px; animation-duration: 16s; animation-delay: -11s; }
+.lb-stage .lb-dust span:nth-child(14) { inline-size: 3px; block-size: 3px; animation-duration: 11s; animation-delay: -12s; }
+.lb-stage .lb-dust span:nth-child(15) { inline-size: 4px; block-size: 4px; animation-duration: 13s; animation-delay: -13s; }
+.lb-stage .lb-dust span:nth-child(16) { inline-size: 2px; block-size: 2px; animation-duration: 17s; animation-delay: -14s; }
+.lb-stage .lb-dust span:nth-child(17) { inline-size: 3px; block-size: 3px; animation-duration: 12s; animation-delay: -15s; }
+.lb-stage .lb-dust span:nth-child(18) { inline-size: 5px; block-size: 5px; animation-duration: 18s; animation-delay: -16s; }
+.lb-stage .lb-dust span:nth-child(19) { inline-size: 3px; block-size: 3px; animation-duration: 14s; animation-delay: -17s; }
+.lb-stage .lb-dust span:nth-child(20) { inline-size: 2px; block-size: 2px; animation-duration: 16s; animation-delay: -18s; }
+.lb-stage .lb-dust span:nth-child(21) { inline-size: 3px; block-size: 3px; animation-duration: 13s; animation-delay: -19s; }
+.lb-stage .lb-dust span:nth-child(22) { inline-size: 4px; block-size: 4px; animation-duration: 15s; animation-delay: -20s; }
+.lb-stage .lb-dust span:nth-child(23) { inline-size: 3px; block-size: 3px; animation-duration: 12s; animation-delay: -21s; }
+.lb-stage .lb-dust span:nth-child(24) { inline-size: 2px; block-size: 2px; animation-duration: 18s; animation-delay: -22s; }
+
+.lb-stage .lb-dust span {
+  animation-duration: 14s;
+  animation-iteration-count: infinite;
+  animation-name: lb-dust-drift;
+}
+
+@keyframes lb-dust-drift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) scale(0.55);
+  }
+  20% {
+    opacity: 0.22;
+  }
+  50% {
+    opacity: 0.16;
+    transform: translateY(-18px) translateX(8px) scale(0.85);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) translateX(14px) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-photo-layer,
+  .lb-light-ray,
+  .lb-steam-wisp,
+  .lb-stage .lb-dust span {
+    animation: none !important;
+  }
+
+  .lb-stage {
+    background: var(--ambience-fallback);
+  }
+}

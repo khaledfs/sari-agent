@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
 
 type VerifyForm = {
@@ -17,6 +17,8 @@ function normalizeCode(raw: string) {
 
 export default function VerifyPage() {
   const t = useTranslations("verify");
+  const locale = useLocale();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [phoneNumber, setPhoneNumber] = useState<string>("");
@@ -75,10 +77,10 @@ export default function VerifyPage() {
       const payload = (await response.json()) as { success?: boolean; message?: string };
 
       if (response.status === 200 && payload.success === true) {
-        setSuccessMessage(t("messages.success"));
         if (process.env.NODE_ENV === "development") {
           console.info(t("messages.developmentHint"));
         }
+        router.push(`/${locale}/login`);
         return;
       }
 

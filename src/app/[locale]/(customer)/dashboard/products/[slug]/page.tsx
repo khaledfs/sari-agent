@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { emitCartAdd } from "@/components/living-bakery/micro";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
@@ -67,6 +68,7 @@ export default function CategoryProductsPage() {
           clearTimeout(addedTimer.current);
         }
         setAddedId(productId);
+        emitCartAdd();
         addedTimer.current = setTimeout(() => setAddedId(null), 2500);
         return;
       }
@@ -113,7 +115,7 @@ export default function CategoryProductsPage() {
   }, [products, query]);
 
   return (
-    <main className="ds-page">
+    <main className="ds-page ds-page--ambient-band">
       <header className="ds-header-row">
         <div>
           <h1 className="ds-page-title">

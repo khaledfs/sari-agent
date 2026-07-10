@@ -13,6 +13,7 @@
       "businessName": "Business name",
       "email": "Email",
       "phoneNumber": "Phone number",
+      "businessType": "Business type",
       "password": "Password",
       "confirmPassword": "Confirm password"
     },
@@ -22,6 +23,15 @@
       "phoneNumber": "+972501234567",
       "password": "At least 8 chars, upper/lower/number",
       "confirmPassword": "Re-enter your password"
+    },
+    "options": {
+      "businessType": {
+        "bakery": "Bakery",
+        "eastern_sweets": "Oriental sweets shop",
+        "western_sweets_pastry": "Western sweets shop",
+        "cafe": "Cafe",
+        "ice_cream_shop": "Ice cream shop"
+      }
     },
     "actions": {
       "submit": "Register",
@@ -39,6 +49,7 @@
       "emailInvalid": "Enter a valid email address.",
       "phoneRequired": "Phone number is required.",
       "phoneInvalid": "Enter a valid phone number.",
+      "businessTypeRequired": "Business type is required.",
       "passwordRequired": "Password is required.",
       "passwordInvalid": "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
       "confirmPasswordRequired": "Confirm password is required.",

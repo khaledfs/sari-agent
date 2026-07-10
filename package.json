@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "sync:products": "node scripts/sync-products.js",
+    "seed:customers": "node scripts/seed-customers.js",
     "ml:train": "python scripts/train_logistic_recommendation.py"
   },
   "dependencies": {

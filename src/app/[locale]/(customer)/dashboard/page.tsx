@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { typography } from "@/design/typography";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { emitCartAdd } from "@/components/living-bakery/micro";
 
 const ProductsIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -230,6 +231,7 @@ export default function DashboardPage() {
       if (res.ok && json.success) {
         if (addedTimer.current) clearTimeout(addedTimer.current);
         setAddedId(productId);
+        emitCartAdd();
         addedTimer.current = setTimeout(() => setAddedId(null), 2200);
       }
     } catch {

@@ -18,6 +18,7 @@ import { normalizeAssistantText } from "@/services/assistant-normalization.servi
 import { parseAssistantCommandWithOpenAI } from "@/services/assistant-parser.service";
 import { getFrequentProductsByUser } from "@/services/smart-ordering.service";
 import type {
+  AssistantChatTurn,
   AssistantCommandResponse,
   AssistantMatchedProduct,
   ParsedAssistantCommand,
@@ -115,9 +116,13 @@ async function persistClarificationIfNeeded(
 
 export { runAssistantCartCommandResolved } from "@/services/assistant-execution.service";
 
-export async function runAssistantCartCommand(userId: string, message: string): Promise<AssistantCommandResponse> {
+export async function runAssistantCartCommand(
+  userId: string,
+  message: string,
+  conversationHistory: AssistantChatTurn[] = []
+): Promise<AssistantCommandResponse> {
   const input = commandInputSchema.parse({ userId, message });
-  const parsed = await parseAssistantCommandWithOpenAI(input.message);
+  const parsed = await parseAssistantCommandWithOpenAI(input.message, conversationHistory);
 
   if (parsed.intent === "reorder_habit" && !parsed.productQuery) {
     const frequent = await getFrequentProductsByUser(input.userId);

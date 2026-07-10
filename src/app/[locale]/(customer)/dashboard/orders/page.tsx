@@ -119,7 +119,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <main className="ds-page">
+    <main className="ds-page ds-page--ambient-band">
       <div className="ds-header-row">
         <h1 className={`ds-page-title ${typography.h2}`}>{t("title")}</h1>
         <div className="ds-header-actions">

@@ -1,3 +1,5 @@
+import type { BusinessOnboardingType } from "@/types/business-type";
+
 export type UserRole = "customer" | "admin";
 
 export type RegisterInput = {
@@ -5,6 +7,7 @@ export type RegisterInput = {
   email: string;
   phoneNumber: string;
   password: string;
+  businessType: BusinessOnboardingType;
 };
 
 export type VerifyInput = {

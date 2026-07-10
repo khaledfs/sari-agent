@@ -73,3 +73,6 @@ tmp_*.html
 # local working docs (contain internal details)
 PROGRESS.md
 docs/DEV_NOTES.md
+
+/scripts
+

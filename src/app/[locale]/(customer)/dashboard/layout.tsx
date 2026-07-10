@@ -7,9 +7,12 @@ import Image from "next/image";
 
 import { AIAssistant } from "@/components/ai-assistant";
 import { DashboardNav } from "@/components/dashboard-nav";
+import { SceneStage } from "@/components/living-bakery/SceneStage";
+import { CartDropLayer, FlourDrift } from "@/components/living-bakery/micro";
 
 import "./dashboard-ui.css";
 import "./sari-enhance.css";
+import "./ambience.css";
 
 type Phase = "checking" | "allowed" | "denied";
 
@@ -25,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [phase, setPhase] = useState<Phase>("checking");
   const didPrefetch = useRef(false);
 
+  // Session verification: runs once per locale/route change
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -84,6 +88,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="ds-dash-shell">
+      <SceneStage />
+      <FlourDrift />
+      <CartDropLayer />
       <div style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center" }}>
         <Image src="/logo.png" alt="Sari" width={120} height={34} style={{ height: "30px", width: "auto", objectFit: "contain" }} priority />
       </div>

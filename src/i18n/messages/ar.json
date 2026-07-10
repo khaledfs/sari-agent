@@ -13,6 +13,7 @@
       "businessName": "اسم النشاط التجاري",
       "email": "البريد الإلكتروني",
       "phoneNumber": "رقم الهاتف",
+      "businessType": "نوع النشاط التجاري",
       "password": "كلمة المرور",
       "confirmPassword": "تأكيد كلمة المرور"
     },
@@ -22,6 +23,15 @@
       "phoneNumber": "+972501234567",
       "password": "8 أحرف على الأقل مع كبير/صغير ورقم",
       "confirmPassword": "أعد إدخال كلمة المرور"
+    },
+    "options": {
+      "businessType": {
+        "bakery": "مخبز",
+        "eastern_sweets": "محل حلويات شرقي",
+        "western_sweets_pastry": "محل حلويات غربي",
+        "cafe": "مقهى",
+        "ice_cream_shop": "محل آيس كريم"
+      }
     },
     "actions": {
       "submit": "تسجيل",
@@ -39,6 +49,7 @@
       "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
       "phoneRequired": "رقم الهاتف مطلوب.",
       "phoneInvalid": "أدخل رقم هاتف صالحًا.",
+      "businessTypeRequired": "نوع النشاط التجاري مطلوب.",
       "passwordRequired": "كلمة المرور مطلوبة.",
       "passwordInvalid": "يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم.",
       "confirmPasswordRequired": "تأكيد كلمة المرور مطلوب.",

@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 
 import type {
+  AssistantChatTurn,
   AssistantClarificationOption,
   AssistantCommandResponse,
   AssistantIntent,
@@ -24,7 +25,7 @@ type ApiError = {
 
 type ApiResponse = ApiSuccess | ApiError;
 
-/** Local chat entries (no server persistence); cleared when the modal closes. */
+/** Local chat entries (no server persistence). */
 type AssistantChatMessage =
   | { id: string; type: "user"; text: string }
   | { id: string; type: "assistant_loading" }
@@ -50,6 +51,89 @@ function getMetadataParsed(data: AssistantCommandResponse | null): { intent?: As
   if (!data?.metadata || typeof data.metadata !== "object") return {};
   const parsed = (data.metadata as { parsed?: { intent?: AssistantIntent; quantity?: number | null } }).parsed;
   return parsed ?? {};
+}
+
+/** Short-term context for the current session only: flatten the visible chat
+ *  entries into role/content turns (last 10) so the server LLM calls can
+ *  resolve follow-up references like "מפרץ, תוסיף 2". */
+function conversationTurnsFromEntries(entries: AssistantChatMessage[]): AssistantChatTurn[] {
+  const turns: AssistantChatTurn[] = [];
+  for (const m of entries) {
+    if (m.type === "user" && m.text.trim()) {
+      turns.push({ role: "user", content: m.text.slice(0, 4000) });
+    } else if (m.type === "assistant" && m.text.trim()) {
+      turns.push({ role: "assistant", content: m.text.slice(0, 4000) });
+    } else if ((m.type === "assistant_cards" || m.type === "assistant_clarification") && m.data.message.trim()) {
+      turns.push({ role: "assistant", content: m.data.message.slice(0, 4000) });
+    }
+  }
+  return turns.slice(-10);
+}
+
+/**
+ * Chat session cache: the component's state is initialized from here and
+ * written back on every render, so the open window and the thread survive any
+ * remount of the dashboard subtree (layout remounts, an accidental tap on the
+ * dim overlay). It is additionally mirrored to sessionStorage so the session
+ * also survives full page reloads — including the "Fast Refresh had to
+ * perform a full reload" case in dev, which wipes module memory and was still
+ * killing open chats after the first remount-only fix. Still client-side
+ * only: sessionStorage is per-tab and dies when the tab closes.
+ */
+const CHAT_SESSION_STORAGE_KEY = "sari-assistant-session";
+
+type ChatSessionCache = {
+  isOpen: boolean;
+  history: AssistantChatMessage[];
+  assistantData: AssistantCommandResponse | null;
+  activeClarificationEntryId: string | null;
+  pendingSourceMessage: string;
+  seq: number;
+};
+
+const chatSession: ChatSessionCache & { hydrated: boolean } = {
+  isOpen: false,
+  history: [],
+  assistantData: null,
+  activeClarificationEntryId: null,
+  pendingSourceMessage: "",
+  seq: 0,
+  hydrated: false,
+};
+
+function persistChatSession() {
+  try {
+    const data: ChatSessionCache = {
+      isOpen: chatSession.isOpen,
+      history: chatSession.history,
+      assistantData: chatSession.assistantData,
+      activeClarificationEntryId: chatSession.activeClarificationEntryId,
+      pendingSourceMessage: chatSession.pendingSourceMessage,
+      seq: chatSession.seq,
+    };
+    sessionStorage.setItem(CHAT_SESSION_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // storage full/unavailable — session simply won't survive a reload
+  }
+}
+
+function readStoredChatSession(): ChatSessionCache | null {
+  try {
+    const raw = sessionStorage.getItem(CHAT_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ChatSessionCache>;
+    if (!Array.isArray(parsed.history)) return null;
+    return {
+      isOpen: parsed.isOpen === true,
+      history: parsed.history,
+      assistantData: parsed.assistantData ?? null,
+      activeClarificationEntryId: parsed.activeClarificationEntryId ?? null,
+      pendingSourceMessage: parsed.pendingSourceMessage ?? "",
+      seq: typeof parsed.seq === "number" ? parsed.seq : parsed.history.length + 1,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function nextMessageId(seq: React.MutableRefObject<number>) {
@@ -313,17 +397,56 @@ export function AIAssistant() {
   const localeParam = typeof params.locale === "string" ? params.locale : "en";
   const cartHref = `/${localeParam}/dashboard/cart`;
 
-  const idSeq = useRef(0);
-  const [isOpen, setIsOpen] = useState(false);
+  const idSeq = useRef(chatSession.seq);
+  const [isOpen, setIsOpen] = useState(chatSession.isOpen);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<AssistantChatMessage[]>([]);
-  const [assistantData, setAssistantData] = useState<AssistantCommandResponse | null>(null);
+  const [history, setHistory] = useState<AssistantChatMessage[]>(chatSession.history);
+  const [assistantData, setAssistantData] = useState<AssistantCommandResponse | null>(chatSession.assistantData);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [activeClarificationEntryId, setActiveClarificationEntryId] = useState<string | null>(null);
+  const [activeClarificationEntryId, setActiveClarificationEntryId] = useState<string | null>(
+    chatSession.activeClarificationEntryId
+  );
 
-  const pendingSourceMessageRef = useRef("");
+  const pendingSourceMessageRef = useRef(chatSession.pendingSourceMessage);
   const threadEndRef = useRef<HTMLDivElement>(null);
+
+  // One-time mount hook for SSR consistency
+  useEffect(() => {
+    return undefined;
+  }, []);
+
+  // Track isOpen state changes (for debugging only, remove if not needed)
+  const prevOpenRef = useRef(isOpen);
+  useEffect(() => {
+    prevOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Restore a session that survived a full page reload (runs once, after
+  // hydration, so SSR markup and the first client render stay identical).
+  useEffect(() => {
+    if (chatSession.hydrated) return;
+    chatSession.hydrated = true;
+    const stored = readStoredChatSession();
+    if (!stored || (!stored.history.length && !stored.isOpen)) return;
+    idSeq.current = Math.max(idSeq.current, stored.seq);
+    pendingSourceMessageRef.current = stored.pendingSourceMessage;
+    setHistory(stored.history);
+    setAssistantData(stored.assistantData);
+    setActiveClarificationEntryId(stored.activeClarificationEntryId);
+    setIsOpen(stored.isOpen);
+  }, []);
+
+  // Persist the session across remounts AND full reloads (see chatSession above).
+  useEffect(() => {
+    chatSession.isOpen = isOpen;
+    chatSession.history = history;
+    chatSession.assistantData = assistantData;
+    chatSession.activeClarificationEntryId = activeClarificationEntryId;
+    chatSession.pendingSourceMessage = pendingSourceMessageRef.current;
+    chatSession.seq = idSeq.current;
+    persistChatSession();
+  });
 
   const scrollToBottom = useCallback(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -339,12 +462,11 @@ export function AIAssistant() {
     pendingSourceMessageRef.current = "";
   }
 
+  /** Closing (X or a tap on the dim overlay) hides the window but keeps the
+   *  thread, so an accidental close never destroys a conversation. A full
+   *  page reload is what starts a fresh session. */
   function closeModal() {
     setIsOpen(false);
-    setHistory([]);
-    setMessage("");
-    resetClarificationState();
-    setLoading(false);
     setResolvingId(null);
   }
 
@@ -360,11 +482,11 @@ export function AIAssistant() {
 
   /** New messages go through the intent router (cart vs advice); clarification
    *  continuations keep using postAssistant/cart-command directly above. */
-  async function postAssistantMessage(text: string) {
+  async function postAssistantMessage(text: string, turns: AssistantChatTurn[]) {
     const res = await fetch("/api/assistant/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, locale }),
+      body: JSON.stringify({ message: text, locale, history: turns }),
     });
     const json = (await res.json()) as ApiResponse;
     return { res, json };
@@ -386,6 +508,7 @@ export function AIAssistant() {
 
     const userEntry: AssistantChatMessage = { id: nextMessageId(idSeq), type: "user", text: input };
     const loadingId = nextMessageId(idSeq);
+    const turns = conversationTurnsFromEntries(history);
 
     setLoading(true);
     resetClarificationState();
@@ -394,7 +517,7 @@ export function AIAssistant() {
     setHistory((h) => [...h, userEntry, { id: loadingId, type: "assistant_loading" }]);
 
     try {
-      const { res, json } = await postAssistantMessage(input);
+      const { res, json } = await postAssistantMessage(input, turns);
 
       if (res.ok && json.success) {
         const data = json.data;

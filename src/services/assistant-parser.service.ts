@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { getOpenAIClient } from "@/lib/openai";
-import { parsedAssistantCommandSchema, type ParsedAssistantCommand } from "@/types/assistant";
+import {
+  parsedAssistantCommandSchema,
+  type AssistantChatTurn,
+  type ParsedAssistantCommand,
+} from "@/types/assistant";
 
 const parserInputSchema = z.object({
   message: z.string().trim().min(1, "Message is required."),
@@ -24,7 +28,20 @@ const systemPrompt = [
   "- For remove/info/compare/clarify, quantity must be null.",
   "- Output JSON only. No explanations.",
   "- No explanations and no extra keys.",
+  "- The user message may include a 'Conversation so far' context block with earlier turns. Use it ONLY to resolve short references in the final message (e.g. a brand, a partial product name, or 'the same one' pointing at a product mentioned earlier).",
+  "- When the final message refers back to a product from the context - e.g. 'עוד', 'again', 'the same', or just a brand/name fragment like 'מפרץ' - set productQuery to the FULL product name EXACTLY as it appeared in the context (copy it verbatim, including package size and brand), not a shortened or generic version.",
+  '- Example: context contains assistant: "הוספתי 2 יחידות של סולת עבה חבילות 10 ק\\"ג -מפרץ לעגלה" and the final message is "תוסיף 2 עוד" → {"intent":"add","productQuery":"סולת עבה חבילות 10 ק\\"ג -מפרץ","quantity":2}.',
+  "- Always parse ONLY the final user message into the command; context turns are never commands to execute again.",
 ].join("\n");
+
+/** Embeds prior turns as a labeled context block so the extraction model can
+ *  resolve follow-up references while still parsing only the final message. */
+function buildParserUserContent(message: string, conversationHistory: AssistantChatTurn[]): string {
+  const turns = conversationHistory.slice(-10);
+  if (turns.length === 0) return message;
+  const contextLines = turns.map((t) => `${t.role}: ${t.content}`);
+  return ["Conversation so far:", ...contextLines, "", "Final user message to parse:", message].join("\n");
+}
 
 function extractJsonObject(text: string) {
   const start = text.indexOf("{");
@@ -35,16 +52,19 @@ function extractJsonObject(text: string) {
   return text.slice(start, end + 1);
 }
 
-export async function parseAssistantCommandWithOpenAI(message: string): Promise<ParsedAssistantCommand> {
+export async function parseAssistantCommandWithOpenAI(
+  message: string,
+  conversationHistory: AssistantChatTurn[] = []
+): Promise<ParsedAssistantCommand> {
   const { message: safeMessage } = parserInputSchema.parse({ message });
   const client = getOpenAIClient();
 
   const response = await client.responses.create({
     model: process.env.OPENAI_PARSER_MODEL?.trim() || "gpt-5-mini",
-  
+
     input: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: safeMessage },
+      { role: "user", content: buildParserUserContent(safeMessage, conversationHistory) },
     ],
   });
 

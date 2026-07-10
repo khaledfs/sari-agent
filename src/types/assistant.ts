@@ -19,6 +19,12 @@ export const parsedAssistantCommandSchema = z.object({
 });
 
 export type AssistantIntent = z.infer<typeof assistantIntentSchema>;
+
+/** One prior turn of the CURRENT chat session (client-held, never persisted). */
+export type AssistantChatTurn = {
+  role: "user" | "assistant";
+  content: string;
+};
 export type ParsedAssistantCommand = z.infer<typeof parsedAssistantCommandSchema>;
 
 export type AssistantMatchedProduct = {

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { emitCartAdd } from "@/components/living-bakery/micro";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
@@ -150,6 +151,7 @@ export default function ProductsPage() {
         if (res.status === 200 && json.success) {
           if (addedTimer.current) clearTimeout(addedTimer.current);
           setAddedId(productId);
+          emitCartAdd();
           addedTimer.current = setTimeout(() => setAddedId(null), 2500);
           return;
         }

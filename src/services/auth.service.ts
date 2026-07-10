@@ -7,6 +7,11 @@ import {
   normalizeIsraeliPhoneNumber,
   normalizePhoneNumber,
 } from "@/lib/validators";
+import { CustomerAccountModel } from "@/models/customer-account.model";
+import {
+  CustomerMemoryModel,
+  type CustomerMemoryBusinessType,
+} from "@/models/customer-memory.model";
 import { UserModel } from "@/models/user.model";
 import { sendVerificationSMS } from "@/services/sms.service";
 import {
@@ -14,16 +19,30 @@ import {
   validateVerificationCode,
 } from "@/services/verification.service";
 import type { RegisterInput, VerifyInput } from "@/types/auth";
+import { BUSINESS_ONBOARDING_TYPES, type BusinessOnboardingType } from "@/types/business-type";
 import { signAuthToken } from "@/lib/jwt";
+
+const BUSINESS_TYPE_TO_MEMORY_TYPE: Record<BusinessOnboardingType, CustomerMemoryBusinessType> = {
+  bakery: "bakery",
+  eastern_sweets: "oriental_sweets",
+  western_sweets_pastry: "western_sweets",
+  cafe: "cafe",
+  ice_cream_shop: "ice_cream",
+};
 
 export async function registerCustomer(input: RegisterInput) {
   const businessName = input.businessName.trim();
   const email = input.email.trim().toLowerCase();
   const phoneNumber = normalizePhoneNumber(input.phoneNumber);
   const password = input.password;
+  const businessType = input.businessType;
 
-  if (!businessName || !email || !phoneNumber || !password) {
+  if (!businessName || !email || !phoneNumber || !password || !businessType) {
     throw new Error("Missing required fields.");
+  }
+
+  if (!BUSINESS_ONBOARDING_TYPES.includes(businessType)) {
+    throw new Error("Invalid business type.");
   }
 
   if (!isValidEmail(email)) {
@@ -48,13 +67,26 @@ export async function registerCustomer(input: RegisterInput) {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await UserModel.create({
+  const createdUser = await UserModel.create({
     businessName,
     email,
     phoneNumber,
     password: hashedPassword,
     role: "customer",
     isVerified: false,
+  });
+
+  await CustomerAccountModel.create({
+    userId: createdUser._id,
+    businessName,
+    email,
+    phoneNumber,
+    businessType,
+  });
+
+  await CustomerMemoryModel.create({
+    userId: createdUser._id,
+    businessType: BUSINESS_TYPE_TO_MEMORY_TYPE[businessType],
   });
 
   const { code } = await createVerificationCode(phoneNumber);
