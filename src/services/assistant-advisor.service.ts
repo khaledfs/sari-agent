@@ -80,7 +80,7 @@ function extractJsonObject(text: string) {
  * JSON in markdown fences or answers in plain prose; that must degrade to a
  * usable answer for the user, never to an "invalid JSON" error.
  */
-function parseAdvisorOutput(raw: string): AdvisorLLMResult {
+export function parseAdvisorOutput(raw: string): AdvisorLLMResult {
   const cleaned = raw.replace(/```[a-z]*\n?/gi, "").trim();
   try {
     return advisorOutputSchema.parse(JSON.parse(extractJsonObject(cleaned)));
