@@ -140,7 +140,7 @@ export default function AdminDiscountsPage() {
       value: String(d.value),
       startsAt: d.startsAt ? d.startsAt.slice(0, 10) : "",
       endsAt: d.endsAt ? d.endsAt.slice(0, 10) : "",
-      // Names for pre-existing product ids aren't re-fetched; show ids as labels.
+      // Ids as placeholder labels until the names are hydrated below.
       products: d.productIds.map((id) => ({ id, name: id, sku: "" })),
     });
     setFormError("");
@@ -148,6 +148,36 @@ export default function AdminDiscountsPage() {
     setProductResults([]);
     setFormOpen(true);
     if (d.scope === "customer") void ensureCustomers();
+    void hydrateProductNames(d.productIds);
+  }
+
+  /** Resolves display names for pre-existing product ids in the edit form. */
+  async function hydrateProductNames(ids: string[]) {
+    if (ids.length === 0) return;
+    try {
+      const entries = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const res = await fetch(`/api/products/${id}`);
+            const json = (await res.json()) as ApiEnvelope<{ name?: string; sku?: string }>;
+            return [id, json.success ? json.data ?? null : null] as const;
+          } catch {
+            return [id, null] as const;
+          }
+        })
+      );
+      const byId = new Map(entries.filter(([, p]) => p?.name));
+      if (byId.size === 0) return;
+      setForm((f) => ({
+        ...f,
+        products: f.products.map((p) => {
+          const fetched = byId.get(p.id);
+          return fetched?.name ? { ...p, name: fetched.name, sku: fetched.sku ?? "" } : p;
+        }),
+      }));
+    } catch {
+      // ids remain visible as a fallback label
+    }
   }
 
   async function saveForm() {
