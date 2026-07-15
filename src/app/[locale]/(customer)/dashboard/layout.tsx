@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { AIAssistant } from "@/components/ai-assistant";
+import { BannerStrip } from "@/components/banner-strip";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { SceneStage } from "@/components/living-bakery/SceneStage";
 import { CartDropLayer, FlourDrift } from "@/components/living-bakery/micro";
@@ -97,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="ds-nav-border">
         <DashboardNav />
       </div>
+      <BannerStrip />
       {children}
       <AIAssistant />
     </div>

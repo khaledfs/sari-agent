@@ -266,6 +266,11 @@
     "promoDiscount": "خصم العرض",
     "promoHintRemaining": "أضِف ₪<strong>{amount}</strong> إضافية للحصول على عرض"
   },
+  "banners": {
+    "regionLabel": "الإعلانات",
+    "dismiss": "إغلاق الإعلان",
+    "defaultCta": "عرض"
+  },
   "orders": {
     "title": "الطلبات",
     "empty": "لا توجد طلبات بعد.",
@@ -398,6 +403,8 @@
         "discountsDesc": "قواعد التسعير",
         "promotions": "العروض",
         "promotionsDesc": "هدايا وعروض الطلبات",
+        "banners": "اللافتات",
+        "bannersDesc": "إعلانات للعملاء",
         "settings": "الإعدادات",
         "settingsDesc": "تغيير كلمة المرور الخاصة بك"
       },
@@ -605,6 +612,29 @@
         "giftQty": "كمية الهدية (M)",
         "threshold": "حد المجموع للطلب (₪)",
         "saveError": "فشل حفظ العرض."
+      }
+    },
+    "banners": {
+      "title": "اللافتات",
+      "subtitle": "إعلانات تظهر أعلى لوحة العميل (حتى 3، حسب الأولوية).",
+      "loading": "جارٍ تحميل اللافتات…",
+      "empty": "لا توجد لافتات بعد.",
+      "error": "فشل تحميل اللافتات.",
+      "add": "لافتة جديدة",
+      "columns": {
+        "title": "اللافتة",
+        "priority": "الأولوية"
+      },
+      "form": {
+        "title": "العنوان",
+        "body": "النص (اختياري)",
+        "ctaLabel": "نص الزر (اختياري)",
+        "ctaHref": "رابط الزر (مسار داخلي يبدأ بـ /)",
+        "imageUrl": "رابط الصورة (اختياري)",
+        "priority": "الأولوية (الأعلى أولاً)",
+        "preview": "معاينة مباشرة",
+        "previewTitle": "عنوان اللافتة…",
+        "saveError": "فشل حفظ اللافتة."
       }
     },
     "customerPricing": {

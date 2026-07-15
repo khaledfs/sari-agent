@@ -10,6 +10,7 @@ const CARDS = [
   { key: "products", icon: "🏷️", href: "/admin/dashboard/products" },
   { key: "discounts", icon: "💰", href: "/admin/dashboard/discounts" },
   { key: "promotions", icon: "🎁", href: "/admin/dashboard/promotions" },
+  { key: "banners", icon: "📣", href: "/admin/dashboard/banners" },
   { key: "settings", icon: "⚙️", href: "/admin/dashboard/settings" },
 ] as const;
 

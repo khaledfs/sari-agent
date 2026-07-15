@@ -679,6 +679,110 @@ button:disabled,
   inline-size: 100%;
 }
 
+/* ——— Admin-managed banner strip (customer strip + admin live preview) ——— */
+
+.ds-banner-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0;
+  max-inline-size: 900px;
+  margin-inline: auto;
+  inline-size: 100%;
+}
+
+.ds-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border-brand);
+  border-radius: var(--radius-lg);
+  background: var(--brand-bg);
+  box-shadow: var(--shadow-sm);
+  animation: ds-banner-rise 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes ds-banner-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ds-banner__img {
+  inline-size: 42px;
+  block-size: 42px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.ds-banner__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.ds-banner__text {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ds-banner__title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--brand-hover);
+}
+
+.ds-banner__body {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.ds-banner__cta {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: var(--text-on-brand);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ds-banner__cta:hover {
+  background: var(--brand-hover);
+}
+
+.ds-banner__dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.ds-banner__dismiss:hover {
+  color: var(--text-primary);
+  background: var(--accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-banner {
+    animation: none;
+  }
+}
+
 /* ——— Scrollbar (Webkit) ——— */
 
 ::-webkit-scrollbar {

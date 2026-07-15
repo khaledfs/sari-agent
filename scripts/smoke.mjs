@@ -533,6 +533,112 @@ async function promotionsSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- banners section (Phase 4) ----------
+
+/**
+ * Banner flow: global banner visible to the seeded customer → deactivate →
+ * gone. businessType-targeted banner (bakery) visible to the seeded bakery
+ * customer; a cafe-targeted one is not.
+ */
+async function bannersSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  banners section skipped — needs both customer and admin logins");
+    return;
+  }
+  const SMOKE_LABEL = "SMOKE banner (auto)";
+
+  // Cleanup leftovers from previous runs.
+  try {
+    const { body } = await jsonFetch("/api/admin/banners", { headers: { Cookie: adminCookie } });
+    for (const b of body?.data ?? []) {
+      if (b.title.startsWith(SMOKE_LABEL) && b.isActive) {
+        await jsonFetch(`/api/admin/banners/${b.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Cookie: adminCookie },
+          body: JSON.stringify({ isActive: false }),
+        });
+      }
+    }
+  } catch {
+    // asserts below surface real problems
+  }
+
+  async function createBanner(payload) {
+    const { body } = await jsonFetch("/api/admin/banners", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify(payload),
+    });
+    return body?.data?.id ?? null;
+  }
+
+  async function customerBannerIds() {
+    const { body } = await jsonFetch("/api/banners", { headers: { Cookie: customerCookie } });
+    return (body?.data ?? []).map((b) => b.id);
+  }
+
+  let globalId = null;
+  let bakeryId = null;
+  let cafeId = null;
+  try {
+    globalId = await createBanner({ title: `${SMOKE_LABEL} global`, scope: "global", priority: 99 });
+    bakeryId = await createBanner({ title: `${SMOKE_LABEL} bakery`, scope: "businessType", targetId: "bakery", priority: 98 });
+    cafeId = await createBanner({ title: `${SMOKE_LABEL} cafe`, scope: "businessType", targetId: "cafe", priority: 97 });
+    report("banner: admin creates global + businessType banners", Boolean(globalId && bakeryId && cafeId), "");
+  } catch (err) {
+    report("banner: admin creates global + businessType banners", false, String(err));
+    return;
+  }
+
+  try {
+    const ids = await customerBannerIds();
+    const ok = ids.includes(globalId) && ids.includes(bakeryId) && !ids.includes(cafeId) && ids.length <= 3;
+    report(
+      "banner: seeded bakery customer sees global + bakery, NOT cafe, max 3",
+      ok,
+      `visible=${JSON.stringify(ids)}`
+    );
+  } catch (err) {
+    report("banner: seeded bakery customer sees global + bakery, NOT cafe, max 3", false, String(err));
+  }
+
+  // ctaHref validation: external URL rejected.
+  try {
+    const { res } = await jsonFetch("/api/admin/banners", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ title: `${SMOKE_LABEL} evil`, scope: "global", ctaHref: "https://evil.example" }),
+    });
+    report("banner: external ctaHref rejected (400)", res.status === 400, `got ${res.status}`);
+  } catch (err) {
+    report("banner: external ctaHref rejected (400)", false, String(err));
+  }
+
+  // Deactivate all; customer no longer sees them.
+  try {
+    for (const id of [globalId, bakeryId, cafeId]) {
+      await jsonFetch(`/api/admin/banners/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie },
+        body: JSON.stringify({ isActive: false }),
+      });
+    }
+    const ids = await customerBannerIds();
+    const gone = !ids.includes(globalId) && !ids.includes(bakeryId);
+    report("banner: deactivated -> gone from customer feed", gone, `visible=${JSON.stringify(ids)}`);
+  } catch (err) {
+    report("banner: deactivated -> gone from customer feed", false, String(err));
+  }
+
+  // Unauthenticated: customer endpoint 401, admin endpoint 401.
+  try {
+    const [a, b] = await Promise.all([fetch(`${BASE_URL}/api/banners`), fetch(`${BASE_URL}/api/admin/banners`)]);
+    report("banner: unauthenticated endpoints -> 401", a.status === 401 && b.status === 401, `customer=${a.status}, admin=${b.status}`);
+  } catch (err) {
+    report("banner: unauthenticated endpoints -> 401", false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -545,6 +651,7 @@ async function main() {
   const adminCookie = await adminProductsSection();
   await pricingEngineSection(cookie, adminCookie);
   await promotionsSection(cookie, adminCookie);
+  await bannersSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

@@ -266,6 +266,11 @@
     "promoDiscount": "הנחת מבצע",
     "promoHintRemaining": "הוסיפו עוד ₪<strong>{amount}</strong> לקבלת מבצע"
   },
+  "banners": {
+    "regionLabel": "הודעות",
+    "dismiss": "סגור הודעה",
+    "defaultCta": "לצפייה"
+  },
   "orders": {
     "title": "הזמנות",
     "empty": "אין הזמנות עדיין.",
@@ -398,6 +403,8 @@
         "discountsDesc": "כללי תמחור",
         "promotions": "מבצעים",
         "promotionsDesc": "מתנות והטבות הזמנה",
+        "banners": "באנרים",
+        "bannersDesc": "הודעות ללקוחות",
         "settings": "הגדרות",
         "settingsDesc": "שינוי הסיסמה שלך"
       },
@@ -605,6 +612,29 @@
         "giftQty": "כמות מתנה (M)",
         "threshold": "סף סכום הזמנה (₪)",
         "saveError": "שמירת המבצע נכשלה."
+      }
+    },
+    "banners": {
+      "title": "באנרים",
+      "subtitle": "הודעות שמוצגות בראש לוח הלקוח (עד 3, לפי עדיפות).",
+      "loading": "טוען באנרים…",
+      "empty": "אין עדיין באנרים.",
+      "error": "טעינת הבאנרים נכשלה.",
+      "add": "באנר חדש",
+      "columns": {
+        "title": "באנר",
+        "priority": "עדיפות"
+      },
+      "form": {
+        "title": "כותרת",
+        "body": "טקסט (אופציונלי)",
+        "ctaLabel": "טקסט כפתור (אופציונלי)",
+        "ctaHref": "קישור כפתור (נתיב פנימי, מתחיל ב־/)",
+        "imageUrl": "כתובת תמונה (אופציונלי)",
+        "priority": "עדיפות (גבוה קודם)",
+        "preview": "תצוגה מקדימה",
+        "previewTitle": "כותרת הבאנר…",
+        "saveError": "שמירת הבאנר נכשלה."
       }
     },
     "customerPricing": {

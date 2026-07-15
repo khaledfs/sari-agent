@@ -266,6 +266,11 @@
     "promoDiscount": "Promotion discount",
     "promoHintRemaining": "Add ₪<strong>{amount}</strong> more to earn a promotion"
   },
+  "banners": {
+    "regionLabel": "Announcements",
+    "dismiss": "Dismiss announcement",
+    "defaultCta": "View"
+  },
   "orders": {
     "title": "Orders",
     "empty": "No orders yet.",
@@ -398,6 +403,8 @@
         "discountsDesc": "Pricing rules",
         "promotions": "Promotions",
         "promotionsDesc": "Gifts & order deals",
+        "banners": "Banners",
+        "bannersDesc": "Customer announcements",
         "settings": "Settings",
         "settingsDesc": "Change your password"
       },
@@ -605,6 +612,29 @@
         "giftQty": "Gift quantity (M)",
         "threshold": "Order subtotal threshold (₪)",
         "saveError": "Failed to save promotion."
+      }
+    },
+    "banners": {
+      "title": "Banners",
+      "subtitle": "Announcements shown at the top of the customer dashboard (max 3, by priority).",
+      "loading": "Loading banners…",
+      "empty": "No banners yet.",
+      "error": "Failed to load banners.",
+      "add": "New banner",
+      "columns": {
+        "title": "Banner",
+        "priority": "Priority"
+      },
+      "form": {
+        "title": "Title",
+        "body": "Body (optional)",
+        "ctaLabel": "Button label (optional)",
+        "ctaHref": "Button link (internal path, starts with /)",
+        "imageUrl": "Image URL (optional)",
+        "priority": "Priority (higher first)",
+        "preview": "Live preview",
+        "previewTitle": "Banner title…",
+        "saveError": "Failed to save banner."
       }
     },
     "customerPricing": {
