@@ -28,6 +28,15 @@ const nextConfig = {
   experimental: {
     reactDebugChannel: false,
   },
+  images: {
+    // Product/category photos are hosted on the wholesale site.
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "sarihassan.com",
+      },
+    ],
+  },
 } satisfies NextConfig;
 
 export default withNextIntl(nextConfig);

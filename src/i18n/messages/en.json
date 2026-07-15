@@ -209,6 +209,7 @@
       "defaultUnit": "unit"
     },
     "outOfStock": "Out of stock",
+    "loadMore": "Load more",
     "actions": {
       "addToCart": "Add to cart",
       "adding": "Adding…"

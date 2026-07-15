@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -80,8 +81,10 @@ export default function ProductsPage() {
   const [rfLoading, setRfLoading] = useState(true);
   const [favLoading, setFavLoading] = useState(true);
   const [smartError, setSmartError] = useState("");
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchMeta, setSearchMeta] = useState<{ page: number; totalPages: number } | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [favBusyId, setFavBusyId] = useState<string | null>(null);
@@ -241,34 +244,61 @@ export default function ProductsPage() {
     })();
   }, [refetchFavorites]);
 
-  useEffect(() => {
-    (async () => {
-      setCatalogLoading(true);
-      try {
-        const prodRes = await fetch("/api/products");
-        const prodPayload = (await prodRes.json()) as { success?: boolean; data?: Product[]; message?: string };
-        if (prodRes.status === 200 && prodPayload.success && prodPayload.data) {
-          setCatalogProducts(prodPayload.data);
-          return;
-        }
-        setCatalogProducts([]);
-      } catch {
-        setCatalogProducts([]);
-      } finally {
-        setCatalogLoading(false);
+  // Server-side paginated search (max 50/page) — replaces the old
+  // "download all 610 products for client-side filtering" behavior.
+  const fetchSearchPage = useCallback(async (query: string, page: number, append: boolean) => {
+    if (append) setLoadingMore(true);
+    else setCatalogLoading(true);
+    try {
+      const params = new URLSearchParams({ search: query, page: String(page) });
+      const res = await fetch(`/api/products?${params.toString()}`);
+      const payload = (await res.json()) as {
+        success?: boolean;
+        data?: Product[];
+        meta?: { page: number; totalPages: number };
+      };
+      if (res.status === 200 && payload.success && payload.data) {
+        const items = payload.data;
+        setSearchResults((prev) => (append ? [...prev, ...items] : items));
+        setSearchMeta(payload.meta ? { page: payload.meta.page, totalPages: payload.meta.totalPages } : null);
+        return;
       }
-    })();
+      if (!append) {
+        setSearchResults([]);
+        setSearchMeta(null);
+      }
+    } catch {
+      if (!append) {
+        setSearchResults([]);
+        setSearchMeta(null);
+      }
+    } finally {
+      setCatalogLoading(false);
+      setLoadingMore(false);
+    }
   }, []);
+
+  // Debounced: refetch page 1 whenever the search term changes.
+  useEffect(() => {
+    if (!searchActive) {
+      setSearchResults([]);
+      setSearchMeta(null);
+      setCatalogLoading(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void fetchSearchPage(qNorm, 1, false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [qNorm, searchActive, fetchSearchPage]);
 
   const filteredCategories = useMemo(() => {
     if (!searchActive) return categories;
     return categories.filter((c) => categoryMatchesQuery(c, locale, qNorm));
   }, [categories, locale, qNorm, searchActive]);
 
-  const filteredProducts = useMemo(() => {
-    if (!searchActive) return [];
-    return catalogProducts.filter((p) => productMatchesQuery(p, qNorm));
-  }, [catalogProducts, qNorm, searchActive]);
+  // Server already filtered by name/sku; results arrive paginated.
+  const filteredProducts = searchActive ? searchResults : [];
 
   const recentVisible = useMemo(
     () => (searchActive ? recent.filter((p) => productMatchesQuery(p, qNorm)) : recent),
@@ -352,10 +382,11 @@ export default function ProductsPage() {
           >
             <div className="ds-product-media">
               {product.imageUrl ? (
-                <img
+                <Image
                   src={product.imageUrl}
                   alt=""
-                  loading="lazy"
+                  width={200}
+                  height={200}
                   referrerPolicy="no-referrer"
                   className="ds-product-media__img"
                 />
@@ -498,10 +529,11 @@ export default function ProductsPage() {
                 >
                   <div className="ds-product-media" aria-hidden="true">
                     {product.imageUrl ? (
-                      <img
+                      <Image
                         src={product.imageUrl}
                         alt=""
-                        loading="lazy"
+                        width={200}
+                        height={200}
                         referrerPolicy="no-referrer"
                         className="ds-product-media__img"
                       />
@@ -549,6 +581,19 @@ export default function ProductsPage() {
               ))}
             </ul>
           ) : null}
+
+          {!catalogLoading && searchMeta && searchMeta.page < searchMeta.totalPages ? (
+            <div className="ds-mt-sm">
+              <Button
+                variant="secondary"
+                block
+                disabled={loadingMore}
+                onClick={() => void fetchSearchPage(qNorm, searchMeta.page + 1, true)}
+              >
+                {loadingMore ? t("messages.loading") : t("loadMore")}
+              </Button>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -580,7 +625,7 @@ export default function ProductsPage() {
                 <Link href={`/${locale}/dashboard/products/${c.slug}`} className="ds-category-link">
                   <div className="ds-category-media" aria-hidden="true">
                     {c.imageUrl ? (
-                      <img src={c.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      <Image src={c.imageUrl} alt="" width={200} height={200} referrerPolicy="no-referrer" />
                     ) : (
                       <div className="ds-category-media-fallback" />
                     )}

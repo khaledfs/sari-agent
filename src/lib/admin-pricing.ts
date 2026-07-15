@@ -1,4 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose";
+import { revalidateTag } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
@@ -8,6 +9,7 @@ import { DISCOUNT_SCOPES, DISCOUNT_TYPES, DiscountModel } from "@/models/discoun
 import { PriceOverrideModel } from "@/models/price-override.model";
 import { ProductModel } from "@/models/product.model";
 import { UserModel } from "@/models/user.model";
+import { PRODUCTS_CACHE_TAG } from "@/services/product.service";
 
 /** Admin-facing pricing tools (tier prices, per-customer overrides, discounts). */
 
@@ -218,6 +220,8 @@ export async function setProductTierPrices(
   ).exec();
   if (res.matchedCount === 0) throw new Error("Product not found.");
 
+  // tierPrices ride inside the cached catalog items — bust the catalog cache.
+  revalidateTag(PRODUCTS_CACHE_TAG, { expire: 0 });
   return getProductPricing(productId);
 }
 

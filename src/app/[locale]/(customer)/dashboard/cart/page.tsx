@@ -1,5 +1,6 @@
   "use client";
 
+  import Image from "next/image";
   import Link from "next/link";
   import { useRouter } from "next/navigation";
   import { useCallback, useEffect, useState } from "react";
@@ -342,10 +343,11 @@
                   <div className="ds-product-row">
                     <div className="ds-thumb" aria-hidden="true">
                       {line.product.imageUrl ? (
-                        <img
+                        <Image
                           src={line.product.imageUrl}
                           alt=""
-                          loading="lazy"
+                          width={56}
+                          height={56}
                           referrerPolicy="no-referrer"
                         />
                       ) : null}
@@ -421,7 +423,7 @@
                   <div className="ds-product-row">
                     <div className="ds-thumb" aria-hidden="true">
                       {gift.imageUrl ? (
-                        <img src={gift.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <Image src={gift.imageUrl} alt="" width={56} height={56} referrerPolicy="no-referrer" />
                       ) : (
                         <span className="ds-gift-row__emoji">🎁</span>
                       )}

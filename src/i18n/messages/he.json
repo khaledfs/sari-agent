@@ -209,6 +209,7 @@
       "defaultUnit": "יחידה"
     },
     "outOfStock": "אזל מהמלאי",
+    "loadMore": "טען עוד",
     "actions": {
       "addToCart": "הוסף לעגלה",
       "adding": "מוסיף…"

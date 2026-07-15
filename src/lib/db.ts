@@ -1,9 +1,4 @@
-import dns from "dns";
 import mongoose from "mongoose";
-
-// Force Node's DNS resolver to use Google DNS — some Windows networks
-// register an IPv6 link-local resolver (fe80::1) that Node's SRV lookups
-// (querySrv) cannot reach, even though the OS-level resolver works fine.
 
 const mongoUri = process.env.MONGODB_URI;
 
@@ -42,6 +37,13 @@ export async function connectDB() {
     });
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (error) {
+    // A failed connect must not poison the singleton forever — clear the
+    // rejected promise so the next request can retry.
+    cached.promise = null;
+    throw error;
+  }
   return cached.conn;
 }

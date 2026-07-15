@@ -2,17 +2,31 @@ import { NextResponse } from "next/server";
 
 import { getAuthenticatedUserId } from "@/lib/auth-user";
 import { applyCustomerPricesToProducts } from "@/services/pricing-presentation.service";
-import { createProduct, getAllProducts, getProductsByCategory } from "@/services/product.service";
+import { createProduct, listCatalogProducts } from "@/services/product.service";
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const category = url.searchParams.get("category")?.trim() ?? "";
-    const products = category ? await getProductsByCategory(category) : await getAllProducts();
-    // Per-customer pricing (no-op base prices when unauthenticated / no rules).
+    // Catalog page comes from the tagged cache; per-customer pricing is
+    // applied per request AFTER the cache (never cached cross-customer).
+    const catalog = await listCatalogProducts({
+      category: url.searchParams.get("category") ?? undefined,
+      search: url.searchParams.get("search") ?? undefined,
+      page: Number(url.searchParams.get("page") ?? "1") || 1,
+      pageSize: Number(url.searchParams.get("pageSize") ?? "") || undefined,
+    });
     const userId = await getAuthenticatedUserId();
-    const priced = await applyCustomerPricesToProducts(products, userId);
-    return NextResponse.json({ success: true, data: priced });
+    const priced = await applyCustomerPricesToProducts(catalog.items, userId);
+    return NextResponse.json({
+      success: true,
+      data: priced,
+      meta: {
+        page: catalog.page,
+        pageSize: catalog.pageSize,
+        total: catalog.total,
+        totalPages: catalog.totalPages,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch products.";
     return NextResponse.json({ success: false, message }, { status: 400 });

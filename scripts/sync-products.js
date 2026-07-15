@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Synchronise the product catalog from sarihassan.com (WooCommerce/Elementor)
  * into MongoDB (the `products` collection).
@@ -317,8 +317,37 @@ async function main() {
     const active = await ProductModel.countDocuments({ isActive: true });
     console.log(`\nproducts in DB: ${count} (${active} active)`);
     await mongoose.disconnect();
+    await revalidateCatalogCache();
   }
   console.log("");
+}
+
+/**
+ * Best-effort bust of the Next.js catalog cache (tag "products") after a
+ * successful sync. Needs a RUNNING app server; auth via REVALIDATE_SECRET
+ * (both read from .env.local). The cache also has a 5-minute TTL, so a
+ * missed call only means bounded staleness — never an error.
+ */
+async function revalidateCatalogCache() {
+  const base = (process.env.SYNC_REVALIDATE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const secret = (process.env.REVALIDATE_SECRET || "").trim();
+  if (!secret) {
+    console.log("cache: REVALIDATE_SECRET not set — catalog cache will refresh via its 5-minute TTL");
+    return;
+  }
+  try {
+    const res = await fetch(`${base}/api/products/revalidate`, {
+      method: "POST",
+      headers: { "x-revalidate-secret": secret },
+    });
+    console.log(
+      res.ok
+        ? "cache: catalog cache revalidated"
+        : `cache: revalidate call returned ${res.status} — cache will refresh via its 5-minute TTL`
+    );
+  } catch {
+    console.log("cache: app server unreachable — cache will refresh via its 5-minute TTL");
+  }
 }
 
 main().catch(async (e) => {

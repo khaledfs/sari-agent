@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 
@@ -39,6 +40,8 @@ export default function CategoryProductsPage() {
   const slug = params.slug;
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [meta, setMeta] = useState<{ page: number; totalPages: number } | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -90,25 +93,42 @@ export default function CategoryProductsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError("");
+  const fetchPage = useCallback(
+    async (page: number, append: boolean) => {
+      if (append) setLoadingMore(true);
+      else {
+        setLoading(true);
+        setError("");
+      }
       try {
-        const prodRes = await fetch(`/api/products?category=${encodeURIComponent(slug)}`);
-        const prodPayload = (await prodRes.json()) as { success?: boolean; data?: Product[]; message?: string };
+        const params = new URLSearchParams({ category: slug, page: String(page) });
+        const prodRes = await fetch(`/api/products?${params.toString()}`);
+        const prodPayload = (await prodRes.json()) as {
+          success?: boolean;
+          data?: Product[];
+          meta?: { page: number; totalPages: number };
+          message?: string;
+        };
         if (prodRes.status === 200 && prodPayload.success && prodPayload.data) {
-          setProducts(prodPayload.data);
+          const items = prodPayload.data;
+          setProducts((prev) => (append ? [...prev, ...items] : items));
+          setMeta(prodPayload.meta ? { page: prodPayload.meta.page, totalPages: prodPayload.meta.totalPages } : null);
           return;
         }
-        setError(prodPayload.message ?? t("messages.fetchError"));
+        if (!append) setError(prodPayload.message ?? t("messages.fetchError"));
       } catch {
-        setError(t("messages.fetchError"));
+        if (!append) setError(t("messages.fetchError"));
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
-    })();
-  }, [slug, t]);
+    },
+    [slug, t]
+  );
+
+  useEffect(() => {
+    void fetchPage(1, false);
+  }, [fetchPage]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -168,10 +188,11 @@ export default function CategoryProductsPage() {
             >
               <div className="ds-product-media" aria-hidden="true">
                 {product.imageUrl ? (
-                  <img
+                  <Image
                     src={product.imageUrl}
                     alt=""
-                    loading="lazy"
+                    width={200}
+                    height={200}
                     referrerPolicy="no-referrer"
                     className="ds-product-media__img"
                   />
@@ -218,6 +239,19 @@ export default function CategoryProductsPage() {
             </Card>
           ))}
         </ul>
+      ) : null}
+
+      {!loading && !error && meta && meta.page < meta.totalPages ? (
+        <div className="ds-mt-sm">
+          <Button
+            variant="secondary"
+            block
+            disabled={loadingMore}
+            onClick={() => void fetchPage(meta.page + 1, true)}
+          >
+            {loadingMore ? t("messages.loading") : t("loadMore")}
+          </Button>
+        </div>
       ) : null}
     </main>
   );

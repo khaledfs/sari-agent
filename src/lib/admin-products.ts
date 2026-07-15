@@ -1,8 +1,10 @@
 import mongoose, { isValidObjectId } from "mongoose";
+import { revalidateTag } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
 import { ProductModel } from "@/models/product.model";
+import { PRODUCTS_CACHE_TAG } from "@/services/product.service";
 
 /**
  * Admin product management, mirroring the patterns of admin-orders.ts:
@@ -261,6 +263,8 @@ export async function updateAdminProduct(
   if (!updated) {
     throw new Error("Product not found.");
   }
+  // Customer catalog is cached under this tag — bust it on every admin edit.
+  revalidateTag(PRODUCTS_CACHE_TAG, { expire: 0 });
   return toRow(updated);
 }
 
@@ -300,6 +304,7 @@ export async function createAdminProduct(data: Record<string, unknown>): Promise
       isActive: data.isActive !== false,
       stock,
     });
+    revalidateTag(PRODUCTS_CACHE_TAG, { expire: 0 });
     return toRow(created.toObject() as unknown as ProductLean);
   } catch (error) {
     if (error instanceof Error && "code" in error && (error as { code?: number }).code === 11000) {

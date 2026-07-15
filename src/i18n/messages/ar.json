@@ -209,6 +209,7 @@
       "defaultUnit": "وحدة"
     },
     "outOfStock": "نفد من المخزون",
+    "loadMore": "تحميل المزيد",
     "actions": {
       "addToCart": "أضف إلى السلة",
       "adding": "جارٍ الإضافة…"

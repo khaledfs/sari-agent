@@ -1,8 +1,133 @@
 import { isValidObjectId } from "mongoose";
+import { unstable_cache } from "next/cache";
 import { z } from "zod";
 
 import { connectDB } from "@/lib/db";
 import { ProductModel } from "@/models/product.model";
+
+/** Cache tag for the customer catalog — invalidated on admin product edits. */
+export const PRODUCTS_CACHE_TAG = "products";
+/** TTL fallback (seconds) so out-of-band writes (sync script) stay bounded-stale. */
+const CATALOG_CACHE_TTL_SECONDS = 300;
+
+/** JSON-safe catalog item (unstable_cache serializes — no ObjectId/Date/Map). */
+export type CatalogProduct = {
+  _id: string;
+  name: string;
+  sku: string;
+  category: string;
+  price: number;
+  unit: string;
+  packageSize: string;
+  imageUrl: string;
+  isActive: boolean;
+  stock: number | null;
+  tierPrices?: Record<string, number>;
+  createdAt: string;
+};
+
+export type CatalogPage = {
+  items: CatalogProduct[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export const CATALOG_MAX_PAGE_SIZE = 50;
+
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+type ProductLeanForCatalog = {
+  _id: unknown;
+  name: string;
+  sku: string;
+  category?: string;
+  price: number;
+  unit?: string;
+  packageSize?: string;
+  imageUrl?: string;
+  isActive?: boolean;
+  stock?: number | null;
+  tierPrices?: Map<string, number> | Record<string, number> | null;
+  createdAt?: Date;
+};
+
+function toCatalogProduct(p: ProductLeanForCatalog): CatalogProduct {
+  const tierPrices =
+    p.tierPrices instanceof Map
+      ? Object.fromEntries(p.tierPrices)
+      : p.tierPrices && typeof p.tierPrices === "object"
+        ? (p.tierPrices as Record<string, number>)
+        : undefined;
+  return {
+    _id: String(p._id),
+    name: p.name,
+    sku: p.sku,
+    category: p.category ?? "",
+    price: p.price,
+    unit: p.unit ?? "",
+    packageSize: p.packageSize ?? "",
+    imageUrl: p.imageUrl ?? "",
+    isActive: p.isActive !== false,
+    stock: typeof p.stock === "number" ? p.stock : null,
+    ...(tierPrices && Object.keys(tierPrices).length > 0 ? { tierPrices } : {}),
+    createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : "",
+  };
+}
+
+/**
+ * Cached catalog page. The catalog changes rarely (admin edits, nightly sync)
+ * so it's cached under the "products" tag; per-customer pricing is applied
+ * OUTSIDE the cache, per request. Invalidated by revalidateTag("products") in
+ * admin product mutations and via POST /api/products/revalidate (sync script);
+ * the TTL bounds staleness if neither fires.
+ */
+const fetchCatalogPageCached = unstable_cache(
+  async (category: string, search: string, page: number, pageSize: number): Promise<CatalogPage> => {
+    await connectDB();
+    const filter: Record<string, unknown> = { isActive: true };
+    if (category) filter.category = category;
+    if (search) {
+      const rx = new RegExp(escapeRegex(search), "i");
+      filter.$or = [{ name: rx }, { sku: rx }];
+    }
+    const [total, docs] = await Promise.all([
+      ProductModel.countDocuments(filter).exec(),
+      ProductModel.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean()
+        .exec() as unknown as Promise<ProductLeanForCatalog[]>,
+    ]);
+    return {
+      items: docs.map(toCatalogProduct),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
+  },
+  ["catalog-page"],
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: CATALOG_CACHE_TTL_SECONDS }
+);
+
+export async function listCatalogProducts(params: {
+  category?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<CatalogPage> {
+  const page = Math.max(1, Math.floor(params.page ?? 1));
+  const pageSize = Math.min(
+    CATALOG_MAX_PAGE_SIZE,
+    Math.max(1, Math.floor(params.pageSize ?? CATALOG_MAX_PAGE_SIZE))
+  );
+  return fetchCatalogPageCached(params.category?.trim() ?? "", params.search?.trim() ?? "", page, pageSize);
+}
 
 const createProductSchema = z.object({
   name: z.string().trim().min(1, "Product name is required."),
