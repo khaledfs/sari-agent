@@ -261,7 +261,10 @@
     "emptyCta": "تصفّح المنتجات",
     "itemsUnit": "عناصر",
     "freeDeliveryRemaining": "يفصلك ₪<strong>{amount}</strong> عن التوصيل المجاني",
-    "freeDeliveryMet": "رائع! لقد فتحت التوصيل المجاني"
+    "freeDeliveryMet": "رائع! لقد فتحت التوصيل المجاني",
+    "giftLine": "هدية",
+    "promoDiscount": "خصم العرض",
+    "promoHintRemaining": "أضِف ₪<strong>{amount}</strong> إضافية للحصول على عرض"
   },
   "orders": {
     "title": "الطلبات",
@@ -392,7 +395,9 @@
         "products": "المنتجات",
         "productsDesc": "الكتالوج والمخزون",
         "discounts": "الخصومات",
-        "discountsDesc": "قواعد التسعير والعروض",
+        "discountsDesc": "قواعد التسعير",
+        "promotions": "العروض",
+        "promotionsDesc": "هدايا وعروض الطلبات",
         "settings": "الإعدادات",
         "settingsDesc": "تغيير كلمة المرور الخاصة بك"
       },
@@ -569,6 +574,37 @@
         "save": "حفظ",
         "saving": "جارٍ الحفظ…",
         "saveError": "فشل حفظ الخصم."
+      }
+    },
+    "promotions": {
+      "title": "العروض",
+      "subtitle": "هدايا وعروض على مستوى الطلب. تظهر الهدايا في سلة العميل بسعر ₪0.",
+      "loading": "جارٍ تحميل العروض…",
+      "empty": "لا توجد عروض بعد.",
+      "error": "فشل تحميل العروض.",
+      "add": "عرض جديد",
+      "columns": {
+        "label": "الاسم",
+        "kind": "النوع",
+        "rule": "القاعدة"
+      },
+      "kinds": {
+        "gift": "اشترِ X → هدية Y",
+        "orderDiscount": "خصم على الطلب",
+        "minOrderGift": "هدية عند حد أدنى"
+      },
+      "rules": {
+        "gift": "شراء {minQty}+ من منتج التفعيل → {giftQty} وحدة هدية",
+        "minOrderGift": "المجموع ≥ ₪{threshold} → {giftQty} وحدة هدية",
+        "orderDiscount": "المجموع ≥ ₪{threshold} → خصم {value} على الطلب"
+      },
+      "form": {
+        "buyProduct": "منتج التفعيل (اشترِ X)",
+        "buyMinQty": "الحد الأدنى للكمية (N)",
+        "giftProduct": "منتج الهدية (احصل على Y)",
+        "giftQty": "كمية الهدية (M)",
+        "threshold": "حد المجموع للطلب (₪)",
+        "saveError": "فشل حفظ العرض."
       }
     },
     "customerPricing": {

@@ -261,7 +261,10 @@
     "emptyCta": "עברו למוצרים",
     "itemsUnit": "פריטים",
     "freeDeliveryRemaining": "עוד ₪<strong>{amount}</strong> למשלוח חינם",
-    "freeDeliveryMet": "כל הכבוד! פתחתם משלוח חינם"
+    "freeDeliveryMet": "כל הכבוד! פתחתם משלוח חינם",
+    "giftLine": "מתנה",
+    "promoDiscount": "הנחת מבצע",
+    "promoHintRemaining": "הוסיפו עוד ₪<strong>{amount}</strong> לקבלת מבצע"
   },
   "orders": {
     "title": "הזמנות",
@@ -392,7 +395,9 @@
         "products": "מוצרים",
         "productsDesc": "קטלוג ומלאי",
         "discounts": "הנחות",
-        "discountsDesc": "כללי תמחור ומבצעים",
+        "discountsDesc": "כללי תמחור",
+        "promotions": "מבצעים",
+        "promotionsDesc": "מתנות והטבות הזמנה",
         "settings": "הגדרות",
         "settingsDesc": "שינוי הסיסמה שלך"
       },
@@ -569,6 +574,37 @@
         "save": "שמור",
         "saving": "שומר…",
         "saveError": "שמירת ההנחה נכשלה."
+      }
+    },
+    "promotions": {
+      "title": "מבצעים",
+      "subtitle": "מתנות והטבות ברמת ההזמנה. מתנות מופיעות בעגלת הלקוח במחיר ₪0.",
+      "loading": "טוען מבצעים…",
+      "empty": "אין עדיין מבצעים.",
+      "error": "טעינת המבצעים נכשלה.",
+      "add": "מבצע חדש",
+      "columns": {
+        "label": "שם",
+        "kind": "סוג",
+        "rule": "כלל"
+      },
+      "kinds": {
+        "gift": "קנה X → קבל Y",
+        "orderDiscount": "הנחת הזמנה",
+        "minOrderGift": "מתנה בהזמנת מינימום"
+      },
+      "rules": {
+        "gift": "קנייה של {minQty}+ ממוצר הטריגר → {giftQty} יח׳ מתנה",
+        "minOrderGift": "סכום ביניים ≥ ₪{threshold} → {giftQty} יח׳ מתנה",
+        "orderDiscount": "סכום ביניים ≥ ₪{threshold} → {value} הנחה על ההזמנה"
+      },
+      "form": {
+        "buyProduct": "מוצר טריגר (קנה X)",
+        "buyMinQty": "כמות מינימום (N)",
+        "giftProduct": "מוצר מתנה (קבל Y)",
+        "giftQty": "כמות מתנה (M)",
+        "threshold": "סף סכום הזמנה (₪)",
+        "saveError": "שמירת המבצע נכשלה."
       }
     },
     "customerPricing": {

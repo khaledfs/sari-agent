@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getOpenAIClient } from "@/lib/openai";
 import { getAssistantRankedProductCandidates } from "@/services/assistant-candidates.service";
 import { buildMemorySystemPrompt, getMemoryForUser } from "@/services/customer-memory.service";
+import { getGiftPromotionForProduct } from "@/services/promotions.service";
 import type { AssistantChatTurn, AssistantCommandResponse, AssistantMatchedProduct } from "@/types/assistant";
 
 export type AdvisorLocale = "he" | "en" | "ar";
@@ -40,6 +41,20 @@ const FRESH_INFO_UNAVAILABLE_NOTE: Record<AdvisorLocale, string> = {
 
 /** MVP safety threshold, matching product-matching.service.ts's deterministic cutoff. */
 const CATALOG_TIE_IN_SCORE_THRESHOLD = 30;
+
+/** Deterministic gift-promotion mention (service-composed, never LLM-generated). */
+function buildGiftPromotionNote(
+  locale: AdvisorLocale,
+  productName: string,
+  promo: { buyMinQty: number; giftQty: number; giftProductName: string }
+): string {
+  const templates: Record<AdvisorLocale, string> = {
+    he: `🎁 מבצע פעיל: בקנייה של ${promo.buyMinQty} יחידות של ${productName} מקבלים ${promo.giftQty} × ${promo.giftProductName} מתנה.`,
+    en: `🎁 Active promotion: buy ${promo.buyMinQty} units of ${productName} and get ${promo.giftQty} × ${promo.giftProductName} free.`,
+    ar: `🎁 عرض فعّال: عند شراء ${promo.buyMinQty} وحدات من ${productName} تحصل على ${promo.giftQty} × ${promo.giftProductName} هدية.`,
+  };
+  return templates[locale];
+}
 
 const advisorOutputSchema = z.object({
   answer: z.string().trim().min(1),
@@ -175,6 +190,17 @@ export async function runAssistantAdvisorQuery(
     if (top && top.score >= CATALOG_TIE_IN_SCORE_THRESHOLD) {
       chosenProduct = top;
       parts.push(`${PRODUCT_SUGGESTION_PREFIX[locale]} ${top.name} - ₪${top.price}${top.unit ? `/${top.unit}` : ""}`);
+
+      // Read-only promotions lookup, deterministic text (no LLM math): mention
+      // an active gift promotion when the suggested product is its trigger.
+      try {
+        const giftPromo = await getGiftPromotionForProduct(userId, top.productId);
+        if (giftPromo && giftPromo.giftProductName) {
+          parts.push(buildGiftPromotionNote(locale, top.name, giftPromo));
+        }
+      } catch {
+        // fail soft — promotions must never break an advisory answer
+      }
     } else {
       parts.push(NO_CATALOG_MATCH_NOTE[locale]);
     }

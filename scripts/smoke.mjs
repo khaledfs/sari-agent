@@ -391,6 +391,148 @@ async function pricingEngineSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- promotions section (Phase 3) ----------
+
+/**
+ * End-to-end promotions flow: global minOrderGift → cart under threshold shows
+ * no gift → past threshold the ₪0 gift line appears → the placed order carries
+ * the gift line + promotionId → deactivating removes the gift from new carts.
+ */
+async function promotionsSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  promotions section skipped — needs both customer and admin logins");
+    return;
+  }
+  const SMOKE_LABEL = "SMOKE promo (auto)";
+
+  // Cleanup leftovers from previous runs.
+  try {
+    const { body } = await jsonFetch("/api/admin/promotions", { headers: { Cookie: adminCookie } });
+    for (const p of body?.data ?? []) {
+      if (p.label === SMOKE_LABEL && p.isActive) {
+        await jsonFetch(`/api/admin/promotions/${p.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Cookie: adminCookie },
+          body: JSON.stringify({ isActive: false }),
+        });
+      }
+    }
+  } catch {
+    // asserts below surface real problems
+  }
+
+  // Pick a paid product (for cart lines) and a gift product (different one).
+  let paid = null;
+  let gift = null;
+  try {
+    const { body } = await jsonFetch("/api/admin/products?page=1", { headers: { Cookie: adminCookie } });
+    const items = body?.data?.items ?? [];
+    paid = items.find((p) => p.price >= 20 && p.isActive) ?? null;
+    gift = items.find((p) => p.isActive && p.id !== paid?.id) ?? null;
+  } catch {
+    // reported below
+  }
+  if (!paid || !gift) {
+    report("promo: found products for the flow", false, "could not pick paid+gift products");
+    return;
+  }
+
+  const threshold = Math.round(paid.price * 3 * 100) / 100; // reachable with qty 3
+
+  // Create a global minOrderGift promotion.
+  let promotionId = null;
+  try {
+    const { res, body } = await jsonFetch("/api/admin/promotions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({
+        label: SMOKE_LABEL,
+        kind: "minOrderGift",
+        scope: "global",
+        threshold,
+        giftProductId: gift.id,
+        giftQty: 1,
+      }),
+    });
+    promotionId = body?.data?.id ?? null;
+    report("promo: admin creates global minOrderGift", res.status === 200 && Boolean(promotionId), body?.message ?? "");
+  } catch (err) {
+    report("promo: admin creates global minOrderGift", false, String(err));
+  }
+  if (!promotionId) return;
+
+  // Under threshold: no gift, but a progress hint.
+  try {
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    const { body } = await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: paid.id, quantity: 1 }),
+    });
+    const promos = body?.data?.promotions;
+    const noGift = !(promos?.gifts ?? []).some((g) => g.promotionId === promotionId);
+    const hasHint = promos?.nearestHint?.promotionId === promotionId;
+    report("promo: under threshold -> no gift, progress hint present", noGift && hasHint, JSON.stringify(promos ?? null));
+  } catch (err) {
+    report("promo: under threshold -> no gift, progress hint present", false, String(err));
+  }
+
+  // Past threshold: ₪0 gift line appears.
+  try {
+    const { body } = await jsonFetch("/api/cart", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: paid.id, quantity: 3 }),
+    });
+    const giftLine = (body?.data?.promotions?.gifts ?? []).find((g) => g.promotionId === promotionId);
+    report(
+      "promo: past threshold -> gift line appears",
+      giftLine?.productId === gift.id && giftLine?.qty === 1,
+      JSON.stringify(body?.data?.promotions?.gifts ?? [])
+    );
+  } catch (err) {
+    report("promo: past threshold -> gift line appears", false, String(err));
+  }
+
+  // Place the order: gift line at price 0 + promotionId + appliedPromotionIds.
+  try {
+    const { res, body } = await jsonFetch("/api/orders", { method: "POST", headers: { Cookie: customerCookie } });
+    const items = body?.data?.items ?? [];
+    const giftLine = items.find((i) => i.isGift === true && i.promotionId === promotionId);
+    const ok =
+      res.status === 200 &&
+      giftLine?.price === 0 &&
+      giftLine?.quantity === 1 &&
+      (body?.data?.appliedPromotionIds ?? []).includes(promotionId);
+    report(
+      "promo: order contains ₪0 gift line + promotionId",
+      ok,
+      `gift=${JSON.stringify(giftLine ?? null)}, applied=${JSON.stringify(body?.data?.appliedPromotionIds ?? [])}`
+    );
+  } catch (err) {
+    report("promo: order contains ₪0 gift line + promotionId", false, String(err));
+  }
+
+  // Deactivate: a new qualifying cart shows no gift.
+  try {
+    await jsonFetch(`/api/admin/promotions/${promotionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ isActive: false }),
+    });
+    const { body } = await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: paid.id, quantity: 3 }),
+    });
+    const stillThere = (body?.data?.promotions?.gifts ?? []).some((g) => g.promotionId === promotionId);
+    report("promo: deactivated -> gift gone from new cart", !stillThere, "");
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+  } catch (err) {
+    report("promo: deactivated -> gift gone from new cart", false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -402,6 +544,7 @@ async function main() {
   await checkAdminOrdersUnauthenticated();
   const adminCookie = await adminProductsSection();
   await pricingEngineSection(cookie, adminCookie);
+  await promotionsSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

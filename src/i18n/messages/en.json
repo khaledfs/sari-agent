@@ -261,7 +261,10 @@
     "emptyCta": "Browse products",
     "itemsUnit": "items",
     "freeDeliveryRemaining": "You're ₪<strong>{amount}</strong> away from free delivery",
-    "freeDeliveryMet": "Nice! You've unlocked free delivery"
+    "freeDeliveryMet": "Nice! You've unlocked free delivery",
+    "giftLine": "Gift",
+    "promoDiscount": "Promotion discount",
+    "promoHintRemaining": "Add ₪<strong>{amount}</strong> more to earn a promotion"
   },
   "orders": {
     "title": "Orders",
@@ -392,7 +395,9 @@
         "products": "Products",
         "productsDesc": "Catalog & inventory",
         "discounts": "Discounts",
-        "discountsDesc": "Pricing rules & promotions",
+        "discountsDesc": "Pricing rules",
+        "promotions": "Promotions",
+        "promotionsDesc": "Gifts & order deals",
         "settings": "Settings",
         "settingsDesc": "Change your password"
       },
@@ -569,6 +574,37 @@
         "save": "Save",
         "saving": "Saving…",
         "saveError": "Failed to save discount."
+      }
+    },
+    "promotions": {
+      "title": "Promotions",
+      "subtitle": "Gifts and order-level deals. Gifts appear in the customer's cart at ₪0.",
+      "loading": "Loading promotions…",
+      "empty": "No promotions yet.",
+      "error": "Failed to load promotions.",
+      "add": "New promotion",
+      "columns": {
+        "label": "Label",
+        "kind": "Kind",
+        "rule": "Rule"
+      },
+      "kinds": {
+        "gift": "Buy X → gift Y",
+        "orderDiscount": "Order discount",
+        "minOrderGift": "Min-order gift"
+      },
+      "rules": {
+        "gift": "Buy {minQty}+ of the trigger product → {giftQty} gift unit(s)",
+        "minOrderGift": "Subtotal ≥ ₪{threshold} → {giftQty} gift unit(s)",
+        "orderDiscount": "Subtotal ≥ ₪{threshold} → {value} off the order"
+      },
+      "form": {
+        "buyProduct": "Trigger product (buy X)",
+        "buyMinQty": "Minimum quantity (N)",
+        "giftProduct": "Gift product (get Y)",
+        "giftQty": "Gift quantity (M)",
+        "threshold": "Order subtotal threshold (₪)",
+        "saveError": "Failed to save promotion."
       }
     },
     "customerPricing": {

@@ -49,6 +49,16 @@ const orderItemSchema = new Schema(
       ),
       default: undefined,
     },
+    /** Set on promotion gift lines (price 0). */
+    isGift: {
+      type: Boolean,
+      default: undefined,
+    },
+    /** Promotion that produced this line (gift lines only). */
+    promotionId: {
+      type: String,
+      default: undefined,
+    },
   },
   { _id: false }
 );
@@ -74,6 +84,24 @@ const orderSchema = new Schema(
       type: String,
       default: "pending",
       trim: true,
+    },
+    /** Promotions that contributed gifts/discounts to this order. */
+    appliedPromotionIds: {
+      type: [String],
+      default: undefined,
+    },
+    /** Order-level promotion discount applied to the total (audit). */
+    promotionDiscount: {
+      type: new Schema(
+        {
+          promotionId: { type: String, required: true },
+          discountType: { type: String, required: true },
+          value: { type: Number, required: true },
+          amountOff: { type: Number, required: true },
+        },
+        { _id: false }
+      ),
+      default: undefined,
     },
   },
   { timestamps: true }

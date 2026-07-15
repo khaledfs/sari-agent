@@ -3,7 +3,12 @@ import mongoose, { isValidObjectId } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
 import type { PriceBreakdown } from "@/services/pricing.service";
+import {
+  evaluatePromotionsForCart,
+  type PromotionEvaluation,
+} from "@/services/promotions.service";
 import { OrderModel } from "@/models/order.model";
+import { ProductModel } from "@/models/product.model";
 
 export type OrderItemSnapshot = {
   productId: string;
@@ -13,6 +18,9 @@ export type OrderItemSnapshot = {
   lineTotal: number;
   /** Pricing-engine audit snapshot (absent on legacy orders). */
   priceBreakdown?: PriceBreakdown;
+  /** Promotion gift line (price 0). */
+  isGift?: boolean;
+  promotionId?: string;
 };
 
 export type OrderSummary = {
@@ -30,6 +38,13 @@ export type OrderDetail = {
   total: number;
   status: string;
   createdAt: string;
+  appliedPromotionIds?: string[];
+  promotionDiscount?: {
+    promotionId: string;
+    discountType: string;
+    value: number;
+    amountOff: number;
+  };
 };
 
 function toUserObjectId(userId: string) {
@@ -45,6 +60,8 @@ type OrderItemRow = {
   price: number;
   quantity: number;
   priceBreakdown?: PriceBreakdown;
+  isGift?: boolean;
+  promotionId?: string;
 };
 
 function serializeOrder(doc: {
@@ -54,6 +71,8 @@ function serializeOrder(doc: {
   total: number;
   status: string;
   createdAt?: Date;
+  appliedPromotionIds?: string[];
+  promotionDiscount?: OrderDetail["promotionDiscount"];
 }): OrderDetail {
   const items: OrderItemSnapshot[] = (doc.items ?? []).map((row) => {
     const lineTotal = Math.round(row.price * row.quantity * 100) / 100;
@@ -64,6 +83,8 @@ function serializeOrder(doc: {
       quantity: row.quantity,
       lineTotal,
       ...(row.priceBreakdown ? { priceBreakdown: row.priceBreakdown } : {}),
+      ...(row.isGift ? { isGift: true } : {}),
+      ...(row.promotionId ? { promotionId: row.promotionId } : {}),
     };
   });
   return {
@@ -73,6 +94,8 @@ function serializeOrder(doc: {
     total: doc.total,
     status: doc.status,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date(0).toISOString(),
+    ...(doc.appliedPromotionIds?.length ? { appliedPromotionIds: doc.appliedPromotionIds } : {}),
+    ...(doc.promotionDiscount ? { promotionDiscount: doc.promotionDiscount } : {}),
   };
 }
 
@@ -104,6 +127,8 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     price: number;
     quantity: number;
     priceBreakdown?: PriceBreakdown;
+    isGift?: boolean;
+    promotionId?: string;
   }> = [];
 
   for (const line of cart.items) {
@@ -129,7 +154,49 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     });
   }
 
-  const total = Math.round(cart.cartTotal * 100) / 100;
+  let total = Math.round(cart.cartTotal * 100) / 100;
+
+  // Promotions compose on top of the priced cart: gift lines at ₪0 with a
+  // promotionId reference, plus at most one order-level discount. Fail soft —
+  // a promotions outage must never block order placement (order proceeds
+  // without promotion benefits).
+  let promoEvaluation: PromotionEvaluation | null = null;
+  try {
+    promoEvaluation = await evaluatePromotionsForCart(
+      userId,
+      cart.items.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+      total
+    );
+  } catch {
+    promoEvaluation = null;
+  }
+
+  if (promoEvaluation) {
+    if (promoEvaluation.gifts.length > 0) {
+      const giftProducts = await ProductModel.find(
+        { _id: { $in: promoEvaluation.gifts.map((g) => g.productId).filter((id) => isValidObjectId(id)) } },
+        { name: 1 }
+      )
+        .lean()
+        .exec();
+      const nameById = new Map(giftProducts.map((p) => [String(p._id), p.name]));
+      for (const gift of promoEvaluation.gifts) {
+        const name = nameById.get(gift.productId);
+        if (!name) continue; // gift product vanished — skip, never block the order
+        snapshotItems.push({
+          productId: new mongoose.Types.ObjectId(gift.productId),
+          name,
+          price: 0,
+          quantity: gift.qty,
+          isGift: true,
+          promotionId: gift.promotionId,
+        });
+      }
+    }
+    if (promoEvaluation.orderDiscount) {
+      total = Math.max(0, Math.round((total - promoEvaluation.orderDiscount.amountOff) * 100) / 100);
+    }
+  }
 
   await connectDB();
   let created;
@@ -139,6 +206,10 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
       items: snapshotItems,
       total,
       status: "pending",
+      ...(promoEvaluation?.appliedPromotionIds.length
+        ? { appliedPromotionIds: promoEvaluation.appliedPromotionIds }
+        : {}),
+      ...(promoEvaluation?.orderDiscount ? { promotionDiscount: promoEvaluation.orderDiscount } : {}),
     });
   } catch (e) {
     throw e instanceof Error ? e : new Error("Failed to create order.");
@@ -162,6 +233,8 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     total: saved.total,
     status: saved.status,
     createdAt: saved.createdAt as Date,
+    appliedPromotionIds: (saved as { appliedPromotionIds?: string[] }).appliedPromotionIds,
+    promotionDiscount: (saved as { promotionDiscount?: OrderDetail["promotionDiscount"] }).promotionDiscount,
   });
 }
 

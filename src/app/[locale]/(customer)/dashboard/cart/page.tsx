@@ -46,11 +46,25 @@
     };
   };
 
+  type CartPromotions = {
+    gifts: Array<{
+      productId: string;
+      name: string;
+      imageUrl: string;
+      qty: number;
+      promotionId: string;
+    }>;
+    orderDiscount?: { promotionId: string; discountType: string; value: number; amountOff: number };
+    totalAfterDiscount?: number;
+    nearestHint?: { promotionId: string; kind: string; label: string; remaining: number };
+  };
+
   type CartData = {
     cartId: string;
     userId: string;
     items: CartLineItem[];
     cartTotal: number;
+    promotions?: CartPromotions;
   };
 
   export default function CartPage() {
@@ -309,6 +323,19 @@
               </div>
             </div>
 
+            {cart.promotions?.nearestHint ? (
+              <div className="ds-cart-progress ds-promo-hint" role="status">
+                <p className="ds-cart-progress__msg">
+                  <span aria-hidden="true">🎁</span>{" "}
+                  {t.rich("promoHintRemaining", {
+                    amount: cart.promotions.nearestHint.remaining,
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                  {cart.promotions.nearestHint.label ? ` — ${cart.promotions.nearestHint.label}` : null}
+                </p>
+              </div>
+            ) : null}
+
             <ul className="ds-list">
               {cart.items.map((line) => (
                 <Card as="li" key={line.productId} className="ds-stack ds-stack--tight ds-cart-row-card">
@@ -388,10 +415,38 @@
                   </p>
                 </Card>
               ))}
+
+              {(cart.promotions?.gifts ?? []).map((gift) => (
+                <Card as="li" key={`gift-${gift.promotionId}-${gift.productId}`} className="ds-stack ds-stack--tight ds-cart-row-card ds-gift-row">
+                  <div className="ds-product-row">
+                    <div className="ds-thumb" aria-hidden="true">
+                      {gift.imageUrl ? (
+                        <img src={gift.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="ds-gift-row__emoji">🎁</span>
+                      )}
+                    </div>
+                    <div className="ds-stack ds-stack--tight" style={{ minWidth: 0 }}>
+                      <p className="ds-product-name">
+                        <span className="ds-gift-badge">{t("giftLine")} 🎁</span> {gift.name}
+                      </p>
+                      <p className="ds-text-small">
+                        <strong>{t("quantity")}:</strong> {gift.qty} · <strong>{t("unitPrice")}:</strong> ₪0
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </ul>
+            {cart.promotions?.orderDiscount ? (
+              <div className="ds-totals-strip">
+                <span>{t("promoDiscount")}:</span>
+                <strong>-₪{cart.promotions.orderDiscount.amountOff}</strong>
+              </div>
+            ) : null}
             <div className="ds-totals-strip ds-totals-strip--strong">
               <span>{t("total")}:</span>
-              <strong>{cart.cartTotal}</strong>
+              <strong>{cart.promotions?.totalAfterDiscount ?? cart.cartTotal}</strong>
             </div>
             <div className="ds-actions-row ds-actions-row--summary">
               <Button

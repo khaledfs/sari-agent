@@ -5,6 +5,10 @@ import { connectDB } from "@/lib/db";
 import { CartModel } from "@/models/cart.model";
 import { ProductModel } from "@/models/product.model";
 import { computePricesForProducts, type PriceBreakdown } from "@/services/pricing.service";
+import {
+  evaluatePromotionsForCart,
+  type PromotionEvaluation,
+} from "@/services/promotions.service";
 
 const addBodySchema = z.object({
   productId: z.string().min(1, "productId is required."),
@@ -36,11 +40,28 @@ export type CartLineItem = {
   priceBreakdown?: PriceBreakdown;
 };
 
+export type CartPromotionsView = {
+  gifts: Array<{
+    productId: string;
+    name: string;
+    imageUrl: string;
+    qty: number;
+    promotionId: string;
+  }>;
+  orderDiscount?: PromotionEvaluation["orderDiscount"];
+  /** cartTotal minus the order discount (present only when a discount applies). */
+  totalAfterDiscount?: number;
+  nearestHint?: PromotionEvaluation["nearestHint"];
+};
+
 export type CartWithTotals = {
   cartId: string;
   userId: string;
   items: CartLineItem[];
+  /** Subtotal of paid lines (before any order-level promotion discount). */
   cartTotal: number;
+  /** Earned gifts / order discount / nearest-promotion hint (absent when none). */
+  promotions?: CartPromotionsView;
 };
 
 function toUserObjectId(userId: string) {
@@ -151,6 +172,66 @@ async function loadProductsForItems(
   return (await ProductModel.find({ _id: { $in: ids } }).lean()) as unknown as ProductLeanForCart[];
 }
 
+/**
+ * Attaches earned gifts / order discount / progress hint for the cart page.
+ * Fail-soft: a promotions outage must never break the cart itself.
+ */
+async function loadCartPromotions(
+  userId: string,
+  cart: CartWithTotals
+): Promise<CartPromotionsView | undefined> {
+  try {
+    const evaluation = await evaluatePromotionsForCart(
+      userId,
+      cart.items.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+      cart.cartTotal
+    );
+    if (
+      evaluation.gifts.length === 0 &&
+      !evaluation.orderDiscount &&
+      !evaluation.nearestHint
+    ) {
+      return undefined;
+    }
+
+    let gifts: CartPromotionsView["gifts"] = [];
+    if (evaluation.gifts.length > 0) {
+      const giftProducts = await ProductModel.find(
+        { _id: { $in: evaluation.gifts.map((g) => g.productId).filter((id) => isValidObjectId(id)) } },
+        { name: 1, imageUrl: 1 }
+      )
+        .lean()
+        .exec();
+      const byId = new Map(giftProducts.map((p) => [String(p._id), p]));
+      gifts = evaluation.gifts
+        .filter((g) => byId.has(g.productId))
+        .map((g) => ({
+          productId: g.productId,
+          name: byId.get(g.productId)?.name ?? "",
+          imageUrl: byId.get(g.productId)?.imageUrl ?? "",
+          qty: g.qty,
+          promotionId: g.promotionId,
+        }));
+    }
+
+    return {
+      gifts,
+      ...(evaluation.orderDiscount
+        ? {
+            orderDiscount: evaluation.orderDiscount,
+            totalAfterDiscount: Math.max(
+              0,
+              Math.round((cart.cartTotal - evaluation.orderDiscount.amountOff) * 100) / 100
+            ),
+          }
+        : {}),
+      ...(evaluation.nearestHint ? { nearestHint: evaluation.nearestHint } : {}),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 export async function getCartByUserId(userId: string): Promise<CartWithTotals> {
   toUserObjectId(userId);
   const cart = await getOrCreateCartDoc(userId);
@@ -169,7 +250,9 @@ export async function getCartByUserId(userId: string): Promise<CartWithTotals> {
       },
     ])
   );
-  return buildCartWithTotals(String(cart._id), userId, items, productById, breakdownById);
+  const result = buildCartWithTotals(String(cart._id), userId, items, productById, breakdownById);
+  const promotions = await loadCartPromotions(userId, result);
+  return promotions ? { ...result, promotions } : result;
 }
 
 export async function addToCart(userId: string, productId: string, quantity: number) {
