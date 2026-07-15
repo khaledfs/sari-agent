@@ -614,6 +614,27 @@
         "saveError": "Failed to save promotion."
       }
     },
+    "overview": {
+      "title": "Overview",
+      "subtitle": "Revenue, activity, and inventory health at a glance.",
+      "loading": "Loading overview…",
+      "error": "Failed to load the overview.",
+      "noData": "No data yet.",
+      "periods": {
+        "today": "Today",
+        "last7d": "Last 7 days",
+        "last30d": "Last 30 days"
+      },
+      "orderCount": "{count} orders",
+      "weeklyRevenue": "Revenue — last 8 weeks",
+      "weeklyRevenueHint": "Weekly totals, cancelled orders excluded.",
+      "ordersByStatus": "Orders by status",
+      "topProducts": "Top products (30 days)",
+      "unitsSold": "{count} units",
+      "lowStock": "Low stock",
+      "noLowStock": "No tracked product is low on stock.",
+      "newestCustomers": "Newest customers"
+    },
     "banners": {
       "title": "Banners",
       "subtitle": "Announcements shown at the top of the customer dashboard (max 3, by priority).",

@@ -679,6 +679,145 @@ button:disabled,
   inline-size: 100%;
 }
 
+/* ——— Admin overview: metric cards, panels, status bars ——— */
+
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-brand);
+  border-radius: var(--radius-lg);
+  background: var(--brand-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-metric-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-metric-card__value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--brand-hover);
+}
+
+.admin-metric-card__sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.admin-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-panel {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  min-inline-size: 0;
+}
+
+.admin-panel__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.admin-panel__empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-status-bars {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.admin-status-bars li {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.admin-status-bars__track {
+  display: block;
+  block-size: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.admin-status-bars__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+}
+
+.admin-status-bars__count {
+  font-weight: 600;
+  min-inline-size: 2ch;
+  text-align: end;
+}
+
+.admin-top-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-top-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 0.35rem;
+}
+
+.admin-top-list li:last-child {
+  border-bottom: none;
+}
+
+.admin-top-list__name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-top-list__value {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 /* ——— Admin-managed banner strip (customer strip + admin live preview) ——— */
 
 .ds-banner-strip {

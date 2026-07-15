@@ -639,6 +639,76 @@ async function bannersSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- overview section (Phase 5) ----------
+
+async function overviewSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  overview section skipped — needs both customer and admin logins");
+    return;
+  }
+
+  async function readOverview() {
+    const { res, body } = await jsonFetch("/api/admin/overview", { headers: { Cookie: adminCookie } });
+    return { res, data: body?.data };
+  }
+
+  // Shape assertions.
+  let before = null;
+  try {
+    const { res, data } = await readOverview();
+    const shapeOk =
+      res.status === 200 &&
+      typeof data?.revenue?.today?.revenue === "number" &&
+      typeof data?.revenue?.last7d?.orderCount === "number" &&
+      typeof data?.revenue?.last30d?.revenue === "number" &&
+      Array.isArray(data?.topProducts) &&
+      data.topProducts.length <= 10 &&
+      Array.isArray(data?.ordersByStatus) &&
+      Array.isArray(data?.lowStock) &&
+      data.lowStock.length <= 10 &&
+      Array.isArray(data?.newestCustomers) &&
+      data.newestCustomers.length <= 5 &&
+      Array.isArray(data?.weeklyRevenue) &&
+      data.weeklyRevenue.length === 8 &&
+      data.weeklyRevenue.every((w) => typeof w.revenue === "number");
+    report("overview: GET -> 200 + shape (numbers, capped arrays, 8 weeks)", shapeOk, `status ${res.status}`);
+    before = data;
+  } catch (err) {
+    report("overview: GET -> 200 + shape (numbers, capped arrays, 8 weeks)", false, String(err));
+  }
+
+  // Revenue consistency: place an order, 'today' revenue grows by its total.
+  try {
+    const { body: productsBody } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    const product = (productsBody?.data ?? []).find((p) => p.price > 1);
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product._id, quantity: 1 }),
+    });
+    const { body: orderBody } = await jsonFetch("/api/orders", { method: "POST", headers: { Cookie: customerCookie } });
+    const orderTotal = orderBody?.data?.total;
+    const { data: after } = await readOverview();
+    const delta = Math.round(((after?.revenue?.today?.revenue ?? 0) - (before?.revenue?.today?.revenue ?? 0)) * 100) / 100;
+    report(
+      "overview: today revenue grows by a fresh order's total",
+      typeof orderTotal === "number" && delta === orderTotal,
+      `delta=${delta}, orderTotal=${orderTotal}`
+    );
+  } catch (err) {
+    report("overview: today revenue grows by a fresh order's total", false, String(err));
+  }
+
+  // Unauthenticated -> 401.
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/overview`);
+    report("overview: unauthenticated -> 401", res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report("overview: unauthenticated -> 401", false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -652,6 +722,7 @@ async function main() {
   await pricingEngineSection(cookie, adminCookie);
   await promotionsSection(cookie, adminCookie);
   await bannersSection(cookie, adminCookie);
+  await overviewSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
