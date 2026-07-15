@@ -679,6 +679,32 @@ button:disabled,
   inline-size: 100%;
 }
 
+/* ——— Mobile forms (auth + admin): no iOS zoom, thumb-sized controls ——— */
+
+@media (max-width: 768px) {
+  .auth-form input,
+  .auth-form select,
+  .admin-input,
+  .admin-select {
+    font-size: 16px; /* <16px triggers iOS auto-zoom on focus */
+    min-block-size: 44px;
+  }
+
+  .auth-submit,
+  .admin-btn,
+  .admin-btn-primary {
+    min-block-size: 44px;
+  }
+
+  .auth-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .auth-form label {
+    margin-block-end: 0.35rem;
+  }
+}
+
 /* ——— Admin overview: metric cards, panels, status bars ——— */
 
 .admin-metric-grid {

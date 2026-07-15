@@ -281,6 +281,7 @@
     "placeOrder": "Place order",
     "placingOrder": "Placing order…",
     "details": "Order details",
+    "loadingDetails": "Loading details…",
     "error": "Something went wrong. Try again.",
     "success": "Order placed.",
     "loading": "Loading orders…",

@@ -281,6 +281,7 @@
     "placeOrder": "בצע הזמנה",
     "placingOrder": "שולח הזמנה…",
     "details": "פרטי הזמנה",
+    "loadingDetails": "טוען פרטים…",
     "error": "משהו השתבש. נסה שוב.",
     "success": "ההזמנה נשלחה.",
     "loading": "טוען הזמנות…",

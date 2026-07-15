@@ -28,6 +28,17 @@ type OrderSummary = {
   createdAt: string;
 };
 
+type OrderDetail = OrderSummary & {
+  items: Array<{
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    lineTotal: number;
+    isGift?: boolean;
+  }>;
+};
+
 function orderStatusState(status: string): StatusBadgeState {
   const s = status.toLowerCase();
   if (s === "pending") return "unpaid";
@@ -47,6 +58,9 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [reorderingId, setReorderingId] = useState<string | null>(null);
   const [reorderBanner, setReorderBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailsById, setDetailsById] = useState<Record<string, OrderDetail>>({});
+  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -118,6 +132,29 @@ export default function OrdersPage() {
     }
   }
 
+  /** Inline expand: fetch the order detail once, then toggle in place. */
+  async function toggleExpand(orderId: string) {
+    if (expandedId === orderId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(orderId);
+    if (detailsById[orderId]) return;
+    setDetailLoadingId(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      const json = (await res.json()) as { success?: boolean; data?: OrderDetail };
+      if (res.status === 200 && json.success && json.data) {
+        const detail = json.data;
+        setDetailsById((m) => ({ ...m, [orderId]: detail }));
+      }
+    } catch {
+      // expanded card falls back to the summary info
+    } finally {
+      setDetailLoadingId(null);
+    }
+  }
+
   return (
     <main className="ds-page ds-page--ambient-band">
       <div className="ds-header-row">
@@ -172,33 +209,77 @@ export default function OrdersPage() {
 
       {!loading && orders.length > 0 ? (
         <ul className="ds-list">
-          {orders.map((o) => (
-            <li key={o.id}>
-              <Card className="ds-stack ds-stack--tight ds-order-card">
-                <div className="ds-order-row">
-                  <Link href={`/${locale}/dashboard/orders/${o.id}`} className="ds-order-list-link">
+          {orders.map((o) => {
+            const expanded = expandedId === o.id;
+            const detail = detailsById[o.id];
+            return (
+              <li key={o.id}>
+                <Card className="ds-stack ds-stack--tight ds-order-card">
+                  <button
+                    type="button"
+                    className="ds-order-row ds-order-toggle"
+                    onClick={() => void toggleExpand(o.id)}
+                    aria-expanded={expanded}
+                    aria-controls={`order-detail-${o.id}`}
+                  >
                     <div className="ds-order-meta">
                       <div className="ds-order-date">{formatDate(o.createdAt)}</div>
                       <div className="ds-text-small ds-order-total-line">
                         <strong>{t("total")}:</strong> {o.total}
                       </div>
                     </div>
-                    <div className="ds-details-cta">{t("details")} →</div>
-                  </Link>
-                  <StatusBadge status={orderStatusState(o.status)}>{o.status}</StatusBadge>
-                </div>
-                <OrderTimeline status={o.status} compact />
-                <Button
-                  variant="secondary"
-                  block
-                  disabled={reorderingId === o.id}
-                  onClick={() => void reorder(o.id)}
-                >
-                  {reorderingId === o.id ? tSmart("reordering") : tSmart("reorder")}
-                </Button>
-              </Card>
-            </li>
-          ))}
+                    <StatusBadge status={orderStatusState(o.status)}>{o.status}</StatusBadge>
+                    <span className={`ds-order-chevron${expanded ? " ds-order-chevron--open" : ""}`} aria-hidden="true">
+                      ▾
+                    </span>
+                  </button>
+                  <OrderTimeline status={o.status} compact />
+
+                  <div
+                    id={`order-detail-${o.id}`}
+                    className={`ds-order-expand${expanded ? " ds-order-expand--open" : ""}`}
+                    hidden={!expanded}
+                  >
+                    {expanded && detailLoadingId === o.id && !detail ? (
+                      <p className="ds-text-muted">{t("loadingDetails")}</p>
+                    ) : null}
+                    {expanded && detail ? (
+                      <>
+                        <ul className="ds-order-lines">
+                          {detail.items.map((item, i) => (
+                            <li key={`${item.productId}-${i}`} className="ds-order-line">
+                              <span className="ds-order-line__name">
+                                {item.isGift ? "🎁 " : null}
+                                {item.name}
+                              </span>
+                              <span className="ds-order-line__qty">×{item.quantity}</span>
+                              <span className="ds-order-line__total">₪{item.lineTotal}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="ds-totals-strip">
+                          <span>{t("total")}:</span>
+                          <strong>₪{detail.total}</strong>
+                        </div>
+                        <Link href={`/${locale}/dashboard/orders/${o.id}`} className="ds-link">
+                          {t("details")} →
+                        </Link>
+                      </>
+                    ) : null}
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    block
+                    disabled={reorderingId === o.id}
+                    onClick={() => void reorder(o.id)}
+                  >
+                    {reorderingId === o.id ? tSmart("reordering") : tSmart("reorder")}
+                  </Button>
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </main>

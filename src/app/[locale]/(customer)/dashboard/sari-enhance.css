@@ -1110,6 +1110,376 @@
   .ds-home-hero { background-size: 100% 100%; }
 }
 
+/* ======================================================
+   MOBILE EXPERIENCE OVERHAUL
+   Mobile-first ordering for one-handed use in a bakery.
+   All rules use logical properties (RTL-safe) and the
+   existing design tokens. Desktop (>768px) is untouched
+   except where a rule explicitly improves both.
+   ====================================================== */
+
+/* ——— Orders: inline expandable cards (all viewports) ——— */
+
+.ds-order-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  inline-size: 100%;
+  min-block-size: 44px;
+  border: none;
+  background: none;
+  padding: 0.15rem 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.ds-order-toggle .ds-order-meta {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ds-order-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted, #8a8477);
+  font-size: 0.9rem;
+  transition: transform 200ms ease;
+}
+
+.ds-order-chevron--open {
+  transform: rotate(180deg);
+}
+
+.ds-order-expand {
+  overflow: hidden;
+}
+
+.ds-order-expand--open {
+  animation: ds-expand-in 220ms ease both;
+}
+
+@keyframes ds-expand-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ds-order-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ds-order-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  border-block-end: 1px dashed var(--border, #e8e4dc);
+  padding-block-end: 0.3rem;
+}
+
+.ds-order-line:last-child {
+  border-block-end: none;
+}
+
+.ds-order-line__name {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ds-order-line__qty {
+  flex-shrink: 0;
+  color: var(--text-muted, #8a8477);
+}
+
+.ds-order-line__total {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+/* ——— Header cart shortcut + badges (shared) ——— */
+
+.ds-header-cart {
+  display: none; /* mobile-only; enabled in the ≤768px block */
+  position: absolute;
+  inset-inline-end: 0.9rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  inline-size: 44px;
+  block-size: 44px;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary, #1a1814);
+  border-radius: 12px;
+}
+
+.ds-header-cart svg {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+.ds-cart-badge {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 0;
+  min-inline-size: 17px;
+  block-size: 17px;
+  padding-inline: 3px;
+  border-radius: 999px;
+  background: var(--brand, #a67c00);
+  color: var(--text-on-brand, #fff);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+/* ——— Bottom tab bar (mobile only) ——— */
+
+.ds-bottom-nav {
+  display: none; /* enabled ≤768px */
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 120;
+  grid-template-columns: repeat(5, 1fr);
+  block-size: calc(60px + env(safe-area-inset-bottom, 0px));
+  padding-block-end: env(safe-area-inset-bottom, 0px);
+  background: var(--surface, #fff);
+  border-block-start: 1px solid var(--border, #e8e4dc);
+  box-shadow: 0 -2px 12px rgba(26, 24, 20, 0.06);
+  animation: sari-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ds-bottom-nav__tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-block-size: 44px;
+  color: var(--text-muted, #8a8477);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ds-bottom-nav__icon {
+  position: relative;
+  display: flex;
+}
+
+.ds-bottom-nav__icon svg {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+.ds-bottom-nav__label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ds-bottom-nav__tab--active {
+  color: var(--brand, #a67c00);
+}
+
+.ds-bottom-nav__tab--active .ds-bottom-nav__label {
+  font-weight: 700;
+}
+
+.ds-bottom-nav__tab:focus-visible,
+.ds-header-cart:focus-visible,
+.ds-order-toggle:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: -2px;
+}
+
+/* ——— The ≤768px experience ——— */
+
+@media (max-width: 768px) {
+  /* Top header: centered logo + cart shortcut; hide horizontal tab nav. */
+  .ds-top-header {
+    position: relative;
+  }
+
+  .ds-header-cart {
+    display: flex;
+  }
+
+  .ds-nav-tabs {
+    display: none;
+  }
+
+  .ds-nav-border {
+    border: none;
+  }
+
+  /* Per-page header link rows duplicate the bottom nav — drop them. */
+  .ds-header-actions {
+    display: none;
+  }
+
+  .ds-bottom-nav {
+    display: grid;
+  }
+
+  /* Content must never hide behind the fixed bottom bar. */
+  .ds-dash-shell {
+    padding-block-end: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Product grid: ALWAYS 2 columns on phones (overrides the 1-col @420px rule). */
+  .ds-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.6rem;
+  }
+
+  /* Cards: square, equal images; badges never cover image or title.
+     Specificity matches the desktop overrides in dashboard-ui.css. */
+  .ds-product-media,
+  .ds-smart-strip .ds-product-media,
+  .ds-page .ds-grid--products .ds-product-media {
+    aspect-ratio: 1 / 1;
+  }
+
+  .ds-product-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    min-block-size: 2.5em;
+  }
+
+  .ds-product-price {
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: var(--brand-hover, #8b6800);
+  }
+
+  /* Primary action: full-width, ≥48px, obvious. */
+  .ds-product-card .ds-btn,
+  .ds-product-card button {
+    min-block-size: 48px;
+    min-height: 48px;
+    padding-block: 0.8rem;
+  }
+
+  /* Quantity stepper: easy repeated tapping. */
+  .ds-icon-btn--qty {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    font-size: 1.15rem;
+  }
+
+  .ds-icon-btn--qty:active {
+    background: var(--brand-lighter, #fdf6e3);
+    transform: scale(0.96);
+  }
+
+  .ds-qty-input {
+    min-block-size: 44px;
+    min-inline-size: 3.2rem;
+    font-size: 16px; /* prevents iOS zoom */
+  }
+
+  /* Cart rows: relaxed stacked layout, 56px thumbs. */
+  .ds-cart-row-card {
+    gap: 0.65rem;
+  }
+
+  .ds-cart-row-card .ds-thumb {
+    inline-size: 56px;
+    block-size: 56px;
+    flex-shrink: 0;
+  }
+
+  /* Free-delivery progress stays visible while scrolling. */
+  .ds-cart-progress {
+    position: sticky;
+    inset-block-start: calc(0.4rem + env(safe-area-inset-top, 0px));
+    z-index: 60;
+    background: var(--surface, #fff);
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(26, 24, 20, 0.05));
+  }
+
+  .ds-promo-hint {
+    position: static; /* only the free-delivery bar is sticky */
+  }
+
+  /* Checkout CTA: sticky above the bottom nav, full width, safe-area aware. */
+  .ds-actions-row--summary {
+    position: sticky;
+    inset-block-end: calc(64px + env(safe-area-inset-bottom, 0px));
+    z-index: 60;
+    background: var(--background, #fafaf8);
+    padding-block: 0.5rem;
+    margin-block-start: 0.5rem;
+  }
+
+  .ds-actions-row--summary .ds-cart-cta-main,
+  .ds-actions-row--summary button {
+    min-block-size: 48px;
+  }
+
+  /* Forms: ≥16px inputs (no iOS zoom), ≥44px controls, breathing room. */
+  .ds-input,
+  .ds-page input,
+  .ds-page select,
+  .ds-page textarea {
+    font-size: 16px;
+    min-block-size: 44px;
+  }
+
+  .ds-page .ds-btn,
+  .ds-page button {
+    min-block-size: 44px;
+  }
+
+  /* Links in flowing text keep their size; standalone tap targets grow. */
+  .ds-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
+
+  /* Banner strip: keep clear of the notch. */
+  .ds-banner-strip {
+    padding-inline: 0.75rem;
+  }
+
+  /* Global overflow guards. */
+  .ds-page {
+    overflow-x: clip;
+  }
+
+  .ds-page img,
+  .ds-page svg {
+    max-inline-size: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-bottom-nav,
+  .ds-order-expand--open,
+  .ds-order-chevron {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ——— Promotions: gift lines + progress hint ——— */
 
 .ds-gift-row {

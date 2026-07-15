@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
  *    pops up near the cart tab. Pure transform/opacity, ~700ms.
  */
 
-const CART_ADD_EVENT = "sari:cart-add";
+export const CART_ADD_EVENT = "sari:cart-add";
 const DROP_MS = 750;
 const FLOUR_COUNT = 12;
 
