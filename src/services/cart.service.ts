@@ -4,6 +4,7 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { CartModel } from "@/models/cart.model";
 import { ProductModel } from "@/models/product.model";
+import { computePricesForProducts, type PriceBreakdown } from "@/services/pricing.service";
 
 const addBodySchema = z.object({
   productId: z.string().min(1, "productId is required."),
@@ -26,10 +27,13 @@ export type CartLineItem = {
   product: {
     name: string;
     sku: string;
+    /** Per-customer price from the pricing engine (equals base when no rules apply). */
     price: number;
     unit: string;
     imageUrl: string;
   };
+  /** Pricing-engine audit trail for this line (base/tier/override/discount). */
+  priceBreakdown?: PriceBreakdown;
 };
 
 export type CartWithTotals = {
@@ -90,7 +94,8 @@ function buildCartWithTotals(
   productById: Map<
     string,
     { name: string; sku: string; price: number; unit: string; imageUrl: string }
-  >
+  >,
+  breakdownById: Map<string, PriceBreakdown>
 ): CartWithTotals {
   const lines: CartLineItem[] = [];
   let cartTotal = 0;
@@ -101,7 +106,12 @@ function buildCartWithTotals(
     if (!product) {
       continue;
     }
-    const lineTotal = Math.round(product.price * row.quantity * 100) / 100;
+    const breakdown = breakdownById.get(pid);
+    // Every price the customer pays flows through the pricing engine; the
+    // engine returns base price when no rule applies, so this is a no-op
+    // for customers without pricing data.
+    const unitPrice = breakdown?.final ?? product.price;
+    const lineTotal = Math.round(unitPrice * row.quantity * 100) / 100;
     cartTotal = Math.round((cartTotal + lineTotal) * 100) / 100;
     lines.push({
       productId: pid,
@@ -110,49 +120,56 @@ function buildCartWithTotals(
       product: {
         name: product.name,
         sku: product.sku,
-        price: product.price,
+        price: unitPrice,
         unit: product.unit,
         imageUrl: product.imageUrl,
       },
+      ...(breakdown ? { priceBreakdown: breakdown } : {}),
     });
   }
 
   return { cartId, userId, items: lines, cartTotal };
 }
 
+type ProductLeanForCart = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  sku: string;
+  price: number;
+  unit?: string;
+  imageUrl?: string;
+  tierPrices?: Map<string, number> | Record<string, number> | null;
+};
+
 async function loadProductsForItems(
   items: Array<{ productId: mongoose.Types.ObjectId; quantity: number }>
-) {
+): Promise<ProductLeanForCart[]> {
   const ids = items.map((i) => i.productId);
   if (ids.length === 0) {
-    return new Map<
-      string,
-      { name: string; sku: string; price: number; unit: string; imageUrl: string }
-    >();
+    return [];
   }
-  const products = await ProductModel.find({ _id: { $in: ids } }).lean();
-  const map = new Map<
-    string,
-    { name: string; sku: string; price: number; unit: string; imageUrl: string }
-  >();
-  for (const p of products) {
-    map.set(String(p._id), {
-      name: p.name,
-      sku: p.sku,
-      price: p.price,
-      unit: p.unit ?? "",
-      imageUrl: p.imageUrl ?? "",
-    });
-  }
-  return map;
+  return (await ProductModel.find({ _id: { $in: ids } }).lean()) as unknown as ProductLeanForCart[];
 }
 
 export async function getCartByUserId(userId: string): Promise<CartWithTotals> {
   toUserObjectId(userId);
   const cart = await getOrCreateCartDoc(userId);
   const items = cart.items ?? [];
-  const productById = await loadProductsForItems(items);
-  return buildCartWithTotals(String(cart._id), userId, items, productById);
+  const products = await loadProductsForItems(items);
+  const breakdownById = await computePricesForProducts(products, userId);
+  const productById = new Map(
+    products.map((p) => [
+      String(p._id),
+      {
+        name: p.name,
+        sku: p.sku,
+        price: p.price,
+        unit: p.unit ?? "",
+        imageUrl: p.imageUrl ?? "",
+      },
+    ])
+  );
+  return buildCartWithTotals(String(cart._id), userId, items, productById, breakdownById);
 }
 
 export async function addToCart(userId: string, productId: string, quantity: number) {

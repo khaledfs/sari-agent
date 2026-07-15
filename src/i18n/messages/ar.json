@@ -391,6 +391,8 @@
         "ordersDesc": "تتبع ومعالجة الطلبات",
         "products": "المنتجات",
         "productsDesc": "الكتالوج والمخزون",
+        "discounts": "الخصومات",
+        "discountsDesc": "قواعد التسعير والعروض",
         "settings": "الإعدادات",
         "settingsDesc": "تغيير كلمة المرور الخاصة بك"
       },
@@ -404,8 +406,10 @@
         "email": "البريد الإلكتروني",
         "phone": "الهاتف",
         "verified": "موثّق",
-        "joined": "تاريخ الانضمام"
+        "joined": "تاريخ الانضمام",
+        "pricing": "التسعير"
       },
+      "pricingLink": "التسعير",
       "verified": "نعم",
       "notVerified": "لا",
       "loading": "جارٍ تحميل العملاء…",
@@ -489,6 +493,96 @@
         "createError": "فشل إنشاء المنتج.",
         "cancel": "إلغاء"
       }
+    },
+    "pricing": {
+      "column": "التسعير",
+      "title": "تسعير المنتج",
+      "basePrice": "السعر الأساسي",
+      "tiers": "أسعار حسب نوع النشاط",
+      "saveTiers": "حفظ أسعار الأنواع",
+      "overrides": "أسعار خاصة بالعملاء",
+      "noOverrides": "لا توجد أسعار خاصة لهذا المنتج.",
+      "removeOverride": "إزالة السعر الخاص",
+      "addOverride": "تعيين سعر خاص",
+      "overridePrice": "سعر خاص",
+      "searchCustomer": "العميل",
+      "searchCustomerPlaceholder": "بحث باسم النشاط أو الهاتف…",
+      "noCustomerMatch": "لا يوجد عميل مطابق.",
+      "invalidTier": "أسعار الأنواع يجب أن تكون أكبر من 0 (اتركه فارغاً للإزالة).",
+      "invalidOverride": "اختر عميلاً وسعراً أكبر من 0.",
+      "error": "فشل تحميل التسعير.",
+      "saveError": "فشل حفظ التسعير.",
+      "businessTypes": {
+        "bakery": "مخبز",
+        "oriental_sweets": "حلويات شرقية",
+        "western_sweets": "حلويات غربية",
+        "cafe": "مقهى",
+        "ice_cream": "محل بوظة"
+      }
+    },
+    "discounts": {
+      "title": "الخصومات",
+      "subtitle": "خصومات للعميل أو نوع النشاط أو الجميع. المحرك يطبّق أفضل خصم واحد فقط لكل منتج.",
+      "loading": "جارٍ تحميل الخصومات…",
+      "empty": "لا توجد خصومات بعد.",
+      "error": "فشل تحميل الخصومات.",
+      "add": "خصم جديد",
+      "edit": "تعديل",
+      "activate": "تفعيل",
+      "deactivate": "إيقاف",
+      "active": "فعّال",
+      "inactive": "موقوف",
+      "allProducts": "كل المنتجات",
+      "allProductsHint": "لم يتم اختيار منتجات — الخصم يشمل الكتالوج كاملاً.",
+      "columns": {
+        "label": "الاسم",
+        "scope": "الجمهور",
+        "value": "القيمة",
+        "products": "المنتجات",
+        "window": "الفترة",
+        "status": "الحالة",
+        "actions": "إجراءات"
+      },
+      "scopes": {
+        "global": "الجميع",
+        "businessType": "نوع النشاط",
+        "customer": "عميل"
+      },
+      "types": {
+        "percent": "نسبة (%)",
+        "fixed": "مبلغ ثابت (₪)"
+      },
+      "form": {
+        "label": "الاسم (داخلي)",
+        "scope": "الجمهور",
+        "businessType": "نوع النشاط",
+        "customer": "العميل",
+        "type": "النوع",
+        "valuePercent": "نسبة (1–90)",
+        "valueFixed": "المبلغ (₪)",
+        "startsAt": "يبدأ",
+        "endsAt": "ينتهي",
+        "products": "تحديد منتجات",
+        "productsPlaceholder": "ابحث عن منتجات للإضافة…",
+        "removeProduct": "إزالة المنتج",
+        "invalid": "أدخل قيمة صحيحة.",
+        "save": "حفظ",
+        "saving": "جارٍ الحفظ…",
+        "saveError": "فشل حفظ الخصم."
+      }
+    },
+    "customerPricing": {
+      "title": "تسعير العميل",
+      "loading": "جارٍ التحميل…",
+      "error": "فشل تحميل تسعير العميل.",
+      "businessType": "نوع النشاط",
+      "noBusinessType": "لم يُصنَّف بعد",
+      "overrides": "أسعار خاصة",
+      "noOverrides": "لا توجد أسعار خاصة لهذا العميل.",
+      "basePrice": "السعر الأساسي",
+      "overridePrice": "سعره",
+      "discounts": "الخصومات الفعّالة المطبّقة",
+      "noDiscounts": "لا توجد خصومات فعّالة تنطبق على هذا العميل."
     },
     "settings": {
       "title": "الإعدادات",

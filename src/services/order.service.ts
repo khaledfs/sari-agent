@@ -2,6 +2,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 
 import { connectDB } from "@/lib/db";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
+import type { PriceBreakdown } from "@/services/pricing.service";
 import { OrderModel } from "@/models/order.model";
 
 export type OrderItemSnapshot = {
@@ -10,6 +11,8 @@ export type OrderItemSnapshot = {
   price: number;
   quantity: number;
   lineTotal: number;
+  /** Pricing-engine audit snapshot (absent on legacy orders). */
+  priceBreakdown?: PriceBreakdown;
 };
 
 export type OrderSummary = {
@@ -41,6 +44,7 @@ type OrderItemRow = {
   name: string;
   price: number;
   quantity: number;
+  priceBreakdown?: PriceBreakdown;
 };
 
 function serializeOrder(doc: {
@@ -59,6 +63,7 @@ function serializeOrder(doc: {
       price: row.price,
       quantity: row.quantity,
       lineTotal,
+      ...(row.priceBreakdown ? { priceBreakdown: row.priceBreakdown } : {}),
     };
   });
   return {
@@ -98,6 +103,7 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     name: string;
     price: number;
     quantity: number;
+    priceBreakdown?: PriceBreakdown;
   }> = [];
 
   for (const line of cart.items) {
@@ -108,6 +114,8 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     if (!name) {
       throw new Error("Invalid product data in cart.");
     }
+    // Cart line prices come from the pricing engine (see cart.service), so the
+    // order snapshots the COMPUTED price plus its audit breakdown.
     const price = line.product.price;
     if (!Number.isFinite(price) || price < 0) {
       throw new Error("Invalid product price in cart.");
@@ -117,6 +125,7 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
       name,
       price,
       quantity: line.quantity,
+      ...(line.priceBreakdown ? { priceBreakdown: line.priceBreakdown } : {}),
     });
   }
 

@@ -391,6 +391,8 @@
         "ordersDesc": "מעקב ועיבוד הזמנות",
         "products": "מוצרים",
         "productsDesc": "קטלוג ומלאי",
+        "discounts": "הנחות",
+        "discountsDesc": "כללי תמחור ומבצעים",
         "settings": "הגדרות",
         "settingsDesc": "שינוי הסיסמה שלך"
       },
@@ -404,8 +406,10 @@
         "email": "אימייל",
         "phone": "טלפון",
         "verified": "מאומת",
-        "joined": "תאריך הצטרפות"
+        "joined": "תאריך הצטרפות",
+        "pricing": "תמחור"
       },
+      "pricingLink": "תמחור",
       "verified": "כן",
       "notVerified": "לא",
       "loading": "טוען לקוחות…",
@@ -489,6 +493,96 @@
         "createError": "יצירת המוצר נכשלה.",
         "cancel": "ביטול"
       }
+    },
+    "pricing": {
+      "column": "תמחור",
+      "title": "תמחור מוצר",
+      "basePrice": "מחיר בסיס",
+      "tiers": "מחירי סוג עסק",
+      "saveTiers": "שמור מחירי סוג עסק",
+      "overrides": "מחירים אישיים ללקוח",
+      "noOverrides": "אין מחירים אישיים למוצר זה.",
+      "removeOverride": "הסר מחיר אישי",
+      "addOverride": "קבע מחיר אישי",
+      "overridePrice": "מחיר אישי",
+      "searchCustomer": "לקוח",
+      "searchCustomerPlaceholder": "חיפוש לפי שם עסק או טלפון…",
+      "noCustomerMatch": "לא נמצא לקוח מתאים.",
+      "invalidTier": "מחירי סוג עסק חייבים להיות גדולים מ־0 (השאר ריק להסרה).",
+      "invalidOverride": "בחר לקוח ומחיר גדול מ־0.",
+      "error": "טעינת התמחור נכשלה.",
+      "saveError": "שמירת התמחור נכשלה.",
+      "businessTypes": {
+        "bakery": "מאפייה",
+        "oriental_sweets": "ממתקים מזרחיים",
+        "western_sweets": "קונדיטוריה מערבית",
+        "cafe": "בית קפה",
+        "ice_cream": "גלידרייה"
+      }
+    },
+    "discounts": {
+      "title": "הנחות",
+      "subtitle": "הנחות ללקוח, לסוג עסק ולכולם. המנוע מחיל את ההנחה המשתלמת ביותר בלבד לכל מוצר.",
+      "loading": "טוען הנחות…",
+      "empty": "אין עדיין הנחות.",
+      "error": "טעינת ההנחות נכשלה.",
+      "add": "הנחה חדשה",
+      "edit": "עריכה",
+      "activate": "הפעל",
+      "deactivate": "השבת",
+      "active": "פעילה",
+      "inactive": "כבויה",
+      "allProducts": "כל המוצרים",
+      "allProductsHint": "לא נבחרו מוצרים — ההנחה חלה על כל הקטלוג.",
+      "columns": {
+        "label": "שם",
+        "scope": "קהל יעד",
+        "value": "ערך",
+        "products": "מוצרים",
+        "window": "תוקף",
+        "status": "סטטוס",
+        "actions": "פעולות"
+      },
+      "scopes": {
+        "global": "כולם",
+        "businessType": "סוג עסק",
+        "customer": "לקוח"
+      },
+      "types": {
+        "percent": "אחוז (%)",
+        "fixed": "סכום קבוע (₪)"
+      },
+      "form": {
+        "label": "שם (פנימי)",
+        "scope": "קהל יעד",
+        "businessType": "סוג עסק",
+        "customer": "לקוח",
+        "type": "סוג",
+        "valuePercent": "אחוז (1–90)",
+        "valueFixed": "סכום (₪)",
+        "startsAt": "מתחיל",
+        "endsAt": "מסתיים",
+        "products": "הגבלה למוצרים",
+        "productsPlaceholder": "חפש מוצרים להוספה…",
+        "removeProduct": "הסר מוצר",
+        "invalid": "הזן ערך תקין.",
+        "save": "שמור",
+        "saving": "שומר…",
+        "saveError": "שמירת ההנחה נכשלה."
+      }
+    },
+    "customerPricing": {
+      "title": "תמחור לקוח",
+      "loading": "טוען…",
+      "error": "טעינת תמחור הלקוח נכשלה.",
+      "businessType": "סוג עסק",
+      "noBusinessType": "טרם סווג",
+      "overrides": "מחירים אישיים",
+      "noOverrides": "אין מחירים אישיים ללקוח זה.",
+      "basePrice": "מחיר בסיס",
+      "overridePrice": "המחיר שלו",
+      "discounts": "הנחות פעילות שחלות",
+      "noDiscounts": "אין הנחות פעילות שחלות על לקוח זה."
     },
     "settings": {
       "title": "הגדרות",

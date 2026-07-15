@@ -66,6 +66,7 @@ export default async function AdminCustomersPage({
                 <th>{t("customers.columns.phone")}</th>
                 <th>{t("customers.columns.verified")}</th>
                 <th>{t("customers.columns.joined")}</th>
+                <th>{t("customers.columns.pricing")}</th>
               </tr>
             </thead>
             <tbody>
@@ -82,6 +83,15 @@ export default async function AdminCustomersPage({
                     </span>
                   </td>
                   <td>{formatDate(c.createdAt)}</td>
+                  <td>
+                    <Link
+                      href={`/${locale}/admin/dashboard/customers/${c._id}/pricing`}
+                      className="admin-back-link"
+                      style={{ marginBottom: 0 }}
+                    >
+                      ₪ {t("customers.pricingLink")}
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

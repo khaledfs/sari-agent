@@ -20,6 +20,35 @@ const orderItemSchema = new Schema(
       required: true,
       min: 1,
     },
+    /**
+     * Pricing-engine audit snapshot for this line (absent on legacy orders and
+     * whenever the computed price === base with no rule applied is fine too —
+     * we always store it for new orders). See pricing.service.ts.
+     */
+    priceBreakdown: {
+      type: new Schema(
+        {
+          base: { type: Number, required: true },
+          tier: { type: Number, default: undefined },
+          override: { type: Number, default: undefined },
+          discountApplied: {
+            type: new Schema(
+              {
+                discountId: { type: String, required: true },
+                discountType: { type: String, required: true },
+                value: { type: Number, required: true },
+                amountOff: { type: Number, required: true },
+              },
+              { _id: false }
+            ),
+            default: undefined,
+          },
+          final: { type: Number, required: true },
+        },
+        { _id: false }
+      ),
+      default: undefined,
+    },
   },
   { _id: false }
 );

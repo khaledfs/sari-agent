@@ -55,6 +55,16 @@ const productSchema = new Schema(
       default: 10,
       min: 0,
     },
+    /**
+     * Optional customer-type tier prices, keyed by CustomerMemory businessType
+     * (bakery | oriental_sweets | western_sweets | cafe | ice_cream).
+     * Missing key = that tier uses the base price. See pricing.service.ts.
+     */
+    tierPrices: {
+      type: Map,
+      of: Number,
+      default: undefined,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

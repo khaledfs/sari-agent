@@ -6,6 +6,7 @@ import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
 import { getFavoriteProductsByUser } from "@/services/favorites.service";
 import { normalizeAssistantText } from "@/services/assistant-normalization.service";
+import { getPricesForCustomer } from "@/services/pricing.service";
 import { getFrequentProductsByUser, getRecentProductsByUser } from "@/services/smart-ordering.service";
 import type { AssistantMatchedProduct } from "@/types/assistant";
 
@@ -109,7 +110,7 @@ export async function getAssistantRankedProductCandidates(
   const frequentScoreMap = new Map(frequent.map((p) => [p._id, p.frequency ?? 0]));
 
   const uid = isValidObjectId(userId) ? new mongoose.Types.ObjectId(userId) : null;
-  let categoryCounts = new Map<string, number>();
+  const categoryCounts = new Map<string, number>();
   let topCategory = "";
   if (uid) {
     const rows = await OrderModel.find({ userId: uid }).select("items").lean().exec();
@@ -132,7 +133,7 @@ export async function getAssistantRankedProductCandidates(
   }
 
   // segment boost
-  let segmentBoostCategories = new Set<string>();
+  const segmentBoostCategories = new Set<string>();
   if (uid) {
     const me = await CustomerAccountModel.findOne({ userId: uid }).lean().exec();
     if (me?.businessType) {
@@ -217,5 +218,17 @@ export async function getAssistantRankedProductCandidates(
     };
   });
 
-  return scored.sort((a, b) => b.score - a.score).slice(0, Math.max(1, limit));
+  const top = scored.sort((a, b) => b.score - a.score).slice(0, Math.max(1, limit));
+
+  // Prices shown to the customer flow through the pricing engine (top-N only;
+  // returns base prices when no pricing rules exist for this customer).
+  try {
+    const breakdowns = await getPricesForCustomer(top.map((c) => c.productId), userId);
+    return top.map((c) => {
+      const breakdown = breakdowns.get(c.productId);
+      return breakdown ? { ...c, price: breakdown.final } : c;
+    });
+  } catch {
+    return top;
+  }
 }

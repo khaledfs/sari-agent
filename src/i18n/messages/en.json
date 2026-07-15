@@ -391,6 +391,8 @@
         "ordersDesc": "Track & process orders",
         "products": "Products",
         "productsDesc": "Catalog & inventory",
+        "discounts": "Discounts",
+        "discountsDesc": "Pricing rules & promotions",
         "settings": "Settings",
         "settingsDesc": "Change your password"
       },
@@ -404,8 +406,10 @@
         "email": "Email",
         "phone": "Phone",
         "verified": "Verified",
-        "joined": "Joined"
+        "joined": "Joined",
+        "pricing": "Pricing"
       },
+      "pricingLink": "Pricing",
       "verified": "Yes",
       "notVerified": "No",
       "loading": "Loading customers…",
@@ -489,6 +493,96 @@
         "createError": "Failed to create product.",
         "cancel": "Cancel"
       }
+    },
+    "pricing": {
+      "column": "Pricing",
+      "title": "Product pricing",
+      "basePrice": "Base price",
+      "tiers": "Business-type tier prices",
+      "saveTiers": "Save tier prices",
+      "overrides": "Per-customer overrides",
+      "noOverrides": "No customer overrides for this product.",
+      "removeOverride": "Remove override",
+      "addOverride": "Set override",
+      "overridePrice": "Override price",
+      "searchCustomer": "Customer",
+      "searchCustomerPlaceholder": "Search by business name or phone…",
+      "noCustomerMatch": "No matching customer.",
+      "invalidTier": "Tier prices must be greater than 0 (leave empty to remove).",
+      "invalidOverride": "Pick a customer and a price above 0.",
+      "error": "Failed to load pricing.",
+      "saveError": "Failed to save pricing.",
+      "businessTypes": {
+        "bakery": "Bakery",
+        "oriental_sweets": "Oriental sweets",
+        "western_sweets": "Western sweets",
+        "cafe": "Cafe",
+        "ice_cream": "Ice cream"
+      }
+    },
+    "discounts": {
+      "title": "Discounts",
+      "subtitle": "Customer, business-type, and global discounts. The engine applies the single best one per product.",
+      "loading": "Loading discounts…",
+      "empty": "No discounts yet.",
+      "error": "Failed to load discounts.",
+      "add": "New discount",
+      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "active": "Active",
+      "inactive": "Inactive",
+      "allProducts": "All products",
+      "allProductsHint": "No products selected — the discount applies to the whole catalog.",
+      "columns": {
+        "label": "Label",
+        "scope": "Audience",
+        "value": "Value",
+        "products": "Products",
+        "window": "Window",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "scopes": {
+        "global": "Everyone",
+        "businessType": "Business type",
+        "customer": "Customer"
+      },
+      "types": {
+        "percent": "Percent (%)",
+        "fixed": "Fixed (₪)"
+      },
+      "form": {
+        "label": "Label (internal)",
+        "scope": "Audience",
+        "businessType": "Business type",
+        "customer": "Customer",
+        "type": "Type",
+        "valuePercent": "Percent (1–90)",
+        "valueFixed": "Amount (₪)",
+        "startsAt": "Starts",
+        "endsAt": "Ends",
+        "products": "Limit to products",
+        "productsPlaceholder": "Search products to add…",
+        "removeProduct": "Remove product",
+        "invalid": "Enter a valid value.",
+        "save": "Save",
+        "saving": "Saving…",
+        "saveError": "Failed to save discount."
+      }
+    },
+    "customerPricing": {
+      "title": "Customer pricing",
+      "loading": "Loading…",
+      "error": "Failed to load customer pricing.",
+      "businessType": "Business type",
+      "noBusinessType": "Not classified yet",
+      "overrides": "Price overrides",
+      "noOverrides": "No per-product overrides for this customer.",
+      "basePrice": "Base price",
+      "overridePrice": "Their price",
+      "discounts": "Active discounts that apply",
+      "noDiscounts": "No active discounts apply to this customer."
     },
     "settings": {
       "title": "Settings",

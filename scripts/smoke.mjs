@@ -138,17 +138,18 @@ async function loginAdmin(credentials) {
   }
 }
 
+/** Returns the admin auth cookie for later sections (or null when skipped). */
 async function adminProductsSection() {
   const credentials = await getAdminCredentials();
   if (!credentials) {
     console.log(
       "WARN  admin section skipped — set ADMIN_EMAIL and ADMIN_PASSWORD (env or .env.local) to enable it"
     );
-    return;
+    return null;
   }
 
   const cookie = await loginAdmin(credentials);
-  if (!cookie) return;
+  if (!cookie) return null;
 
   // Paginated list, never more than 50 items.
   let firstProduct = null;
@@ -223,6 +224,171 @@ async function adminProductsSection() {
   } catch (err) {
     report("PATCH /api/admin/products (unauthenticated) -> 401", false, String(err));
   }
+
+  return cookie;
+}
+
+// ---------- pricing engine section (Phase 2) ----------
+
+async function jsonFetch(path, options = {}) {
+  const res = await fetch(`${BASE_URL}${path}`, options);
+  const body = await res.json().catch(() => ({}));
+  return { res, body };
+}
+
+/**
+ * End-to-end pricing flow as the seeded bakery customer:
+ * base price with no rules → businessType discount drops the list price →
+ * order snapshot carries the breakdown → deactivating restores the base price.
+ * Uses a "SMOKE pricing" labelled discount and clears the seed customer's cart.
+ */
+async function pricingEngineSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  pricing section skipped — needs both customer and admin logins");
+    return;
+  }
+  const SMOKE_LABEL = "SMOKE pricing (auto)";
+
+  // Cleanup: deactivate leftovers from previous runs so base-price asserts hold.
+  try {
+    const { body } = await jsonFetch("/api/admin/discounts", { headers: { Cookie: adminCookie } });
+    for (const d of body?.data ?? []) {
+      if (d.label === SMOKE_LABEL && d.isActive) {
+        await jsonFetch(`/api/admin/discounts/${d.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Cookie: adminCookie },
+          body: JSON.stringify({ isActive: false }),
+        });
+      }
+    }
+  } catch {
+    // continue; asserts below will surface real problems
+  }
+
+  // 1. With no pricing data the computed price equals the base price.
+  let product = null;
+  try {
+    const { res, body } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    const list = Array.isArray(body?.data) ? body.data : [];
+    product = list.find((p) => typeof p.basePrice === "number" && p.basePrice > 1 && !p.priceBreakdown?.discountApplied) ?? null;
+    const ok = res.status === 200 && Boolean(product) && product.price === product.basePrice;
+    report(
+      "pricing: list price === base with no rules",
+      ok,
+      product ? `price=${product.price}, base=${product.basePrice}` : "no product without rules found"
+    );
+  } catch (err) {
+    report("pricing: list price === base with no rules", false, String(err));
+  }
+  if (!product) return;
+
+  // 2. Cart regression: cleared cart + 1 unit === base price exactly.
+  try {
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    const { body: addBody } = await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product._id, quantity: 1 }),
+    });
+    const total = addBody?.data?.cartTotal;
+    report(
+      "pricing: cart total with no rules === base price",
+      total === product.basePrice,
+      `cartTotal=${total}, base=${product.basePrice}`
+    );
+  } catch (err) {
+    report("pricing: cart total with no rules === base price", false, String(err));
+  }
+
+  // 3. Create a bakery businessType 10% discount limited to this product.
+  let discountId = null;
+  try {
+    const { res, body } = await jsonFetch("/api/admin/discounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({
+        label: SMOKE_LABEL,
+        scope: "businessType",
+        targetId: "bakery",
+        type: "percent",
+        value: 10,
+        productIds: [product._id],
+      }),
+    });
+    discountId = body?.data?.id ?? null;
+    report("pricing: admin creates businessType discount", res.status === 200 && Boolean(discountId), body?.message ?? "");
+  } catch (err) {
+    report("pricing: admin creates businessType discount", false, String(err));
+  }
+
+  const expectedDiscounted = Math.round(product.basePrice * 0.9 * 100) / 100;
+
+  // 4. Customer list price drops accordingly.
+  try {
+    const { body } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    const now = (body?.data ?? []).find((p) => p._id === product._id);
+    report(
+      "pricing: customer list price drops by the discount",
+      now?.price === expectedDiscounted && now?.priceBreakdown?.discountApplied?.value === 10,
+      `price=${now?.price}, expected=${expectedDiscounted}`
+    );
+  } catch (err) {
+    report("pricing: customer list price drops by the discount", false, String(err));
+  }
+
+  // 5. Place the order; the line snapshot must carry the breakdown.
+  try {
+    const { res, body } = await jsonFetch("/api/orders", { method: "POST", headers: { Cookie: customerCookie } });
+    const line = body?.data?.items?.[0];
+    const ok =
+      res.status === 200 &&
+      line?.price === expectedDiscounted &&
+      line?.priceBreakdown?.base === product.basePrice &&
+      line?.priceBreakdown?.discountApplied?.value === 10 &&
+      line?.priceBreakdown?.final === expectedDiscounted;
+    report(
+      "pricing: order line snapshots computed price + breakdown",
+      ok,
+      `linePrice=${line?.price}, breakdown=${JSON.stringify(line?.priceBreakdown ?? null)}`
+    );
+  } catch (err) {
+    report("pricing: order line snapshots computed price + breakdown", false, String(err));
+  }
+
+  // 6. Deactivate the discount; the price must be restored to base.
+  try {
+    if (discountId) {
+      await jsonFetch(`/api/admin/discounts/${discountId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie },
+        body: JSON.stringify({ isActive: false }),
+      });
+    }
+    const { body } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    const now = (body?.data ?? []).find((p) => p._id === product._id);
+    report(
+      "pricing: deactivating the discount restores the base price",
+      now?.price === product.basePrice,
+      `price=${now?.price}, base=${product.basePrice}`
+    );
+  } catch (err) {
+    report("pricing: deactivating the discount restores the base price", false, String(err));
+  }
+
+  // 7. Unauthenticated admin pricing endpoints are rejected.
+  try {
+    const [a, b] = await Promise.all([
+      fetch(`${BASE_URL}/api/admin/discounts`),
+      fetch(`${BASE_URL}/api/admin/products/${product._id}/pricing`),
+    ]);
+    report(
+      "pricing: unauthenticated admin pricing endpoints -> 401",
+      a.status === 401 && b.status === 401,
+      `discounts=${a.status}, productPricing=${b.status}`
+    );
+  } catch (err) {
+    report("pricing: unauthenticated admin pricing endpoints -> 401", false, String(err));
+  }
 }
 
 async function main() {
@@ -234,7 +400,8 @@ async function main() {
   const cookie = await loginSeededCustomer();
   await checkCartWithCookie(cookie);
   await checkAdminOrdersUnauthenticated();
-  await adminProductsSection();
+  const adminCookie = await adminProductsSection();
+  await pricingEngineSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
