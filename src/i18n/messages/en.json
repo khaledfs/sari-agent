@@ -208,6 +208,7 @@
       "sku": "SKU",
       "defaultUnit": "unit"
     },
+    "outOfStock": "Out of stock",
     "actions": {
       "addToCart": "Add to cart",
       "adding": "Adding…"
@@ -434,6 +435,59 @@
         "out_for_delivery": "Out for delivery",
         "delivered": "Delivered",
         "cancelled": "Cancelled"
+      }
+    },
+    "products": {
+      "title": "Products",
+      "subtitle": "Manage the catalog: prices, stock, and availability.",
+      "loading": "Loading products…",
+      "empty": "No products match the current filters.",
+      "error": "Failed to load products.",
+      "updateError": "Failed to save the change.",
+      "searchPlaceholder": "Search by name or SKU…",
+      "addProduct": "Add product",
+      "outOfStock": "Out of stock",
+      "lowStock": "Low stock",
+      "untracked": "Not tracked",
+      "active": "Active",
+      "inactive": "Hidden",
+      "columns": {
+        "image": "Image",
+        "name": "Product",
+        "category": "Category",
+        "price": "Price (₪)",
+        "stock": "Stock",
+        "unit": "Unit",
+        "active": "Active"
+      },
+      "filters": {
+        "category": "Category",
+        "allCategories": "All categories",
+        "active": "Status",
+        "all": "All statuses",
+        "activeOnly": "Active only",
+        "inactiveOnly": "Hidden only"
+      },
+      "pagination": {
+        "prev": "Previous",
+        "next": "Next",
+        "pageOf": "Page {page} of {total}",
+        "items": "{count} products"
+      },
+      "form": {
+        "name": "Name",
+        "category": "Category",
+        "price": "Price (₪)",
+        "stock": "Stock (optional)",
+        "unit": "Unit",
+        "packageSize": "Package size",
+        "sku": "SKU (optional)",
+        "skuAuto": "Auto: MANUAL-…",
+        "invalid": "Name, category, and a price above 0 are required.",
+        "create": "Create",
+        "creating": "Creating…",
+        "createError": "Failed to create product.",
+        "cancel": "Cancel"
       }
     },
     "settings": {

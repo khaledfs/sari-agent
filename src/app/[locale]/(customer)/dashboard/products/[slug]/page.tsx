@@ -21,6 +21,8 @@ type Product = {
   imageUrl?: string;
   isActive: boolean;
   category?: string;
+  /** null/undefined = stock not tracked; 0 = tracked and sold out. */
+  stock?: number | null;
 };
 
 type Category = {
@@ -191,13 +193,20 @@ export default function CategoryProductsPage() {
               </div>
 
               <div className="ds-stack ds-stack--tight ds-mt-sm">
+                {product.stock === 0 ? (
+                  <span className="ds-out-of-stock-badge">{t("outOfStock")}</span>
+                ) : null}
                 <Button
                   variant="primary"
                   block
-                  disabled={addingId === product._id}
+                  disabled={addingId === product._id || product.stock === 0}
                   onClick={() => addToCart(product._id)}
                 >
-                  {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
+                  {product.stock === 0
+                    ? t("outOfStock")
+                    : addingId === product._id
+                      ? t("actions.adding")
+                      : t("actions.addToCart")}
                 </Button>
 
                 {addedId === product._id ? (

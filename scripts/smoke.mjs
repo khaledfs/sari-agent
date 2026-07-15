@@ -92,6 +92,139 @@ async function checkAdminOrdersUnauthenticated() {
   }
 }
 
+// ---------- admin section (Phase 1) ----------
+
+/** Reads ADMIN_EMAIL / ADMIN_PASSWORD from env, falling back to .env.local. */
+async function getAdminCredentials() {
+  let email = process.env.ADMIN_EMAIL;
+  let password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    try {
+      const { readFileSync } = await import("node:fs");
+      const lines = readFileSync(new URL("../.env.local", import.meta.url), "utf8").split(/\r?\n/);
+      for (const line of lines) {
+        const m = /^\s*(ADMIN_EMAIL|ADMIN_PASSWORD)\s*=\s*(.*)\s*$/.exec(line);
+        if (!m) continue;
+        let val = m[2].trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (m[1] === "ADMIN_EMAIL" && !email) email = val;
+        if (m[1] === "ADMIN_PASSWORD" && !password) password = val;
+      }
+    } catch {
+      // no .env.local — fall through to the skip warning
+    }
+  }
+  return email && password ? { email, password } : null;
+}
+
+async function loginAdmin(credentials) {
+  const name = "POST /api/auth/admin/login -> success + cookie";
+  try {
+    const res = await fetch(`${BASE_URL}/api/auth/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: credentials.email, password: credentials.password }),
+    });
+    const body = await res.json().catch(() => ({}));
+    const cookie = extractCookie(res, "authToken");
+    const ok = res.status === 200 && body.success === true && Boolean(cookie);
+    report(name, ok, ok ? "" : `status ${res.status}, success=${body.success}`);
+    return cookie;
+  } catch (err) {
+    report(name, false, String(err));
+    return null;
+  }
+}
+
+async function adminProductsSection() {
+  const credentials = await getAdminCredentials();
+  if (!credentials) {
+    console.log(
+      "WARN  admin section skipped — set ADMIN_EMAIL and ADMIN_PASSWORD (env or .env.local) to enable it"
+    );
+    return;
+  }
+
+  const cookie = await loginAdmin(credentials);
+  if (!cookie) return;
+
+  // Paginated list, never more than 50 items.
+  let firstProduct = null;
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/products?page=1`, { headers: { Cookie: cookie } });
+    const body = await res.json().catch(() => ({}));
+    const items = body?.data?.items;
+    const ok = res.status === 200 && body.success === true && Array.isArray(items) && items.length <= 50;
+    report(
+      "GET /api/admin/products?page=1 -> 200 + <=50 items",
+      ok,
+      `status ${res.status}, items=${Array.isArray(items) ? items.length : "n/a"}, total=${body?.data?.total}`
+    );
+    firstProduct = items?.[0] ?? null;
+  } catch (err) {
+    report("GET /api/admin/products?page=1 -> 200 + <=50 items", false, String(err));
+  }
+
+  // PATCH price, read back, then PATCH it back.
+  if (firstProduct) {
+    const name = "PATCH /api/admin/products/[id] price -> readback -> restore";
+    const originalPrice = firstProduct.price;
+    const testPrice = Math.round((originalPrice + 0.5) * 100) / 100;
+    try {
+      const patchRes = await fetch(`${BASE_URL}/api/admin/products/${firstProduct.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookie },
+        body: JSON.stringify({ price: testPrice }),
+      });
+      const patchBody = await patchRes.json().catch(() => ({}));
+
+      const readRes = await fetch(
+        `${BASE_URL}/api/admin/products?search=${encodeURIComponent(firstProduct.sku)}`,
+        { headers: { Cookie: cookie } }
+      );
+      const readBody = await readRes.json().catch(() => ({}));
+      const readback = readBody?.data?.items?.find((p) => p.id === firstProduct.id);
+
+      const restoreRes = await fetch(`${BASE_URL}/api/admin/products/${firstProduct.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookie },
+        body: JSON.stringify({ price: originalPrice }),
+      });
+      const restoreBody = await restoreRes.json().catch(() => ({}));
+
+      const ok =
+        patchRes.status === 200 &&
+        patchBody?.data?.price === testPrice &&
+        readback?.price === testPrice &&
+        restoreRes.status === 200 &&
+        restoreBody?.data?.price === originalPrice;
+      report(
+        name,
+        ok,
+        `patched=${patchBody?.data?.price}, readback=${readback?.price}, restored=${restoreBody?.data?.price}`
+      );
+    } catch (err) {
+      report(name, false, String(err));
+    }
+  } else {
+    report("PATCH /api/admin/products/[id] price -> readback -> restore", false, "no product to test with");
+  }
+
+  // Unauthenticated PATCH must be rejected.
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/products/000000000000000000000000`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ price: 1 }),
+    });
+    report("PATCH /api/admin/products (unauthenticated) -> 401", res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report("PATCH /api/admin/products (unauthenticated) -> 401", false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -101,6 +234,7 @@ async function main() {
   const cookie = await loginSeededCustomer();
   await checkCartWithCookie(cookie);
   await checkAdminOrdersUnauthenticated();
+  await adminProductsSection();
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

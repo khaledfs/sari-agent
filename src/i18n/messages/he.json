@@ -208,6 +208,7 @@
       "sku": "מק\"ט",
       "defaultUnit": "יחידה"
     },
+    "outOfStock": "אזל מהמלאי",
     "actions": {
       "addToCart": "הוסף לעגלה",
       "adding": "מוסיף…"
@@ -434,6 +435,59 @@
         "out_for_delivery": "יצאה למשלוח",
         "delivered": "נמסרה",
         "cancelled": "בוטלה"
+      }
+    },
+    "products": {
+      "title": "מוצרים",
+      "subtitle": "ניהול הקטלוג: מחירים, מלאי וזמינות.",
+      "loading": "טוען מוצרים…",
+      "empty": "אין מוצרים שתואמים את הסינון הנוכחי.",
+      "error": "טעינת המוצרים נכשלה.",
+      "updateError": "שמירת השינוי נכשלה.",
+      "searchPlaceholder": "חיפוש לפי שם או מק״ט…",
+      "addProduct": "הוסף מוצר",
+      "outOfStock": "אזל מהמלאי",
+      "lowStock": "מלאי נמוך",
+      "untracked": "ללא מעקב",
+      "active": "פעיל",
+      "inactive": "מוסתר",
+      "columns": {
+        "image": "תמונה",
+        "name": "מוצר",
+        "category": "קטגוריה",
+        "price": "מחיר (₪)",
+        "stock": "מלאי",
+        "unit": "יחידה",
+        "active": "פעיל"
+      },
+      "filters": {
+        "category": "קטגוריה",
+        "allCategories": "כל הקטגוריות",
+        "active": "סטטוס",
+        "all": "כל הסטטוסים",
+        "activeOnly": "פעילים בלבד",
+        "inactiveOnly": "מוסתרים בלבד"
+      },
+      "pagination": {
+        "prev": "הקודם",
+        "next": "הבא",
+        "pageOf": "עמוד {page} מתוך {total}",
+        "items": "{count} מוצרים"
+      },
+      "form": {
+        "name": "שם",
+        "category": "קטגוריה",
+        "price": "מחיר (₪)",
+        "stock": "מלאי (אופציונלי)",
+        "unit": "יחידה",
+        "packageSize": "גודל אריזה",
+        "sku": "מק״ט (אופציונלי)",
+        "skuAuto": "אוטומטי: MANUAL-…",
+        "invalid": "נדרשים שם, קטגוריה ומחיר גדול מ־0.",
+        "create": "צור",
+        "creating": "יוצר…",
+        "createError": "יצירת המוצר נכשלה.",
+        "cancel": "ביטול"
       }
     },
     "settings": {

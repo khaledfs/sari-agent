@@ -208,6 +208,7 @@
       "sku": "SKU",
       "defaultUnit": "وحدة"
     },
+    "outOfStock": "نفد من المخزون",
     "actions": {
       "addToCart": "أضف إلى السلة",
       "adding": "جارٍ الإضافة…"
@@ -434,6 +435,59 @@
         "out_for_delivery": "قيد التوصيل",
         "delivered": "تم التسليم",
         "cancelled": "ملغى"
+      }
+    },
+    "products": {
+      "title": "المنتجات",
+      "subtitle": "إدارة الكتالوج: الأسعار والمخزون والتوفر.",
+      "loading": "جارٍ تحميل المنتجات…",
+      "empty": "لا توجد منتجات مطابقة للتصفية الحالية.",
+      "error": "فشل تحميل المنتجات.",
+      "updateError": "فشل حفظ التغيير.",
+      "searchPlaceholder": "بحث بالاسم أو رقم الصنف…",
+      "addProduct": "إضافة منتج",
+      "outOfStock": "نفد من المخزون",
+      "lowStock": "مخزون منخفض",
+      "untracked": "بدون تتبع",
+      "active": "فعّال",
+      "inactive": "مخفي",
+      "columns": {
+        "image": "صورة",
+        "name": "المنتج",
+        "category": "الفئة",
+        "price": "السعر (₪)",
+        "stock": "المخزون",
+        "unit": "الوحدة",
+        "active": "فعّال"
+      },
+      "filters": {
+        "category": "الفئة",
+        "allCategories": "كل الفئات",
+        "active": "الحالة",
+        "all": "كل الحالات",
+        "activeOnly": "الفعّالة فقط",
+        "inactiveOnly": "المخفية فقط"
+      },
+      "pagination": {
+        "prev": "السابق",
+        "next": "التالي",
+        "pageOf": "صفحة {page} من {total}",
+        "items": "{count} منتجات"
+      },
+      "form": {
+        "name": "الاسم",
+        "category": "الفئة",
+        "price": "السعر (₪)",
+        "stock": "المخزون (اختياري)",
+        "unit": "الوحدة",
+        "packageSize": "حجم العبوة",
+        "sku": "رقم الصنف (اختياري)",
+        "skuAuto": "تلقائي: MANUAL-…",
+        "invalid": "الاسم والفئة وسعر أكبر من 0 مطلوبة.",
+        "create": "إنشاء",
+        "creating": "جارٍ الإنشاء…",
+        "createError": "فشل إنشاء المنتج.",
+        "cancel": "إلغاء"
       }
     },
     "settings": {

@@ -1109,3 +1109,17 @@
 
   .ds-home-hero { background-size: 100% 100%; }
 }
+
+/* ——— Out-of-stock badge (tracked stock === 0) ——— */
+
+.ds-out-of-stock-badge {
+  display: inline-block;
+  align-self: start;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.12rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--danger-bg);
+  color: var(--danger);
+  white-space: nowrap;
+}

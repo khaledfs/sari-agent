@@ -43,6 +43,18 @@ const productSchema = new Schema(
       default: true,
       required: true,
     },
+    /** Inventory count; null = stock not tracked for this product (default). */
+    stock: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    /** "Low stock" warning level for admin screens (only meaningful when stock is tracked). */
+    lowStockThreshold: {
+      type: Number,
+      default: 10,
+      min: 0,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

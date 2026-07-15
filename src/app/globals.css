@@ -85,6 +85,22 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --animate-meteor-effect: meteor 5s linear infinite;
+
+  @keyframes meteor {
+    0% {
+      transform: rotate(215deg) translateX(0);
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      transform: rotate(215deg) translateX(-500px);
+      opacity: 0;
+    }
+  }
 }
 
 /* ——— Base Reset & Defaults ——— */
@@ -251,6 +267,9 @@ button:disabled,
 }
 
 .auth-card {
+  /* Stacked above decorative background layers (e.g. login meteors). */
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 440px;
   background: var(--surface);
@@ -503,6 +522,161 @@ button:disabled,
 .admin-select:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/* ——— Admin products: toolbar, inline edit, badges, pagination, modal ——— */
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.admin-input {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-primary);
+  min-inline-size: 0;
+}
+
+.admin-toolbar .admin-input {
+  flex: 1 1 220px;
+}
+
+.admin-input:focus,
+.admin-inline-input:focus {
+  outline: 2px solid var(--border-brand);
+  outline-offset: 1px;
+}
+
+.admin-inline-input {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  inline-size: 5.25rem;
+}
+
+.admin-inline-input:disabled {
+  opacity: 0.6;
+}
+
+.admin-btn,
+.admin-btn-primary {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.admin-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.admin-btn-primary {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--text-on-brand);
+}
+
+.admin-btn-primary:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+
+.admin-btn:disabled,
+.admin-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.admin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-stock-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.admin-stock-badge--low {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.admin-stock-badge--out {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-block: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(26, 24, 20, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.admin-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem;
+  inline-size: 100%;
+  max-inline-size: 460px;
+  max-block-size: 90dvh;
+  overflow-y: auto;
+}
+
+.admin-field {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.admin-field > span {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.admin-field .admin-input,
+.admin-field .admin-select {
+  inline-size: 100%;
 }
 
 /* ——— Scrollbar (Webkit) ——— */

@@ -35,7 +35,13 @@ type Product = {
   imageUrl?: string;
   category?: string;
   frequency?: number;
+  /** null/undefined = stock not tracked; 0 = tracked and sold out. */
+  stock?: number | null;
 };
+
+function isOutOfStock(p: Product): boolean {
+  return p.stock === 0;
+}
 
 function categorySearchHaystack(categorySlug: string | undefined): string {
   if (!categorySlug) return "";
@@ -374,16 +380,24 @@ export default function ProductsPage() {
               <p className="ds-text-caption">
                 {t("fields.sku")}: {product.sku}
               </p>
+
+              {isOutOfStock(product) ? (
+                <span className="ds-out-of-stock-badge">{t("outOfStock")}</span>
+              ) : null}
             </div>
 
             <div className="ds-stack ds-stack--tight ds-mt-sm">
               <Button
                 variant="primary"
                 block
-                disabled={addingId === product._id}
+                disabled={addingId === product._id || isOutOfStock(product)}
                 onClick={() => void addToCart(product._id)}
               >
-                {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
+                {isOutOfStock(product)
+                  ? t("outOfStock")
+                  : addingId === product._id
+                    ? t("actions.adding")
+                    : t("actions.addToCart")}
               </Button>
 
               {favoriteMode === "toggle" ? renderFavoriteControls(product, "strip") : null}
@@ -504,16 +518,23 @@ export default function ProductsPage() {
                     <p className="ds-text-caption">
                       {t("fields.sku")}: {product.sku}
                     </p>
+                    {isOutOfStock(product) ? (
+                      <span className="ds-out-of-stock-badge">{t("outOfStock")}</span>
+                    ) : null}
                   </div>
 
                   <div className="ds-stack ds-stack--tight ds-mt-sm">
                     <Button
                       variant="primary"
                       block
-                      disabled={addingId === product._id}
+                      disabled={addingId === product._id || isOutOfStock(product)}
                       onClick={() => void addToCart(product._id)}
                     >
-                      {addingId === product._id ? t("actions.adding") : t("actions.addToCart")}
+                      {isOutOfStock(product)
+                        ? t("outOfStock")
+                        : addingId === product._id
+                          ? t("actions.adding")
+                          : t("actions.addToCart")}
                     </Button>
 
                     {renderFavoriteControls(product, "strip")}
