@@ -9,23 +9,10 @@ import { ProductModel } from "@/models/product.model";
 import { UserModel } from "@/models/user.model";
 import type { JwtPayload } from "@/types/session";
 
-/**
- * Canonical order statuses the admin can set. These strings are chosen so the
- * customer-facing timeline (deriveOrderStage in orders/OrderTimeline.tsx) maps
- * each one to exactly one stage: pending→Placed, confirmed→Confirmed,
- * packed→Packed, out_for_delivery→Out for delivery, delivered→Delivered,
- * cancelled→(halted).
- */
-export const ADMIN_ORDER_STATUSES = [
-  "pending",
-  "confirmed",
-  "packed",
-  "out_for_delivery",
-  "delivered",
-  "cancelled",
-] as const;
-
-export type AdminOrderStatus = (typeof ADMIN_ORDER_STATUSES)[number];
+// Status vocabulary lives in the client-safe module (Work Order Issue 1) so
+// server AND client share ONE list; re-exported here for existing importers.
+export { ADMIN_ORDER_STATUSES, type AdminOrderStatus } from "@/lib/order-status";
+import { ADMIN_ORDER_STATUSES } from "@/lib/order-status";
 
 export type AdminOrderRow = {
   id: string;

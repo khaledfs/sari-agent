@@ -1,7 +1,9 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
 import { connectDB } from "@/lib/db";
+import { isReceiptAvailable } from "@/lib/order-status";
 import { CartModel } from "@/models/cart.model";
+import { UserModel } from "@/models/user.model";
 import { requireOrderingEnabled } from "@/services/account-status.service";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
@@ -313,6 +315,66 @@ export async function getOrdersByUser(userId: string): Promise<OrderSummary[]> {
       })
     )
   );
+}
+
+export const RECEIPT_NOT_AVAILABLE_MESSAGE = "Receipt not available.";
+
+export type OrderReceiptData = {
+  order: OrderDetail;
+  customer: { businessName: string; phoneNumber: string } | null;
+};
+
+/**
+ * Receipt access rule (Work Order Issue 1): the CURRENT status is read from
+ * the DB at request time and must pass isReceiptAvailable — pre-dispatch and
+ * cancelled orders throw RECEIPT_NOT_AVAILABLE_MESSAGE (403 in the route).
+ * Ownership: customers only reach their own orders; a wrong owner gets the
+ * same "Order not found." as a missing id (no existence leak). Admins keep
+ * access to any order's receipt (assumed policy, stated in the docs).
+ */
+export async function getOrderReceipt(
+  requesterId: string,
+  requesterRole: "customer" | "admin",
+  orderId: string
+): Promise<OrderReceiptData> {
+  if (!isValidObjectId(orderId)) {
+    throw new Error("Order not found.");
+  }
+  await connectDB();
+
+  const filter =
+    requesterRole === "admin"
+      ? { _id: new mongoose.Types.ObjectId(orderId) }
+      : { _id: new mongoose.Types.ObjectId(orderId), userId: toUserObjectId(requesterId) };
+  const doc = await OrderModel.findOne(filter).lean().exec();
+  if (!doc) {
+    throw new Error("Order not found.");
+  }
+
+  if (!isReceiptAvailable(doc.status)) {
+    throw new Error(RECEIPT_NOT_AVAILABLE_MESSAGE);
+  }
+
+  const buyer = (await UserModel.findById(doc.userId, { businessName: 1, phoneNumber: 1 })
+    .lean()
+    .exec()) as { businessName?: string; phoneNumber?: string } | null;
+
+  return {
+    order: serializeOrder({
+      _id: doc._id as mongoose.Types.ObjectId,
+      userId: doc.userId as mongoose.Types.ObjectId,
+      items: (doc.items ?? []) as OrderItemRow[],
+      total: doc.total,
+      status: doc.status,
+      createdAt: doc.createdAt as Date,
+      notes: (doc as { notes?: string }).notes,
+      appliedPromotionIds: (doc as { appliedPromotionIds?: string[] }).appliedPromotionIds,
+      promotionDiscount: (doc as { promotionDiscount?: OrderDetail["promotionDiscount"] }).promotionDiscount,
+    }),
+    customer: buyer
+      ? { businessName: buyer.businessName ?? "", phoneNumber: buyer.phoneNumber ?? "" }
+      : null,
+  };
 }
 
 export async function getOrderById(userId: string, orderId: string): Promise<OrderDetail> {

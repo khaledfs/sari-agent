@@ -311,6 +311,7 @@
     "giftLine": "Gift",
     "notesTitle": "Delivery notes",
     "printReceipt": "Print receipt",
+    "receiptLockedTooltip": "The receipt becomes available after the order leaves the warehouse",
     "confirmedTitle": "Order received!",
     "confirmedBody": "We got your order and will start processing it shortly.",
     "continueShopping": "Continue shopping",

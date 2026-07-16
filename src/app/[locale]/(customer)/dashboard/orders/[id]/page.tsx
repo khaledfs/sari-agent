@@ -13,6 +13,7 @@ import {
   type OrderViewData,
 } from "@/components/orders/order-view";
 import { useRealtimeEvent } from "@/components/realtime/realtime-provider";
+import { isReceiptAvailable } from "@/lib/order-status";
 import { OrderTimeline } from "../OrderTimeline";
 
 type OrderDetail = OrderViewData & { userId: string };
@@ -36,6 +37,8 @@ export default function OrderDetailPage() {
   const [error, setError] = useState("");
   const [reordering, setReordering] = useState(false);
   const [reorderBanner, setReorderBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [receiptError, setReceiptError] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -98,7 +101,38 @@ export default function OrderDetailPage() {
   useRealtimeEvent(["order.status_changed"], (event) => {
     if (event.type !== "order.status_changed" || event.orderId !== id) return;
     setOrder((current) => (current ? { ...current, status: event.status } : current));
+    setReceiptError("");
   });
+
+  /**
+   * Server-verified print (Work Order Issue 1): the receipt endpoint re-checks
+   * the CURRENT status server-side, so a stale-looking-unlocked button gets a
+   * graceful 403 message instead of printing a receipt it shouldn't.
+   */
+  async function printReceipt() {
+    if (printing) return;
+    setPrinting(true);
+    setReceiptError("");
+    try {
+      const res = await fetch(`/api/orders/${id}/receipt`);
+      const json = (await res.json()) as { success?: boolean; code?: string; message?: string };
+      if (res.status === 200 && json.success) {
+        window.print();
+        return;
+      }
+      if (res.status === 403 && json.code === "RECEIPT_NOT_AVAILABLE") {
+        setReceiptError(t("receiptLockedTooltip"));
+        // Stale local state — pull the authoritative status back.
+        void load();
+        return;
+      }
+      setReceiptError(json.message ?? t("error"));
+    } catch {
+      setReceiptError(t("error"));
+    } finally {
+      setPrinting(false);
+    }
+  }
 
   async function reorder() {
     if (!id) return;
@@ -233,13 +267,29 @@ export default function OrderDetailPage() {
             <button
               type="button"
               className="ds-btn ds-btn--secondary ds-btn--block ds-flex-1"
-              onClick={() => window.print()}
+              disabled={!isReceiptAvailable(order.status) || printing}
+              title={!isReceiptAvailable(order.status) ? t("receiptLockedTooltip") : undefined}
+              onClick={() => void printReceipt()}
             >
               {t("printReceipt")}
             </button>
           </div>
+          {!isReceiptAvailable(order.status) ? (
+            <p className="ds-text-caption" role="note">
+              🔒 {t("receiptLockedTooltip")}
+            </p>
+          ) : null}
+          {receiptError ? (
+            <p className="ds-error" role="alert">
+              {receiptError}
+            </p>
+          ) : null}
 
-          <OrderReceipt order={order} customer={customer} locale={locale} t={t} />
+          {/* The hidden print block only exists in the DOM once the rule passes —
+              a manual Ctrl+P before dispatch prints nothing. */}
+          {isReceiptAvailable(order.status) ? (
+            <OrderReceipt order={order} customer={customer} locale={locale} t={t} />
+          ) : null}
         </div>
       ) : null}
     </main>

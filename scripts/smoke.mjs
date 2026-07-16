@@ -964,6 +964,143 @@ async function restrictedCustomerSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- receipt gating section (Issue 1) ----------
+
+async function receiptSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  receipt section skipped — needs both customer and admin logins");
+    return;
+  }
+
+  // Pick one of the seeded customer's orders.
+  let orderId = null;
+  let originalStatus = null;
+  try {
+    const { body } = await jsonFetch("/api/orders", { headers: { Cookie: customerCookie } });
+    const order = (body?.data ?? [])[0];
+    orderId = order?.id ?? null;
+    originalStatus = order?.status ?? null;
+  } catch {
+    // reported below
+  }
+  if (!orderId) {
+    report("receipt: found a customer order", false, "no orders for seeded customer");
+    return;
+  }
+
+  async function setStatus(status) {
+    const { res } = await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status }),
+    });
+    return res.status === 200;
+  }
+
+  try {
+    // Force a pre-dispatch state.
+    await setStatus("pending");
+    const { res: lockedRes, body: lockedBody } = await jsonFetch(`/api/orders/${orderId}/receipt`, {
+      headers: { Cookie: customerCookie },
+    });
+    report(
+      "receipt: pre-dispatch -> 403 RECEIPT_NOT_AVAILABLE",
+      lockedRes.status === 403 && lockedBody?.code === "RECEIPT_NOT_AVAILABLE",
+      `status ${lockedRes.status}, code=${lockedBody?.code}`
+    );
+
+    // Cancelled never qualifies.
+    await setStatus("cancelled");
+    const { res: cancelledRes, body: cancelledBody } = await jsonFetch(`/api/orders/${orderId}/receipt`, {
+      headers: { Cookie: customerCookie },
+    });
+    report(
+      "receipt: cancelled -> 403 RECEIPT_NOT_AVAILABLE",
+      cancelledRes.status === 403 && cancelledBody?.code === "RECEIPT_NOT_AVAILABLE",
+      `status ${cancelledRes.status}, code=${cancelledBody?.code}`
+    );
+
+    // Unauthenticated -> 401.
+    const unauthRes = await fetch(`${BASE_URL}/api/orders/${orderId}/receipt`);
+    report("receipt: unauthenticated -> 401", unauthRes.status === 401, `got ${unauthRes.status}`);
+
+    // Another customer -> 404 (no existence leak).
+    let otherCookie = null;
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: "+972-53-4906138", password: SMOKE_CUSTOMER_PASSWORD }),
+      });
+      otherCookie = extractCookie(res, "authToken");
+    } catch {
+      // reported below
+    }
+    if (otherCookie) {
+      const { res: otherRes } = await jsonFetch(`/api/orders/${orderId}/receipt`, {
+        headers: { Cookie: otherCookie },
+      });
+      report("receipt: another customer -> 404", otherRes.status === 404, `got ${otherRes.status}`);
+    } else {
+      report("receipt: another customer -> 404", false, "second seeded customer login failed");
+    }
+
+    // Dispatch -> owner gets the receipt data.
+    await setStatus("out_for_delivery");
+    const { res: openRes, body: openBody } = await jsonFetch(`/api/orders/${orderId}/receipt`, {
+      headers: { Cookie: customerCookie },
+    });
+    report(
+      "receipt: dispatched -> 200 + order snapshot",
+      openRes.status === 200 && openBody?.data?.order?.id === orderId && Array.isArray(openBody?.data?.order?.items),
+      `status ${openRes.status}`
+    );
+
+    // A RESTRICTED customer still gets receipts of dispatched orders (Issue 3 interplay).
+    let customerId = null;
+    try {
+      const { body } = await jsonFetch(
+        `/api/admin/customers?search=${encodeURIComponent(SMOKE_CUSTOMER_PHONE)}`,
+        { headers: { Cookie: adminCookie } }
+      );
+      customerId = body?.data?.items?.[0]?.id ?? null;
+    } catch {
+      // reported below
+    }
+    if (customerId) {
+      await jsonFetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie },
+        body: JSON.stringify({ accountStatus: "restricted" }),
+      });
+      const { res: restrictedReceiptRes } = await jsonFetch(`/api/orders/${orderId}/receipt`, {
+        headers: { Cookie: customerCookie },
+      });
+      await jsonFetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie },
+        body: JSON.stringify({ accountStatus: "active" }),
+      });
+      report(
+        "receipt: restricted customer still gets a dispatched receipt",
+        restrictedReceiptRes.status === 200,
+        `got ${restrictedReceiptRes.status}`
+      );
+    } else {
+      report("receipt: restricted customer still gets a dispatched receipt", false, "customer id not resolved");
+    }
+
+    // Admin keeps access (assumed policy).
+    const { res: adminReceiptRes } = await jsonFetch(`/api/orders/${orderId}/receipt`, {
+      headers: { Cookie: adminCookie },
+    });
+    report("receipt: admin keeps access", adminReceiptRes.status === 200, `got ${adminReceiptRes.status}`);
+  } finally {
+    // Restore the order's original status.
+    if (originalStatus) await setStatus(originalStatus);
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -981,6 +1118,7 @@ async function main() {
   await adminOrderDetailSection(adminCookie);
   await realtimeSection(cookie);
   await restrictedCustomerSection(cookie, adminCookie);
+  await receiptSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

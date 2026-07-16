@@ -311,6 +311,7 @@
     "giftLine": "هدية",
     "notesTitle": "ملاحظات التوصيل",
     "printReceipt": "طباعة الإيصال",
+    "receiptLockedTooltip": "سيصبح الإيصال متاحًا بعد خروج الطلب من المستودع",
     "confirmedTitle": "تم استلام الطلب!",
     "confirmedBody": "استلمنا طلبك وسنبدأ بمعالجته قريباً.",
     "continueShopping": "متابعة التسوق",

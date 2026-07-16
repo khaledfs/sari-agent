@@ -13,6 +13,8 @@ import {
   shortOrderNumber,
   type OrderViewData,
 } from "@/components/orders/order-view";
+import { useRealtimeEvent } from "@/components/realtime/realtime-provider";
+import { isReceiptAvailable } from "@/lib/order-status";
 import { OrderTimeline } from "../../OrderTimeline";
 
 /**
@@ -30,6 +32,8 @@ export default function OrderConfirmationPage() {
   const [customer, setCustomer] = useState<{ businessName: string; phoneNumber: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [receiptError, setReceiptError] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -69,6 +73,37 @@ export default function OrderConfirmationPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Live unlock: the receipt becomes printable the moment the admin dispatches.
+  useRealtimeEvent(["order.status_changed"], (event) => {
+    if (event.type !== "order.status_changed" || event.orderId !== id) return;
+    setOrder((current) => (current ? { ...current, status: event.status } : current));
+    setReceiptError("");
+  });
+
+  async function printReceipt() {
+    if (printing) return;
+    setPrinting(true);
+    setReceiptError("");
+    try {
+      const res = await fetch(`/api/orders/${id}/receipt`);
+      const json = (await res.json()) as { success?: boolean; code?: string; message?: string };
+      if (res.status === 200 && json.success) {
+        window.print();
+        return;
+      }
+      if (res.status === 403 && json.code === "RECEIPT_NOT_AVAILABLE") {
+        setReceiptError(t("receiptLockedTooltip"));
+        void load();
+        return;
+      }
+      setReceiptError(json.message ?? t("error"));
+    } catch {
+      setReceiptError(t("error"));
+    } finally {
+      setPrinting(false);
+    }
+  }
 
   function formatDate(iso: string) {
     try {
@@ -147,12 +182,30 @@ export default function OrderConfirmationPage() {
                 {t("viewOrders")}
               </Button>
             </Link>
-            <Button variant="secondary" block onClick={() => window.print()}>
+            <Button
+              variant="secondary"
+              block
+              disabled={!isReceiptAvailable(order.status) || printing}
+              title={!isReceiptAvailable(order.status) ? t("receiptLockedTooltip") : undefined}
+              onClick={() => void printReceipt()}
+            >
               {t("printReceipt")}
             </Button>
           </div>
+          {!isReceiptAvailable(order.status) ? (
+            <p className="ds-text-caption" role="note">
+              🔒 {t("receiptLockedTooltip")}
+            </p>
+          ) : null}
+          {receiptError ? (
+            <p className="ds-error" role="alert">
+              {receiptError}
+            </p>
+          ) : null}
 
-          <OrderReceipt order={order} customer={customer} locale={locale} t={t} />
+          {isReceiptAvailable(order.status) ? (
+            <OrderReceipt order={order} customer={customer} locale={locale} t={t} />
+          ) : null}
         </>
       ) : null}
     </main>
