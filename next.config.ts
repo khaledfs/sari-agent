@@ -1,29 +1,44 @@
+import os from "node:os";
+
 import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /**
- * Next.js dev blocks HMR / internal `/_next/*` requests unless the browser Origin
- * hostname is allowlisted. A lone `*` does NOT work (it is not a valid pattern).
- * When you open the app from another device as `http://<your-pc-lan-ip>:3000`,
- * set `ALLOWED_DEV_ORIGINS` to that hostname (comma-separated, no protocol/port).
- * Example: ALLOWED_DEV_ORIGINS=192.168.1.10
+ * Next.js dev blocks HMR / internal `/_next/*` requests unless the browser
+ * Origin hostname is allowlisted. When the app is opened via a LAN address
+ * (e.g. `http://10.0.0.6:3000` — the "Network:" URL next dev prints), the HMR
+ * websocket gets blocked, and the dev client falls back to FORCED FULL PAGE
+ * RELOADS — the app looks like it "remounts all the time".
+ *
+ * Fix: automatically allow every local interface address of this machine in
+ * dev (they are all this same computer), plus anything from the optional
+ * `ALLOWED_DEV_ORIGINS` env (comma-separated hostnames, no protocol/port) for
+ * custom hostnames. Dev-only setting; production ignores allowedDevOrigins.
  */
-function parseAllowedDevOrigins(): string[] | undefined {
-  const raw = process.env.ALLOWED_DEV_ORIGINS;
-  if (!raw?.trim()) return undefined;
-  const list = raw
+function localInterfaceHostnames(): string[] {
+  const hosts = new Set<string>(["localhost", "127.0.0.1"]);
+  for (const addresses of Object.values(os.networkInterfaces())) {
+    for (const address of addresses ?? []) {
+      if (address.family === "IPv4") hosts.add(address.address);
+    }
+  }
+  return [...hosts];
+}
+
+function parseAllowedDevOrigins(): string[] {
+  const fromEnv = (process.env.ALLOWED_DEV_ORIGINS ?? "")
     .split(",")
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean);
-  return list.length ? list : undefined;
+  return [...new Set([...localInterfaceHostnames(), ...fromEnv])];
 }
 
 const allowedDevOrigins = parseAllowedDevOrigins();
 
 const nextConfig = {
-  ...(allowedDevOrigins ? { allowedDevOrigins } : {}),
+  allowedDevOrigins,
   devIndicators: false,
   experimental: {
     reactDebugChannel: false,

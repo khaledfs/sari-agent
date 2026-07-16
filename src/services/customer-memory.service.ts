@@ -35,11 +35,21 @@ const BUSINESS_TYPE_LABELS: Record<CustomerMemoryBusinessType, string> = {
   ice_cream: "Ice cream shop (stabilizers, flavors, sugar, cones, dairy)",
 };
 
+/**
+ * Tolerant by design (the model writes these): arrays are CLAMPED to 15
+ * items instead of failing the whole memory update — an over-eager model
+ * must never break learning (this was failing live with "too_big" errors).
+ */
+const clampedList = z
+  .array(z.string().trim().min(1))
+  .default([])
+  .transform((items) => items.slice(0, 15));
+
 const memoryUpdateSchema = z.object({
   memorySummary: z.string().trim().min(1),
-  preferredCategories: z.array(z.string().trim().min(1)).max(15).default([]),
-  avoidedProducts: z.array(z.string().trim().min(1)).max(15).default([]),
-  notedFacts: z.array(z.string().trim().min(1)).max(15).default([]),
+  preferredCategories: clampedList,
+  avoidedProducts: clampedList,
+  notedFacts: clampedList,
 });
 
 const businessTypeInferenceSchema = z.object({
@@ -155,12 +165,33 @@ export async function updateMemoryAfterConversation(
     formatConversation(conversationMessages),
   ].join("\n");
 
+  // Structured output: the API guarantees syntactically valid JSON matching
+  // this schema — Hebrew gershayim (ק"ג) inside free text was occasionally
+  // breaking hand-written JSON from the model (live SyntaxError failures).
   const response = await client.responses.create({
     model: getMemoryModelName(),
     input: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "memory_update",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            memorySummary: { type: "string" },
+            preferredCategories: { type: "array", items: { type: "string" } },
+            avoidedProducts: { type: "array", items: { type: "string" } },
+            notedFacts: { type: "array", items: { type: "string" } },
+          },
+          required: ["memorySummary", "preferredCategories", "avoidedProducts", "notedFacts"],
+          additionalProperties: false,
+        },
+      },
+    },
   });
 
   const raw = response.output_text?.trim();
