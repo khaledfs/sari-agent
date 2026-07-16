@@ -140,7 +140,9 @@
     },
     "assistant": {
       "launch": "AI Assistant",
-      "title": "Smart Ordering Assistant",
+      "title": "SARI Assistant",
+      "newConversation": "New conversation",
+      "addToCart": "Add to cart",
       "subtitle": "Fast recognition, smart clarification, accurate compare",
       "close": "Close",
       "placeholder": "Tell me what you want to order...",

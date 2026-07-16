@@ -140,7 +140,9 @@
     },
     "assistant": {
       "launch": "עוזר AI",
-      "title": "עוזר הזמנות חכם",
+      "title": "SARI Assistant",
+      "newConversation": "שיחה חדשה",
+      "addToCart": "הוסף לעגלה",
       "subtitle": "זיהוי מהיר, הבהרות חכמות והשוואה מדויקת",
       "close": "סגור",
       "placeholder": "כתוב מה שאתה רוצה להזמין...",

@@ -140,7 +140,9 @@
     },
     "assistant": {
       "launch": "مساعد AI",
-      "title": "مساعد الطلبات الذكي",
+      "title": "SARI Assistant",
+      "newConversation": "محادثة جديدة",
+      "addToCart": "أضف إلى السلة",
       "subtitle": "فهم أسرع وتوضيح ذكي ومقارنة دقيقة",
       "close": "إغلاق",
       "placeholder": "اكتب ما تريد طلبه...",

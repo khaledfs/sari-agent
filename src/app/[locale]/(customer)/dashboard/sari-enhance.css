@@ -1480,6 +1480,301 @@
   }
 }
 
+/* ======================================================
+   ASSISTANT CHAT REBUILD
+   Mobile: full-height bottom sheet. Desktop: fixed side
+   panel (~420px). Conversation state lives in the external
+   chat store; these styles are presentation only.
+   ====================================================== */
+
+@keyframes sari-slide {
+  from {
+    transform: translateY(28px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sari-slide-side {
+  from {
+    transform: translateX(6%);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Desktop: NON-blocking — the backdrop is transparent and clicks pass
+   through, so the app stays fully usable beside the panel (and a click in
+   the app never closes the chat by accident). Mobile overrides below. */
+.ds-ai-overlay--sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  background: transparent;
+  pointer-events: none;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.ds-ai-sheet {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #fff);
+  inline-size: min(420px, 100vw);
+  block-size: 100dvh;
+  border-inline-start: 1px solid var(--border, #e8e4dc);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(26, 24, 20, 0.1));
+  animation: sari-slide-side 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  overflow: hidden;
+}
+
+.ds-ai-sheet-handle {
+  display: none; /* mobile-only affordance */
+  inline-size: 44px;
+  block-size: 4px;
+  border-radius: 999px;
+  background: var(--border-strong, #d4cfc4);
+  margin: 0.5rem auto 0;
+  flex-shrink: 0;
+}
+
+.ds-ai-sheet-head {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  padding-block-start: calc(0.75rem + env(safe-area-inset-top, 0px));
+  border-block-end: 1px solid var(--border, #e8e4dc);
+  background: var(--surface, #fff);
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.ds-ai-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 12px;
+  background: var(--brand-bg, #fdf8ec);
+  border: 1px solid var(--border-brand, rgba(166, 124, 0, 0.25));
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.ds-ai-sheet-head .ds-ai-head-copy {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ds-ai-sheet-head .ds-ai-title {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.ds-ai-sheet-head .ds-ai-subtitle {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-muted, #8a8477);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-ai-head-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-secondary, #4a4639);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ds-ai-head-btn svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.ds-ai-head-btn:hover {
+  background: var(--accent-soft, rgba(166, 124, 0, 0.08));
+}
+
+.ds-ai-head-btn:focus-visible,
+.ds-ai-sheet .ds-ai-input:focus-visible,
+.ds-ai-sheet .ds-ai-send-btn:focus-visible,
+.ds-ai-chip:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 1px;
+}
+
+.ds-ai-sheet .ds-ai-thread {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ds-ai-time {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--text-muted, #8a8477);
+  margin-block-start: 0.15rem;
+}
+
+.ds-ai-row--user .ds-ai-time {
+  text-align: end;
+}
+
+/* Bubbles: keep long content inside — wrap everything, scroll code. */
+.ds-ai-bubble-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ds-ai-bubble pre,
+.ds-ai-bubble code {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  direction: ltr;
+}
+
+/* Composer */
+.ds-ai-composer {
+  flex-shrink: 0;
+  padding: 0.6rem 0.75rem;
+  padding-block-end: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  border-block-start: 1px solid var(--border, #e8e4dc);
+  background: var(--surface, #fff);
+}
+
+.ds-ai-textarea {
+  resize: none;
+  min-block-size: 48px;
+  max-block-size: 108px;
+  line-height: 22px;
+  font-size: 16px; /* no iOS zoom */
+  overflow-y: auto;
+}
+
+.ds-ai-composer .ds-ai-send-btn {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+/* Quick suggestions: horizontal scroll with snapping, pre-first-message only. */
+.ds-ai-chips--scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-block: 0.25rem;
+}
+
+.ds-ai-chips--scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ds-ai-chips--scroll .ds-ai-chip {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-block-size: 44px;
+}
+
+/* Product-card add-to-cart (gold ✓ success for 2s) */
+.ds-ai-pcard-add {
+  margin-block-start: 0.35rem;
+  min-block-size: 40px;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--brand, #a67c00);
+  background: var(--surface, #fff);
+  color: var(--brand, #a67c00);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.ds-ai-pcard-add:hover:not(:disabled) {
+  background: var(--brand-lighter, #fdf6e3);
+}
+
+.ds-ai-pcard-add--done {
+  background: var(--brand, #a67c00);
+  color: var(--text-on-brand, #fff);
+}
+
+.ds-ai-pcard-error {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--danger, #dc2626);
+  margin-block-start: 0.2rem;
+}
+
+/* Mobile ≤768px: full-screen bottom sheet with a dimmed, tappable backdrop */
+@media (max-width: 768px) {
+  /* Launch pill must float ABOVE the fixed bottom tab bar (z 120, 60px tall). */
+  .ds-ai-launch {
+    inset-block-end: calc(72px + env(safe-area-inset-bottom, 0px));
+    z-index: 121;
+    min-block-size: 44px;
+  }
+
+  .ds-ai-overlay--sheet {
+    align-items: flex-end;
+    justify-content: stretch;
+    background: rgba(26, 24, 20, 0.4);
+    pointer-events: auto;
+    animation: sari-fade 200ms ease both;
+  }
+
+  .ds-ai-sheet {
+    inline-size: 100vw;
+    block-size: 100dvh;
+    border-start-start-radius: 18px;
+    border-start-end-radius: 18px;
+    animation: sari-slide 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .ds-ai-sheet-handle {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-ai-overlay--sheet,
+  .ds-ai-sheet,
+  .ds-ai-pcard-add {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ——— Promotions: gift lines + progress hint ——— */
 
 .ds-gift-row {
