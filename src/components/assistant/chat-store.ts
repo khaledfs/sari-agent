@@ -34,6 +34,8 @@ export type ChatState = {
   assistantData: AssistantCommandResponse | null;
   activeClarificationEntryId: string | null;
   pendingSourceMessage: string;
+  /** Typed-but-unsent composer text — survives remounts/reloads (Issue 7). */
+  draft: string;
   seq: number;
 };
 
@@ -45,6 +47,7 @@ const DEFAULT_STATE: ChatState = {
   assistantData: null,
   activeClarificationEntryId: null,
   pendingSourceMessage: "",
+  draft: "",
   seq: 0,
 };
 
@@ -61,6 +64,7 @@ function loadStoredState(): ChatState {
       assistantData: parsed.assistantData ?? null,
       activeClarificationEntryId: parsed.activeClarificationEntryId ?? null,
       pendingSourceMessage: parsed.pendingSourceMessage ?? "",
+      draft: typeof parsed.draft === "string" ? parsed.draft : "",
       seq: typeof parsed.seq === "number" ? parsed.seq : parsed.history.length + 1,
     };
   } catch {
@@ -114,6 +118,34 @@ export function resetConversation(): void {
     pendingSourceMessage: "",
     // isOpen and seq intentionally kept
   });
+}
+
+/**
+ * Merges new entries into a history, de-duplicating by stable entry id while
+ * keeping chronological order (pure — unit-tested). A duplicate id keeps its
+ * ORIGINAL position and content; only genuinely new entries append. Guards
+ * against double-append races (rapid double-send, replayed updates).
+ */
+export function mergeChatEntries(history: ChatEntry[], entries: ChatEntry[]): ChatEntry[] {
+  const seen = new Set(history.map((m) => m.id));
+  const merged = [...history];
+  for (const entry of entries) {
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    merged.push(entry);
+  }
+  return merged;
+}
+
+/** Append entries with id de-duplication (the only supported append path). */
+export function appendChatEntries(entries: ChatEntry[]): void {
+  setChatState({ history: mergeChatEntries(getChatState().history, entries) });
+}
+
+/** Replaces one entry (e.g. a loading placeholder) with a final one, deduped. */
+export function replaceChatEntry(removeId: string, entry: ChatEntry): void {
+  const remaining = getChatState().history.filter((m) => m.id !== removeId);
+  setChatState({ history: mergeChatEntries(remaining, [entry]) });
 }
 
 /** Last 10 visible turns flattened for the server LLM calls. */

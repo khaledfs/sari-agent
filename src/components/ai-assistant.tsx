@@ -5,10 +5,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 
 import {
+  appendChatEntries,
   conversationTurns,
   getChatState,
   getServerChatState,
   nextEntryId,
+  replaceChatEntry,
   resetConversation,
   setChatState,
   subscribeChat,
@@ -76,7 +78,10 @@ export function AIAssistant() {
   // External store: components subscribe, never own, the conversation state.
   const chat = useSyncExternalStore(subscribeChat, getChatState, getServerChatState);
 
-  const [message, setMessage] = useState("");
+  // Typed-but-unsent text lives in the external store too (Issue 7): it
+  // survives subtree remounts, route changes, and reloads like the thread.
+  const message = chat.draft;
+  const setMessage = useCallback((next: string) => setChatState({ draft: next }), []);
   const [loading, setLoading] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -155,11 +160,11 @@ export function AIAssistant() {
   }
 
   function appendEntries(...entries: ChatEntry[]) {
-    setChatState({ history: [...getChatState().history, ...entries] });
+    appendChatEntries(entries); // id-deduplicated merge (Issue 7)
   }
 
   function replaceLoadingWith(loadingId: string, entry: ChatEntry) {
-    setChatState({ history: [...getChatState().history.filter((m) => m.id !== loadingId), entry] });
+    replaceChatEntry(loadingId, entry);
   }
 
   function applyResponse(data: AssistantCommandResponse, entry: ChatEntry) {
