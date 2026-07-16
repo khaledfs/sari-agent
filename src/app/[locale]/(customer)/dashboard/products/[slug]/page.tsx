@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { useAccountStatus } from "@/components/account-status/account-status-provider";
 import { emitCartAdd } from "@/components/living-bakery/micro";
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import { typography } from "@/design/typography";
@@ -36,6 +37,8 @@ export default function CategoryProductsPage() {
   const t = useTranslations("products");
   const tCart = useTranslations("cart");
   const tNav = useTranslations("dashboard.nav");
+  const tRestricted = useTranslations("restricted");
+  const { restricted, notifyRestricted } = useAccountStatus();
   const locale = useLocale();
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
@@ -64,9 +67,14 @@ export default function CategoryProductsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, quantity: 1 }),
       });
-      const json = (await res.json()) as { success?: boolean; message?: string };
+      const json = (await res.json()) as { success?: boolean; message?: string; code?: string };
       if (res.status === 401) {
         setError(tCart("error"));
+        return;
+      }
+      if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+        notifyRestricted();
+        setError(tRestricted("actionBlocked"));
         return;
       }
       if (res.status === 200 && json.success) {
@@ -227,7 +235,8 @@ export default function CategoryProductsPage() {
                 <Button
                   variant="primary"
                   block
-                  disabled={addingId === product._id || product.stock === 0}
+                  disabled={addingId === product._id || product.stock === 0 || restricted}
+                  title={restricted ? tRestricted("actionBlocked") : undefined}
                   onClick={() => addToCart(product._id)}
                 >
                   {product.stock === 0

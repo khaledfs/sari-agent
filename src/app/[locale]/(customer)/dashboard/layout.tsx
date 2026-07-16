@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { AccountStatusProvider, RestrictedBanner } from "@/components/account-status/account-status-provider";
 import { AIAssistant } from "@/components/ai-assistant";
 import { BannerStrip } from "@/components/banner-strip";
 import { DashboardNav, HeaderCartLink } from "@/components/dashboard-nav";
@@ -28,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const t = useTranslations("dashboard");
   const locale = typeof params.locale === "string" ? params.locale : "en";
   const [phase, setPhase] = useState<Phase>("checking");
+  const [initialRestricted, setInitialRestricted] = useState(false);
   const didPrefetch = useRef(false);
 
   // Session verification: runs once per locale/route change
@@ -37,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const res = await fetch("/api/auth/session", { method: "GET" });
         const json = (await res.json()) as {
-          data?: { authenticated?: boolean };
+          data?: { authenticated?: boolean; accountStatus?: string };
         };
         if (cancelled) return;
         if (json.data?.authenticated !== true) {
@@ -45,6 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           router.replace(`/${locale}/login`);
           return;
         }
+        setInitialRestricted(json.data?.accountStatus === "restricted");
         setPhase("allowed");
       } catch {
         if (cancelled) return;
@@ -90,21 +93,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <RealtimeProvider>
-      <div className="ds-dash-shell">
-        <SceneStage />
-        <FlourDrift />
-        <CartDropLayer />
-        <div className="ds-top-header" style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center" }}>
-          <Image src="/logo.png" alt="Sari" width={120} height={34} style={{ height: "30px", width: "auto", objectFit: "contain" }} priority />
-          <HeaderCartLink />
+      <AccountStatusProvider initialRestricted={initialRestricted}>
+        <div className="ds-dash-shell">
+          <SceneStage />
+          <FlourDrift />
+          <CartDropLayer />
+          <div className="ds-top-header" style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center" }}>
+            <Image src="/logo.png" alt="Sari" width={120} height={34} style={{ height: "30px", width: "auto", objectFit: "contain" }} priority />
+            <HeaderCartLink />
+          </div>
+          <div className="ds-nav-border">
+            <DashboardNav />
+          </div>
+          <RestrictedBanner />
+          <BannerStrip />
+          {children}
+          <AIAssistant />
         </div>
-        <div className="ds-nav-border">
-          <DashboardNav />
-        </div>
-        <BannerStrip />
-        {children}
-        <AIAssistant />
-      </div>
+      </AccountStatusProvider>
     </RealtimeProvider>
   );
 }

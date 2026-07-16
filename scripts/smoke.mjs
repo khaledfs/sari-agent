@@ -846,6 +846,124 @@ async function realtimeSection(customerCookie) {
   }
 }
 
+// ---------- restricted-customer section (Issue 3) ----------
+
+async function restrictedCustomerSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  restricted section skipped — needs both customer and admin logins");
+    return;
+  }
+
+  // Resolve the seeded customer's id via the admin CRM.
+  let customerId = null;
+  try {
+    const { body } = await jsonFetch(
+      `/api/admin/customers?search=${encodeURIComponent(SMOKE_CUSTOMER_PHONE)}`,
+      { headers: { Cookie: adminCookie } }
+    );
+    customerId = body?.data?.items?.[0]?.id ?? null;
+  } catch {
+    // reported below
+  }
+  if (!customerId) {
+    report("restricted: resolve seeded customer id", false, "not found via CRM search");
+    return;
+  }
+
+  // Pick a product for cart attempts.
+  let productId = null;
+  try {
+    const { body } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    productId = (body?.data ?? [])[0]?._id ?? null;
+  } catch {
+    // reported below
+  }
+
+  async function setStatus(status) {
+    const { res } = await jsonFetch(`/api/admin/customers/${customerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ accountStatus: status, ...(status === "restricted" ? { restrictedReason: "SMOKE (auto)" } : {}) }),
+    });
+    return res.status === 200;
+  }
+
+  try {
+    // RESTRICT.
+    const restricted = await setStatus("restricted");
+    report("restricted: admin sets accountStatus=restricted", restricted, "");
+
+    // Cart mutation -> 403 ACCOUNT_RESTRICTED.
+    const { res: cartRes, body: cartBody } = await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId, quantity: 1 }),
+    });
+    report(
+      "restricted: cart POST -> 403 ACCOUNT_RESTRICTED",
+      cartRes.status === 403 && cartBody?.code === "ACCOUNT_RESTRICTED",
+      `status ${cartRes.status}, code=${cartBody?.code}`
+    );
+
+    // Order creation -> 403 ACCOUNT_RESTRICTED.
+    const { res: orderRes, body: orderBody } = await jsonFetch("/api/orders", {
+      method: "POST",
+      headers: { Cookie: customerCookie },
+    });
+    report(
+      "restricted: order POST -> 403 ACCOUNT_RESTRICTED",
+      orderRes.status === 403 && orderBody?.code === "ACCOUNT_RESTRICTED",
+      `status ${orderRes.status}, code=${orderBody?.code}`
+    );
+
+    // Reads stay open: orders list, cart read, ledger.
+    const [ordersRead, cartRead, ledgerRead] = await Promise.all([
+      jsonFetch("/api/orders", { headers: { Cookie: customerCookie } }),
+      jsonFetch("/api/cart", { headers: { Cookie: customerCookie } }),
+      jsonFetch("/api/account/ledger", { headers: { Cookie: customerCookie } }),
+    ]);
+    report(
+      "restricted: orders GET / cart GET / ledger GET stay 200",
+      ordersRead.res.status === 200 && cartRead.res.status === 200 && ledgerRead.res.status === 200,
+      `orders=${ordersRead.res.status}, cart=${cartRead.res.status}, ledger=${ledgerRead.res.status}`
+    );
+
+    // Login is NOT blocked while restricted.
+    const loginRes = await fetch(`${BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: SMOKE_CUSTOMER_PHONE, password: SMOKE_CUSTOMER_PASSWORD }),
+    });
+    report("restricted: login still succeeds (no login block)", loginRes.status === 200, `got ${loginRes.status}`);
+
+    // UN-RESTRICT and verify cart works again; then restore cart state.
+    const unrestricted = await setStatus("active");
+    const { res: cartRes2 } = await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId, quantity: 1 }),
+    });
+    await jsonFetch("/api/cart", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId }),
+    });
+    report(
+      "restricted: un-restrict -> cart POST 200 (state restored)",
+      unrestricted && cartRes2.status === 200,
+      `patch=${unrestricted}, cart=${cartRes2.status}`
+    );
+  } catch (err) {
+    report("restricted: section crashed", false, String(err));
+    // Best-effort restore so a crash never leaves the seed customer locked.
+    try {
+      await setStatus("active");
+    } catch {
+      /* manual cleanup needed */
+    }
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -862,6 +980,7 @@ async function main() {
   await overviewSection(cookie, adminCookie);
   await adminOrderDetailSection(adminCookie);
   await realtimeSection(cookie);
+  await restrictedCustomerSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

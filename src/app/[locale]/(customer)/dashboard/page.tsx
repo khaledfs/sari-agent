@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { typography } from "@/design/typography";
+import { useAccountStatus } from "@/components/account-status/account-status-provider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { emitCartAdd } from "@/components/living-bakery/micro";
@@ -150,6 +151,8 @@ export default function DashboardPage() {
   const tHome = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
   const tSmart = useTranslations("smartOrdering");
+  const tRestricted = useTranslations("restricted");
+  const { restricted, notifyRestricted } = useAccountStatus();
   const router = useRouter();
   const locale = useLocale();
 
@@ -227,7 +230,11 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, quantity: 1 }),
       });
-      const json = (await res.json()) as { success?: boolean };
+      const json = (await res.json()) as { success?: boolean; code?: string };
+      if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+        notifyRestricted();
+        return;
+      }
       if (res.ok && json.success) {
         if (addedTimer.current) clearTimeout(addedTimer.current);
         setAddedId(productId);
@@ -333,7 +340,8 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     className={`ds-sari-reorder-btn${done ? " ds-sari-reorder-btn--done" : ""}`}
-                    disabled={busy || done}
+                    disabled={busy || done || restricted}
+                    title={restricted ? tRestricted("actionBlocked") : undefined}
                     onClick={() => void addToCart(p._id)}
                   >
                     {done ? tHome("added") : busy ? tSmart("reordering") : tSmart("reorder")}

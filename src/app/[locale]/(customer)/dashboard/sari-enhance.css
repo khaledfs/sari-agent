@@ -1987,3 +1987,20 @@
   color: var(--danger);
   white-space: nowrap;
 }
+
+/* ——— Restricted-account banner (Work Order Issue 3) ——— */
+/* Static notice — no animation, so no reduced-motion handling needed. */
+
+.ds-restricted-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 1rem 0;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--danger, #b3261e);
+  border-radius: var(--radius-md, 10px);
+  background: var(--danger-bg, #fdecea);
+  color: var(--danger, #b3261e);
+  font-size: 0.875rem;
+  font-weight: 600;
+}

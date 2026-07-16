@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUserId } from "@/lib/auth-user";
+import { mapAccountRestrictedError } from "@/lib/api-guard-responses";
 import { addToCart, getCartByUserId, removeCartItem, updateCartItem } from "@/services/cart.service";
 
 function unauthorized() {
@@ -31,6 +32,8 @@ export async function POST(req: Request) {
     const data = await addToCart(userId, body.productId ?? "", Number(body.quantity));
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    const restricted = mapAccountRestrictedError(error);
+    if (restricted) return restricted;
     const message = error instanceof Error ? error.message : "Failed to add to cart.";
     return NextResponse.json({ success: false, message }, { status: 400 });
   }
@@ -46,6 +49,8 @@ export async function PUT(req: Request) {
     const data = await updateCartItem(userId, body.productId ?? "", Number(body.quantity));
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    const restricted = mapAccountRestrictedError(error);
+    if (restricted) return restricted;
     const message = error instanceof Error ? error.message : "Failed to update cart.";
     return NextResponse.json({ success: false, message }, { status: 400 });
   }
@@ -61,6 +66,8 @@ export async function DELETE(req: Request) {
     const data = await removeCartItem(userId, body.productId ?? "");
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    const restricted = mapAccountRestrictedError(error);
+    if (restricted) return restricted;
     const message = error instanceof Error ? error.message : "Failed to remove item.";
     return NextResponse.json({ success: false, message }, { status: 400 });
   }

@@ -7,7 +7,9 @@ import { CustomerMemoryModel } from "@/models/customer-memory.model";
 import { OrderModel } from "@/models/order.model";
 import { PromotionModel } from "@/models/promotion.model";
 import { UserModel } from "@/models/user.model";
+import { resolveAccountStatus, type AccountStatus } from "@/services/account-status.service";
 import { CANCELLED_STATUS_RX } from "@/services/admin-overview.service";
+import { publishRealtimeEvent } from "@/services/event-bus.service";
 
 /**
  * Admin customer CRM, mirroring admin-orders/admin-products: requireAdmin per
@@ -22,7 +24,10 @@ export type AdminCustomerRow = {
   phoneNumber: string;
   businessType: string | null;
   isVerified: boolean;
-  isActive: boolean;
+  /** Ordering permission — replaces the former isActive soft-disable (Issue 3). */
+  accountStatus: AccountStatus;
+  restrictedAt: string | null;
+  restrictedReason: string;
   createdAt: string;
   totalOrders: number;
   lifetimeSpend: number;
@@ -80,8 +85,22 @@ type UserLean = {
   phoneNumber: string;
   isVerified: boolean;
   isActive?: boolean;
+  accountStatus?: string;
+  restrictedAt?: Date;
+  restrictedReason?: string;
   adminNotes?: string;
   createdAt?: Date;
+};
+
+/**
+ * Mongo filter matching the effective "restricted" state including legacy
+ * documents (no accountStatus yet, old isActive=false soft-disable).
+ */
+const RESTRICTED_DB_FILTER = {
+  $or: [
+    { accountStatus: "restricted" },
+    { accountStatus: { $exists: false }, isActive: false },
+  ],
 };
 
 type OrderStats = {
@@ -136,7 +155,9 @@ function toRow(
     phoneNumber: u.phoneNumber,
     businessType,
     isVerified: u.isVerified,
-    isActive: u.isActive !== false,
+    accountStatus: resolveAccountStatus(u),
+    restrictedAt: u.restrictedAt instanceof Date ? u.restrictedAt.toISOString() : null,
+    restrictedReason: u.restrictedReason ?? "",
     createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : String(u.createdAt ?? ""),
     totalOrders: stats?.totalOrders ?? 0,
     lifetimeSpend: stats?.lifetimeSpend ?? 0,
@@ -166,8 +187,11 @@ export async function listAdminCustomers(
     const rx = new RegExp(escapeRegex(search), "i");
     filter.$or = [{ businessName: rx }, { phoneNumber: rx }, { email: rx }];
   }
-  if (params.active === "active") filter.isActive = { $ne: false };
-  else if (params.active === "inactive") filter.isActive = false;
+  // Ordering-state filter over the effective status (legacy docs included).
+  if (params.active === "active") filter.$nor = [RESTRICTED_DB_FILTER];
+  else if (params.active === "restricted" || params.active === "inactive") {
+    filter.$and = [RESTRICTED_DB_FILTER];
+  }
 
   // businessType lives on CustomerMemory — resolve matching userIds first.
   const businessType = params.businessType?.trim();
@@ -299,7 +323,13 @@ export async function getAdminCustomer(customerId: string): Promise<AdminCustome
   };
 }
 
-/** Whitelist-only update: isActive (soft disable) and adminNotes. Nothing else. */
+export const RESTRICTED_REASON_MAX_LENGTH = 500;
+
+/**
+ * Whitelist-only update: accountStatus (ordering hold — replaces the former
+ * isActive soft-disable), restrictedReason, and adminNotes. Nothing else.
+ * Emits account.restricted / account.unrestricted after a real status change.
+ */
 export async function updateAdminCustomer(
   customerId: string,
   patch: Record<string, unknown>
@@ -311,10 +341,23 @@ export async function updateAdminCustomer(
   if (keys.length === 0) throw new Error("At least one field is required for update.");
 
   const $set: Record<string, unknown> = {};
+  const $unset: Record<string, unknown> = {};
+  let nextStatus: AccountStatus | null = null;
   for (const key of keys) {
-    if (key === "isActive") {
-      if (typeof patch.isActive !== "boolean") throw new Error("isActive must be a boolean.");
-      $set.isActive = patch.isActive;
+    if (key === "accountStatus") {
+      if (patch.accountStatus !== "active" && patch.accountStatus !== "restricted") {
+        throw new Error('accountStatus must be "active" or "restricted".');
+      }
+      nextStatus = patch.accountStatus;
+      $set.accountStatus = nextStatus;
+    } else if (key === "restrictedReason") {
+      if (typeof patch.restrictedReason !== "string") {
+        throw new Error("restrictedReason must be a string.");
+      }
+      if (patch.restrictedReason.length > RESTRICTED_REASON_MAX_LENGTH) {
+        throw new Error(`restrictedReason must be at most ${RESTRICTED_REASON_MAX_LENGTH} characters.`);
+      }
+      $set.restrictedReason = patch.restrictedReason.trim();
     } else if (key === "adminNotes") {
       if (typeof patch.adminNotes !== "string") throw new Error("adminNotes must be a string.");
       if (patch.adminNotes.length > ADMIN_NOTES_MAX_LENGTH) {
@@ -327,8 +370,35 @@ export async function updateAdminCustomer(
   }
 
   await connectDB();
-  const res = await UserModel.updateOne({ _id: customerId, role: "customer" }, { $set }).exec();
+
+  const previous = (await UserModel.findOne(
+    { _id: customerId, role: "customer" },
+    { accountStatus: 1, isActive: 1 }
+  )
+    .lean()
+    .exec()) as UserLean | null;
+  if (!previous) throw new Error("Customer not found.");
+  const previousStatus = resolveAccountStatus(previous);
+
+  if (nextStatus === "restricted" && previousStatus !== "restricted") {
+    $set.restrictedAt = new Date();
+  } else if (nextStatus === "active") {
+    $unset.restrictedAt = "";
+    if (!("restrictedReason" in $set)) $unset.restrictedReason = "";
+  }
+
+  const update: Record<string, unknown> = { $set };
+  if (Object.keys($unset).length > 0) update.$unset = $unset;
+  const res = await UserModel.updateOne({ _id: customerId, role: "customer" }, update).exec();
   if (res.matchedCount === 0) throw new Error("Customer not found.");
+
+  // Realtime AFTER the successful write, only on a real transition.
+  if (nextStatus && nextStatus !== previousStatus) {
+    publishRealtimeEvent({
+      type: nextStatus === "restricted" ? "account.restricted" : "account.unrestricted",
+      userId: customerId,
+    });
+  }
 
   return getAdminCustomer(customerId);
 }

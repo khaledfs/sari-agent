@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { useAccountStatus } from "@/components/account-status/account-status-provider";
 import { emitCartAdd } from "@/components/living-bakery/micro";
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import { typography } from "@/design/typography";
@@ -70,6 +71,8 @@ export default function ProductsPage() {
   const tNav = useTranslations("dashboard.nav");
   const tCart = useTranslations("cart");
   const tSmart = useTranslations("smartOrdering");
+  const tRestricted = useTranslations("restricted");
+  const { restricted, notifyRestricted } = useAccountStatus();
   const locale = useLocale();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -155,9 +158,14 @@ export default function ProductsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId, quantity: 1 }),
         });
-        const json = (await res.json()) as { success?: boolean; message?: string };
+        const json = (await res.json()) as { success?: boolean; message?: string; code?: string };
         if (res.status === 401) {
           setSmartError(tCart("error"));
+          return;
+        }
+        if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+          notifyRestricted();
+          setSmartError(tRestricted("actionBlocked"));
           return;
         }
         if (res.status === 200 && json.success) {
@@ -174,7 +182,7 @@ export default function ProductsPage() {
         setAddingId(null);
       }
     },
-    [t, tCart]
+    [t, tCart, tRestricted, notifyRestricted]
   );
 
   useEffect(() => {
@@ -434,7 +442,8 @@ export default function ProductsPage() {
               <Button
                 variant="primary"
                 block
-                disabled={addingId === product._id || isOutOfStock(product)}
+                disabled={addingId === product._id || isOutOfStock(product) || restricted}
+                title={restricted ? tRestricted("actionBlocked") : undefined}
                 onClick={() => void addToCart(product._id)}
               >
                 {isOutOfStock(product)
@@ -590,7 +599,8 @@ export default function ProductsPage() {
                     <Button
                       variant="primary"
                       block
-                      disabled={addingId === product._id || isOutOfStock(product)}
+                      disabled={addingId === product._id || isOutOfStock(product) || restricted}
+                      title={restricted ? tRestricted("actionBlocked") : undefined}
                       onClick={() => void addToCart(product._id)}
                     >
                       {isOutOfStock(product)

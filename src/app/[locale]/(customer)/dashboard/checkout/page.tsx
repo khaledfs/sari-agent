@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { useAccountStatus } from "@/components/account-status/account-status-provider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatMoney } from "@/components/orders/order-view";
@@ -41,6 +42,8 @@ export default function CheckoutReviewPage() {
   const t = useTranslations("checkout");
   const tCart = useTranslations("cart");
   const tOrders = useTranslations("orders");
+  const tRestricted = useTranslations("restricted");
+  const { restricted, notifyRestricted } = useAccountStatus();
   const locale = useLocale();
   const router = useRouter();
 
@@ -82,13 +85,18 @@ export default function CheckoutReviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notes.trim() }),
       });
-      const json = (await res.json()) as { success?: boolean; data?: { id: string }; message?: string };
+      const json = (await res.json()) as { success?: boolean; data?: { id: string }; message?: string; code?: string };
       if (res.status === 200 && json.success && json.data?.id) {
         router.push(`/${locale}/dashboard/orders/confirmation/${json.data.id}`);
         return;
       }
       submittedRef.current = false;
-      setError(json.message ?? tOrders("error"));
+      if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+        notifyRestricted();
+        setError(tRestricted("actionBlocked"));
+      } else {
+        setError(json.message ?? tOrders("error"));
+      }
       setSubmitting(false);
     } catch {
       submittedRef.current = false;
@@ -245,7 +253,8 @@ export default function CheckoutReviewPage() {
               variant="primary"
               block
               className="ds-checkout-confirm"
-              disabled={submitting}
+              disabled={submitting || restricted}
+              title={restricted ? tRestricted("actionBlocked") : undefined}
               onClick={() => void confirmOrder()}
             >
               {submitting ? t("confirming") : t("confirm")}

@@ -155,11 +155,10 @@ export async function loginWithPassword(input: { identifier: string; password: s
     throw new Error("Phone number is not verified.");
   }
 
-  // Soft-disabled accounts (admin CRM) must not receive a session. Message is
-  // deliberately terse — reveal nothing beyond the fact the account is disabled.
-  if ((user as { isActive?: boolean }).isActive === false) {
-    throw new Error("Account disabled.");
-  }
+  // NOTE (Work Order Issue 3): the former isActive login rejection was removed
+  // deliberately. A restricted customer is a commercial hold, not a security
+  // ban — they stay logged in with read access and are blocked server-side
+  // from ordering by requireOrderingEnabled() instead.
 
   const userId = String((user as { _id: unknown })._id);
   const token = signAuthToken({ userId, role: user.role });

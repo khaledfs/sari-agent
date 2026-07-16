@@ -13,7 +13,9 @@ type CustomerProfile = {
     phoneNumber: string;
     businessType: string | null;
     isVerified: boolean;
-    isActive: boolean;
+    accountStatus: "active" | "restricted";
+    restrictedAt: string | null;
+    restrictedReason: string;
     createdAt: string;
     adminNotes: string;
   };
@@ -69,6 +71,11 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
   const [notesSaved, setNotesSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ordering-state control (restrict / un-restrict + optional reason).
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [reasonOpen, setReasonOpen] = useState(false);
+  const [reasonDraft, setReasonDraft] = useState("");
+
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/customers/${id}`);
@@ -80,6 +87,7 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
       if (res.status === 200 && json.success && json.data) {
         setProfile(json.data);
         setNotesDraft(json.data.customer.adminNotes);
+        setReasonDraft(json.data.customer.restrictedReason);
         return;
       }
       setError(json.message ?? t("customers.error"));
@@ -127,22 +135,30 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
     }
   }
 
-  async function toggleActive() {
+  /** Ordering-state control: restrict (with optional reason) / un-restrict. */
+  async function setAccountStatus(nextStatus: "active" | "restricted", reason: string) {
     if (!profile) return;
+    setStatusSaving(true);
     try {
+      const body: Record<string, string> = { accountStatus: nextStatus };
+      if (nextStatus === "restricted") body.restrictedReason = reason.trim();
       const res = await fetch(`/api/admin/customers/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !profile.customer.isActive }),
+        body: JSON.stringify(body),
       });
       const json = (await res.json()) as ApiEnvelope<CustomerProfile>;
       if (res.status === 200 && json.success && json.data) {
         setProfile(json.data);
+        setReasonDraft(json.data.customer.restrictedReason);
+        setReasonOpen(false);
         return;
       }
       setError(json.message ?? t("customers.error"));
     } catch {
       setError(t("customers.error"));
+    } finally {
+      setStatusSaving(false);
     }
   }
 
@@ -174,13 +190,62 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
         <>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.35rem" }}>
             <h1 style={{ fontSize: "1.5rem", margin: 0 }}>{c.businessName}</h1>
-            <span className={`admin-stock-badge ${c.isActive ? "admin-stock-badge--low" : "admin-stock-badge--out"}`}>
-              {c.isActive ? t("customers.active") : t("customers.disabled")}
+            <span className={`admin-stock-badge ${c.accountStatus === "restricted" ? "admin-stock-badge--out" : "admin-stock-badge--low"}`}>
+              {c.accountStatus === "restricted" ? t("customers.restricted") : t("customers.active")}
             </span>
-            <button type="button" className="admin-btn" onClick={() => void toggleActive()}>
-              {c.isActive ? t("customers.disable") : t("customers.enable")}
-            </button>
+            {c.accountStatus === "restricted" ? (
+              <button
+                type="button"
+                className="admin-btn"
+                disabled={statusSaving}
+                onClick={() => void setAccountStatus("active", "")}
+              >
+                {statusSaving ? t("customers.statusSaving") : t("customers.unrestrict")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="admin-btn"
+                disabled={statusSaving}
+                onClick={() => setReasonOpen((v) => !v)}
+                aria-expanded={reasonOpen}
+              >
+                {t("customers.restrict")}
+              </button>
+            )}
           </div>
+          {c.accountStatus === "restricted" ? (
+            <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginBottom: "0.5rem" }}>
+              {t("customers.restrictedSince")}: {formatDate(c.restrictedAt)}
+              {c.restrictedReason ? ` — ${c.restrictedReason}` : ""}
+            </p>
+          ) : null}
+          {reasonOpen && c.accountStatus !== "restricted" ? (
+            <div style={{ marginBottom: "0.75rem", display: "grid", gap: "0.5rem", maxInlineSize: "480px" }}>
+              <textarea
+                className="admin-input"
+                rows={2}
+                maxLength={500}
+                value={reasonDraft}
+                onChange={(e) => setReasonDraft(e.target.value)}
+                placeholder={t("customers.restrictReasonPlaceholder")}
+                aria-label={t("customers.restrictReasonPlaceholder")}
+              />
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="admin-btn-primary"
+                  disabled={statusSaving}
+                  onClick={() => void setAccountStatus("restricted", reasonDraft)}
+                >
+                  {statusSaving ? t("customers.statusSaving") : t("customers.restrictConfirm")}
+                </button>
+                <button type="button" className="admin-btn" disabled={statusSaving} onClick={() => setReasonOpen(false)}>
+                  {t("orders.detail.close")}
+                </button>
+              </div>
+            </div>
+          ) : null}
           <p style={{ color: "var(--text-muted)", marginBottom: "1.25rem" }}>
             <span dir="ltr">{c.phoneNumber}</span> · {c.email} ·{" "}
             {c.businessType ? t(`pricing.businessTypes.${c.businessType}`) : "—"} · {t("customers.columns.joined")}:{" "}

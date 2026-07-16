@@ -35,11 +35,39 @@ const userSchema = new Schema(
       default: false,
       required: true,
     },
-    /** Soft account disable (admin CRM). false = login rejected, data kept. */
+    /**
+     * LEGACY (superseded 2026-07-16 by accountStatus — Work Order Issue 3).
+     * Previously false = login rejected. Login is no longer blocked; the flag
+     * is kept only so unmigrated documents can be mapped to accountStatus
+     * (isActive false → "restricted"). Do not enforce it anywhere new.
+     */
     isActive: {
       type: Boolean,
       default: true,
       required: true,
+    },
+    /**
+     * Ordering permission — the single source of truth (Work Order Issue 3).
+     * "restricted" = commercial hold: the customer stays logged in and keeps
+     * read access (orders, ledger, catalog, receipts) but cannot mutate the
+     * cart or place orders. Not a security ban.
+     */
+    accountStatus: {
+      type: String,
+      enum: ["active", "restricted"],
+      default: "active",
+    },
+    /** Set when accountStatus flips to "restricted". */
+    restrictedAt: {
+      type: Date,
+      default: undefined,
+    },
+    /** Admin-facing reason for the hold (never shown to the customer). */
+    restrictedReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: undefined,
     },
     /** Internal admin notes — never exposed through customer-facing endpoints. */
     adminNotes: {

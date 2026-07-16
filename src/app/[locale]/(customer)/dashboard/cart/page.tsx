@@ -5,6 +5,7 @@
   import { useCallback, useEffect, useState } from "react";
   import { useLocale, useTranslations } from "next-intl";
 
+  import { useAccountStatus } from "@/components/account-status/account-status-provider";
   import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
   import { Button } from "@/components/ui/Button";
   import { Card } from "@/components/ui/Card";
@@ -81,6 +82,8 @@
     const t = useTranslations("cart");
     const tOrders = useTranslations("orders");
     const tNav = useTranslations("dashboard.nav");
+    const tRestricted = useTranslations("restricted");
+    const { restricted, notifyRestricted } = useAccountStatus();
     const locale = useLocale();
     const [cart, setCart] = useState<CartData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -142,9 +145,14 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId, quantity: nextQty }),
         });
-        const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string };
+        const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string; code?: string };
         if (res.status === 401) {
           setError(t("error"));
+          return;
+        }
+        if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+          notifyRestricted();
+          setError(tRestricted("actionBlocked"));
           return;
         }
         if (res.status === 200 && json.success && json.data) {
@@ -191,9 +199,14 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId }),
         });
-        const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string };
+        const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string; code?: string };
         if (res.status === 401) {
           setError(t("error"));
+          return;
+        }
+        if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+          notifyRestricted();
+          setError(tRestricted("actionBlocked"));
           return;
         }
         if (res.status === 200 && json.success && json.data) {
@@ -213,9 +226,14 @@
       setError("");
       try {
         const res = await fetch("/api/cart/clear", { method: "POST" });
-        const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string };
+        const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string; code?: string };
         if (res.status === 401) {
           setError(t("error"));
+          return;
+        }
+        if (res.status === 403 && json.code === "ACCOUNT_RESTRICTED") {
+          notifyRestricted();
+          setError(tRestricted("actionBlocked"));
           return;
         }
         if (res.status === 200 && json.success && json.data) {
@@ -360,7 +378,8 @@
                     <div className="ds-qty-controls" role="group" aria-label={t("quantity")}>
                       <button
                         type="button"
-                        disabled={busyId === line.productId}
+                        disabled={busyId === line.productId || restricted}
+                        title={restricted ? tRestricted("actionBlocked") : undefined}
                         className="ds-icon-btn ds-icon-btn--qty"
                         onClick={() => updateQty(line.productId, line.quantity - 1)}
                         aria-label={t("decrease")}
@@ -372,7 +391,8 @@
                         inputMode="numeric"
                         type="text"
                         pattern="\\d*"
-                        disabled={busyId === line.productId}
+                        disabled={busyId === line.productId || restricted}
+                        title={restricted ? tRestricted("actionBlocked") : undefined}
                         value={qtyDraft[line.productId] ?? String(line.quantity)}
                         onChange={(e) => setQtyDraft((p) => ({ ...p, [line.productId]: e.target.value }))}
                         onBlur={() => void commitQty(line.productId)}
@@ -385,7 +405,8 @@
                       />
                       <button
                         type="button"
-                        disabled={busyId === line.productId}
+                        disabled={busyId === line.productId || restricted}
+                        title={restricted ? tRestricted("actionBlocked") : undefined}
                         className="ds-icon-btn ds-icon-btn--qty"
                         onClick={() => updateQty(line.productId, line.quantity + 1)}
                         aria-label={t("increase")}
@@ -395,7 +416,8 @@
                     </div>
                     <Button
                       variant="danger"
-                      disabled={busyId === line.productId}
+                      disabled={busyId === line.productId || restricted}
+                      title={restricted ? tRestricted("actionBlocked") : undefined}
                       className="ds-push-end"
                       onClick={() => removeItem(line.productId)}
                     >
@@ -453,9 +475,14 @@
             <div className="ds-actions-row ds-actions-row--summary">
               {/* Ordering is no longer direct — the review page is the only place
                   with a Confirm Order button. */}
-              {cart.items.some(isLineUnavailable) ? (
+              {restricted || cart.items.some(isLineUnavailable) ? (
                 <span className="ds-cart-cta-main ds-flex-1">
-                  <Button variant="primary" block disabled title={t("unavailableCheckout")}>
+                  <Button
+                    variant="primary"
+                    block
+                    disabled
+                    title={restricted ? tRestricted("actionBlocked") : t("unavailableCheckout")}
+                  >
                     {tOrders("goToReview")}
                   </Button>
                 </span>
@@ -466,7 +493,13 @@
                   </Button>
                 </Link>
               )}
-              <Button variant="secondary" block disabled={clearBusy} onClick={clearAll}>
+              <Button
+                variant="secondary"
+                block
+                disabled={clearBusy || restricted}
+                title={restricted ? tRestricted("actionBlocked") : undefined}
+                onClick={clearAll}
+              >
                 {t("clearCart")}
               </Button>
             </div>

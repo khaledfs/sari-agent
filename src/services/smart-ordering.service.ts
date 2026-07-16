@@ -3,6 +3,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
+import { requireOrderingEnabled } from "@/services/account-status.service";
 import { addToCart } from "@/services/cart.service";
 import { getOrderById } from "@/services/order.service";
 
@@ -184,6 +185,9 @@ export async function getFrequentProductsByUser(userId: string): Promise<SmartOr
  * Missing or inactive products are skipped with reasons in the summary.
  */
 export async function reorderOrderToCart(userId: string, orderId: string): Promise<ReorderSummary> {
+  // Guard up-front: without this, the per-item catch would turn a restricted
+  // account into a silent all-skipped 200 instead of a 403.
+  await requireOrderingEnabled(userId);
   const order = await getOrderById(userId, orderId);
   let added = 0;
   let skipped = 0;

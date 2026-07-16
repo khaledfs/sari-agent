@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUserId } from "@/lib/auth-user";
+import { mapAccountRestrictedError } from "@/lib/api-guard-responses";
 import { reorderOrderToCart } from "@/services/smart-ordering.service";
 
 function unauthorized() {
@@ -17,6 +18,8 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
     const data = await reorderOrderToCart(userId, id);
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    const restricted = mapAccountRestrictedError(error);
+    if (restricted) return restricted;
     const message = error instanceof Error ? error.message : "Failed to reorder.";
     if (message === "Order not found.") {
       return NextResponse.json({ success: false, message }, { status: 404 });

@@ -272,6 +272,10 @@
     "unavailableLine": "This product is currently unavailable — remove it to continue.",
     "unavailableCheckout": "Some items in your cart are no longer available. Remove them to continue to checkout."
   },
+  "restricted": {
+    "banner": "This account is on hold for new orders. You can still view orders, balance and history. Contact the manager for details.",
+    "actionBlocked": "Account on hold for new orders — contact the manager for details."
+  },
   "banners": {
     "regionLabel": "Announcements",
     "dismiss": "Dismiss announcement",
@@ -471,10 +475,18 @@
       "allTypes": "All business types",
       "activeOnly": "Active only",
       "inactiveOnly": "Disabled only",
+      "restrictedOnly": "Restricted only",
       "active": "Active",
       "disabled": "Disabled",
       "disable": "Disable account",
       "enable": "Enable account",
+      "restricted": "Restricted",
+      "restrict": "Restrict ordering",
+      "unrestrict": "Remove restriction",
+      "restrictConfirm": "Confirm restriction",
+      "restrictReasonPlaceholder": "Reason (internal, optional) — e.g. unpaid balance",
+      "restrictedSince": "Restricted since",
+      "statusSaving": "Saving…",
       "avgOrder": "Avg. order",
       "tabs": {
         "overview": "Overview",

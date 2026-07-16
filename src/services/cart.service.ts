@@ -4,6 +4,7 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { CartModel } from "@/models/cart.model";
 import { ProductModel } from "@/models/product.model";
+import { requireOrderingEnabled } from "@/services/account-status.service";
 import { computePricesForProducts, type PriceBreakdown } from "@/services/pricing.service";
 import {
   evaluatePromotionsForCart,
@@ -266,6 +267,7 @@ export async function getCartByUserId(userId: string): Promise<CartWithTotals> {
 }
 
 export async function addToCart(userId: string, productId: string, quantity: number) {
+  await requireOrderingEnabled(userId);
   addBodySchema.parse({ productId, quantity });
   await assertActiveProduct(productId);
 
@@ -289,6 +291,7 @@ export async function addToCart(userId: string, productId: string, quantity: num
 }
 
 export async function updateCartItem(userId: string, productId: string, quantity: number) {
+  await requireOrderingEnabled(userId);
   updateBodySchema.parse({ productId, quantity });
 
   if (!isValidObjectId(productId)) {
@@ -316,6 +319,7 @@ export async function updateCartItem(userId: string, productId: string, quantity
 }
 
 export async function removeCartItem(userId: string, productId: string) {
+  await requireOrderingEnabled(userId);
   productIdOnlySchema.parse({ productId });
   if (!isValidObjectId(productId)) {
     throw new Error("Invalid product id.");
@@ -335,6 +339,7 @@ export async function removeCartItem(userId: string, productId: string) {
 }
 
 export async function clearCart(userId: string) {
+  await requireOrderingEnabled(userId);
   toUserObjectId(userId);
   const cart = await getOrCreateCartDoc(userId);
   await persistCartItems(cart._id, []);

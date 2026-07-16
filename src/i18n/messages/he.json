@@ -272,6 +272,10 @@
     "unavailableLine": "המוצר אינו זמין כרגע — הסירו אותו כדי להמשיך.",
     "unavailableCheckout": "חלק מהפריטים בעגלה אינם זמינים עוד. הסירו אותם כדי להמשיך לתשלום."
   },
+  "restricted": {
+    "banner": "החשבון מוגבל להזמנות חדשות. ניתן לצפות בהזמנות, ביתרה ובהיסטוריה. לפרטים יש לפנות למנהל.",
+    "actionBlocked": "החשבון מוגבל להזמנות חדשות — לפרטים יש לפנות למנהל."
+  },
   "banners": {
     "regionLabel": "הודעות",
     "dismiss": "סגור הודעה",
@@ -471,10 +475,18 @@
       "allTypes": "כל סוגי העסקים",
       "activeOnly": "פעילים בלבד",
       "inactiveOnly": "מושבתים בלבד",
+      "restrictedOnly": "מוגבלים בלבד",
       "active": "פעיל",
       "disabled": "מושבת",
       "disable": "השבת חשבון",
       "enable": "הפעל חשבון",
+      "restricted": "מוגבל",
+      "restrict": "הגבל הזמנות",
+      "unrestrict": "הסר הגבלה",
+      "restrictConfirm": "אישור הגבלה",
+      "restrictReasonPlaceholder": "סיבה (פנימי, לא חובה) — למשל יתרת חוב",
+      "restrictedSince": "מוגבל מאז",
+      "statusSaving": "שומר…",
       "avgOrder": "הזמנה ממוצעת",
       "tabs": {
         "overview": "סקירה",

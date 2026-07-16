@@ -12,7 +12,9 @@ type CustomerRow = {
   phoneNumber: string;
   businessType: string | null;
   isVerified: boolean;
-  isActive: boolean;
+  accountStatus: "active" | "restricted";
+  restrictedAt: string | null;
+  restrictedReason: string;
   createdAt: string;
   totalOrders: number;
   lifetimeSpend: number;
@@ -88,21 +90,22 @@ export default function AdminCustomersPage() {
     void load();
   }, [load]);
 
-  /** Soft disable/enable with optimistic toggle + rollback. */
-  async function toggleActive(row: CustomerRow) {
+  /** Ordering-state flip (active ⇄ restricted) with optimistic update + rollback. */
+  async function toggleRestricted(row: CustomerRow) {
     if (!data) return;
     const prev = data;
+    const nextStatus = row.accountStatus === "restricted" ? "active" : "restricted";
     setBusyId(row.id);
     setError("");
     setData({
       ...data,
-      items: data.items.map((c) => (c.id === row.id ? { ...c, isActive: !row.isActive } : c)),
+      items: data.items.map((c) => (c.id === row.id ? { ...c, accountStatus: nextStatus } : c)),
     });
     try {
       const res = await fetch(`/api/admin/customers/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !row.isActive }),
+        body: JSON.stringify({ accountStatus: nextStatus }),
       });
       const json = (await res.json()) as ApiEnvelope<{ customer: CustomerRow }>;
       if (res.status === 200 && json.success && json.data?.customer) {
@@ -177,7 +180,7 @@ export default function AdminCustomersPage() {
         >
           <option value="all">{t("products.filters.all")}</option>
           <option value="active">{t("customers.activeOnly")}</option>
-          <option value="inactive">{t("customers.inactiveOnly")}</option>
+          <option value="restricted">{t("customers.restrictedOnly")}</option>
         </select>
       </div>
 
@@ -208,7 +211,7 @@ export default function AdminCustomersPage() {
               </thead>
               <tbody>
                 {items.map((c) => (
-                  <tr key={c.id} style={c.isActive ? undefined : { opacity: 0.55 }}>
+                  <tr key={c.id} style={c.accountStatus === "restricted" ? { opacity: 0.7 } : undefined}>
                     <td style={{ fontWeight: 600 }}>
                       <Link
                         href={`/${locale}/admin/dashboard/customers/${c.id}`}
@@ -225,16 +228,22 @@ export default function AdminCustomersPage() {
                     <td>₪{c.lifetimeSpend.toLocaleString(locale)}</td>
                     <td style={{ whiteSpace: "nowrap" }}>{formatDate(c.lastOrderDate)}</td>
                     <td>
-                      <label className="admin-toggle">
-                        <input
-                          type="checkbox"
-                          checked={c.isActive}
-                          disabled={busyId === c.id}
-                          onChange={() => void toggleActive(c)}
-                          aria-label={`${t("customers.columns.status")} — ${c.businessName}`}
-                        />
-                        <span>{c.isActive ? t("customers.active") : t("customers.disabled")}</span>
-                      </label>
+                      <span
+                        className={`admin-stock-badge ${c.accountStatus === "restricted" ? "admin-stock-badge--out" : "admin-stock-badge--low"}`}
+                        title={c.accountStatus === "restricted" && c.restrictedReason ? c.restrictedReason : undefined}
+                      >
+                        {c.accountStatus === "restricted" ? t("customers.restricted") : t("customers.active")}
+                      </span>
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        style={{ marginInlineStart: "0.5rem" }}
+                        disabled={busyId === c.id}
+                        onClick={() => void toggleRestricted(c)}
+                        aria-label={`${t("customers.columns.status")} — ${c.businessName}`}
+                      >
+                        {c.accountStatus === "restricted" ? t("customers.unrestrict") : t("customers.restrict")}
+                      </button>
                     </td>
                   </tr>
                 ))}

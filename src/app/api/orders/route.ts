@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUserId } from "@/lib/auth-user";
+import { mapAccountRestrictedError } from "@/lib/api-guard-responses";
 import { createOrderFromCart, getOrdersByUser } from "@/services/order.service";
 
 function unauthorized() {
@@ -32,6 +33,8 @@ export async function POST(req: Request) {
     const data = await createOrderFromCart(userId, notes);
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    const restricted = mapAccountRestrictedError(error);
+    if (restricted) return restricted;
     const message = error instanceof Error ? error.message : "Failed to create order.";
     return NextResponse.json({ success: false, message }, { status: 400 });
   }

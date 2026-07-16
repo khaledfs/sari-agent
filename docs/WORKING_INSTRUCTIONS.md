@@ -69,6 +69,18 @@ Orders integrity
   data; clients refetch through their own authorized endpoints.
 - The bus is in-process: deployment must stay **single-instance (fork mode)**, and the
   reverse proxy must disable buffering for `/api/events` (see DEV_NOTES §15).
+
+### 3.7 Account restriction (ordering hold)
+
+- `user.accountStatus` ("active" | "restricted") is the **single source of truth** for
+  ordering permission. Legacy `user.isActive` is read-only compatibility (see DEV_NOTES §16)
+  — never enforce it anywhere new, and never block login for a restricted customer.
+- Every cart-mutating or order-creating service function MUST call
+  `requireOrderingEnabled(userId)` (account-status.service) which reads the CURRENT DB
+  state — never trust JWT claims for this.
+- Routes map the guard error via `mapAccountRestrictedError()` →
+  `403 { code: "ACCOUNT_RESTRICTED" }`. Frontend disabling is UX only, never the enforcement.
+- Restricted customers keep ALL read access (orders, ledger, catalog, receipts, realtime).
 ---
 
 ## 4. Internationalization (i18n)

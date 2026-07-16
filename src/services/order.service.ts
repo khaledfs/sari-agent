@@ -2,6 +2,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 
 import { connectDB } from "@/lib/db";
 import { CartModel } from "@/models/cart.model";
+import { requireOrderingEnabled } from "@/services/account-status.service";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
 import type { PriceBreakdown } from "@/services/pricing.service";
@@ -132,6 +133,7 @@ function toSummary(detail: OrderDetail): OrderSummary {
  * compensating-delete behavior rather than failing outright.
  */
 export async function createOrderFromCart(userId: string, notes = ""): Promise<OrderDetail> {
+  await requireOrderingEnabled(userId);
   const uid = toUserObjectId(userId);
   const cart = await getCartByUserId(userId);
 

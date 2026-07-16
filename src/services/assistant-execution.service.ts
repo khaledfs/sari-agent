@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { ACCOUNT_RESTRICTED_MESSAGE } from "@/services/account-status.service";
 import { addToCart, removeCartItem, updateCartItem } from "@/services/cart.service";
 import { getProductById } from "@/services/product.service";
 import {
@@ -15,43 +16,60 @@ import type {
 
 type CartResult = Awaited<ReturnType<typeof addToCart>>;
 
+/**
+ * Restricted account (Work Order Issue 3): the assistant keeps advising, but a
+ * cart mutation comes back as a polite structured refusal — never a raw error.
+ */
+const RESTRICTED_ASSISTANT_MESSAGE =
+  "החשבון שלך מוגבל כרגע להזמנות חדשות, ולכן אינני יכול לעדכן את העגלה. אפשר להמשיך לצפות בקטלוג, בהזמנות וביתרה — ולפנות למנהל להסדרת החשבון.";
+
 export async function runCartMutation(
   userId: string,
   parsed: ParsedAssistantCommand,
   chosen: AssistantMatchedProduct
 ): Promise<{ actionResult: AssistantCommandResponse["actionResult"]; cart?: CartResult; message: string }> {
-  if (parsed.intent === "add" || parsed.intent === "reorder_habit") {
-    const quantity = parsed.quantity ?? 1;
-    const cart = await addToCart(userId, chosen.productId, quantity);
-    return {
-      actionResult: "added",
-      cart,
-      message: buildAssistantActionMessage("added", chosen, quantity),
-    };
-  }
-
-  if (parsed.intent === "update") {
-    const quantity = parsed.quantity ?? 0;
-    if (quantity <= 0) {
+  try {
+    if (parsed.intent === "add" || parsed.intent === "reorder_habit") {
+      const quantity = parsed.quantity ?? 1;
+      const cart = await addToCart(userId, chosen.productId, quantity);
       return {
-        actionResult: "failed",
-        message: "כדי לעדכן כמות צריך לציין מספר גדול מ-0.",
+        actionResult: "added",
+        cart,
+        message: buildAssistantActionMessage("added", chosen, quantity),
       };
     }
-    const cart = await updateCartItem(userId, chosen.productId, quantity);
-    return {
-      actionResult: "updated",
-      cart,
-      message: buildAssistantActionMessage("updated", chosen, quantity),
-    };
-  }
 
-  const cart = await removeCartItem(userId, chosen.productId);
-  return {
-    actionResult: "removed",
-    cart,
-    message: buildAssistantActionMessage("removed", chosen),
-  };
+    if (parsed.intent === "update") {
+      const quantity = parsed.quantity ?? 0;
+      if (quantity <= 0) {
+        return {
+          actionResult: "failed",
+          message: "כדי לעדכן כמות צריך לציין מספר גדול מ-0.",
+        };
+      }
+      const cart = await updateCartItem(userId, chosen.productId, quantity);
+      return {
+        actionResult: "updated",
+        cart,
+        message: buildAssistantActionMessage("updated", chosen, quantity),
+      };
+    }
+
+    const cart = await removeCartItem(userId, chosen.productId);
+    return {
+      actionResult: "removed",
+      cart,
+      message: buildAssistantActionMessage("removed", chosen),
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === ACCOUNT_RESTRICTED_MESSAGE) {
+      return {
+        actionResult: "failed",
+        message: RESTRICTED_ASSISTANT_MESSAGE,
+      };
+    }
+    throw error;
+  }
 }
 
 /**
