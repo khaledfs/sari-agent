@@ -21,13 +21,15 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     if (!userId) {
       return unauthorized();
     }
-    const data = await createOrderFromCart(userId);
+    const body = (await req.json().catch(() => ({}))) as { notes?: unknown };
+    const notes = typeof body.notes === "string" ? body.notes : "";
+    const data = await createOrderFromCart(userId, notes);
     return NextResponse.json({ success: true, data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create order.";

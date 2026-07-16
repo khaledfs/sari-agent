@@ -30,6 +30,8 @@ export type AdminOrderRow = {
   total: number;
   status: string;
   createdAt: string;
+  /** Customer delivery notes from checkout ("" when none). */
+  notes: string;
 };
 
 type OrderLean = {
@@ -39,6 +41,7 @@ type OrderLean = {
   total: number;
   status: string;
   createdAt?: Date;
+  notes?: string;
 };
 
 type UserLite = { _id: mongoose.Types.ObjectId; businessName: string; phoneNumber: string };
@@ -57,6 +60,7 @@ function toRow(o: OrderLean, user: UserLite | undefined): AdminOrderRow {
     total: o.total,
     status: o.status,
     createdAt: o.createdAt instanceof Date ? o.createdAt.toISOString() : String(o.createdAt ?? ""),
+    notes: o.notes ?? "",
   };
 }
 

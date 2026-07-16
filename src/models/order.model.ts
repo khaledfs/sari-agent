@@ -85,6 +85,13 @@ const orderSchema = new Schema(
       default: "pending",
       trim: true,
     },
+    /** Optional customer delivery notes captured at checkout. */
+    notes: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: undefined,
+    },
     /** Promotions that contributed gifts/discounts to this order. */
     appliedPromotionIds: {
       type: [String],

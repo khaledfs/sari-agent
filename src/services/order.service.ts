@@ -1,6 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
 import { connectDB } from "@/lib/db";
+import { CartModel } from "@/models/cart.model";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
 import type { PriceBreakdown } from "@/services/pricing.service";
 import {
@@ -38,6 +39,8 @@ export type OrderDetail = {
   total: number;
   status: string;
   createdAt: string;
+  /** Optional delivery notes the customer entered at checkout. */
+  notes?: string;
   appliedPromotionIds?: string[];
   promotionDiscount?: {
     promotionId: string;
@@ -46,6 +49,9 @@ export type OrderDetail = {
     amountOff: number;
   };
 };
+
+/** Max length for customer delivery notes (mirrors the schema maxlength). */
+export const ORDER_NOTES_MAX_LENGTH = 500;
 
 function toUserObjectId(userId: string) {
   if (!isValidObjectId(userId)) {
@@ -71,6 +77,7 @@ function serializeOrder(doc: {
   total: number;
   status: string;
   createdAt?: Date;
+  notes?: string;
   appliedPromotionIds?: string[];
   promotionDiscount?: OrderDetail["promotionDiscount"];
 }): OrderDetail {
@@ -94,6 +101,7 @@ function serializeOrder(doc: {
     total: doc.total,
     status: doc.status,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date(0).toISOString(),
+    ...(doc.notes ? { notes: doc.notes } : {}),
     ...(doc.appliedPromotionIds?.length ? { appliedPromotionIds: doc.appliedPromotionIds } : {}),
     ...(doc.promotionDiscount ? { promotionDiscount: doc.promotionDiscount } : {}),
   };
@@ -110,10 +118,19 @@ function toSummary(detail: OrderDetail): OrderSummary {
 }
 
 /**
- * Creates an order from the current cart snapshot, then clears the cart.
- * Rolls back the order if clearing the cart fails.
+ * Creates an order from the current cart snapshot and clears the cart
+ * ATOMICALLY.
+ *
+ * Atomicity audit (checkout flow rebuild): the original implementation was
+ * create-order → clear-cart with a compensating delete on failure. That
+ * covered the clear-cart failure path but left a crash window between the two
+ * writes (order saved, cart still full). Both writes now run in a single
+ * MongoDB transaction (Atlas replica set), so either both commit or neither
+ * does. If the deployment ever runs against a standalone MongoDB (no
+ * transaction support), the code falls back to the previous
+ * compensating-delete behavior rather than failing outright.
  */
-export async function createOrderFromCart(userId: string): Promise<OrderDetail> {
+export async function createOrderFromCart(userId: string, notes = ""): Promise<OrderDetail> {
   const uid = toUserObjectId(userId);
   const cart = await getCartByUserId(userId);
 
@@ -198,31 +215,58 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     }
   }
 
+  const trimmedNotes = notes.trim().slice(0, ORDER_NOTES_MAX_LENGTH);
+  const orderDoc = {
+    userId: uid,
+    items: snapshotItems,
+    total,
+    status: "pending",
+    ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+    ...(promoEvaluation?.appliedPromotionIds.length
+      ? { appliedPromotionIds: promoEvaluation.appliedPromotionIds }
+      : {}),
+    ...(promoEvaluation?.orderDiscount ? { promotionDiscount: promoEvaluation.orderDiscount } : {}),
+  };
+
   await connectDB();
-  let created;
+  let createdId: mongoose.Types.ObjectId | null = null;
+
+  const session = await mongoose.startSession();
   try {
-    created = await OrderModel.create({
-      userId: uid,
-      items: snapshotItems,
-      total,
-      status: "pending",
-      ...(promoEvaluation?.appliedPromotionIds.length
-        ? { appliedPromotionIds: promoEvaluation.appliedPromotionIds }
-        : {}),
-      ...(promoEvaluation?.orderDiscount ? { promotionDiscount: promoEvaluation.orderDiscount } : {}),
+    await session.withTransaction(async () => {
+      const [created] = await OrderModel.create([orderDoc], { session });
+      createdId = created._id as mongoose.Types.ObjectId;
+      await CartModel.updateOne({ userId: uid }, { $set: { items: [] } }, { session });
     });
   } catch (e) {
-    throw e instanceof Error ? e : new Error("Failed to create order.");
+    const message = e instanceof Error ? e.message : "";
+    const transactionsUnsupported =
+      message.includes("Transaction numbers are only allowed") ||
+      message.includes("does not support transactions") ||
+      message.includes("Transactions are not supported");
+    if (!transactionsUnsupported) {
+      throw e instanceof Error ? e : new Error("Failed to create order.");
+    }
+
+    // Standalone-Mongo fallback: original compensating behavior.
+    createdId = null;
+    const created = await OrderModel.create(orderDoc);
+    createdId = created._id as mongoose.Types.ObjectId;
+    try {
+      await clearCart(userId);
+    } catch (clearErr) {
+      await OrderModel.deleteOne({ _id: createdId }).exec();
+      throw clearErr instanceof Error ? clearErr : new Error("Failed to finalize order.");
+    }
+  } finally {
+    await session.endSession();
   }
 
-  try {
-    await clearCart(userId);
-  } catch (clearErr) {
-    await OrderModel.deleteOne({ _id: created._id }).exec();
-    throw clearErr instanceof Error ? clearErr : new Error("Failed to finalize order.");
+  if (!createdId) {
+    throw new Error("Failed to create order.");
   }
 
-  const saved = await OrderModel.findById(created._id).lean();
+  const saved = await OrderModel.findById(createdId).lean();
   if (!saved) {
     throw new Error("Order not found after creation.");
   }
@@ -233,6 +277,7 @@ export async function createOrderFromCart(userId: string): Promise<OrderDetail> 
     total: saved.total,
     status: saved.status,
     createdAt: saved.createdAt as Date,
+    notes: (saved as { notes?: string }).notes,
     appliedPromotionIds: (saved as { appliedPromotionIds?: string[] }).appliedPromotionIds,
     promotionDiscount: (saved as { promotionDiscount?: OrderDetail["promotionDiscount"] }).promotionDiscount,
   });
@@ -279,5 +324,8 @@ export async function getOrderById(userId: string, orderId: string): Promise<Ord
     total: doc.total,
     status: doc.status,
     createdAt: doc.createdAt as Date,
+    notes: (doc as { notes?: string }).notes,
+    appliedPromotionIds: (doc as { appliedPromotionIds?: string[] }).appliedPromotionIds,
+    promotionDiscount: (doc as { promotionDiscount?: OrderDetail["promotionDiscount"] }).promotionDiscount,
   });
 }

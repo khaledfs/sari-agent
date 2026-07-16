@@ -679,6 +679,128 @@ button:disabled,
   inline-size: 100%;
 }
 
+/* ——— Printable receipt (A4) ———
+   The receipt lives hidden in order pages; printing shows ONLY it. */
+
+.ds-receipt {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .ds-receipt,
+  .ds-receipt * {
+    visibility: visible;
+  }
+
+  .ds-receipt {
+    display: block;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inline-size: 100%;
+    background: #fff;
+    color: #1a1814;
+    font-size: 12pt;
+  }
+
+  .ds-receipt__head {
+    border-block-end: 2px solid #a67c00;
+    padding-block-end: 8pt;
+    margin-block-end: 10pt;
+  }
+
+  .ds-receipt__brand {
+    font-size: 20pt;
+    font-weight: 800;
+    color: #a67c00;
+    letter-spacing: 0.08em;
+  }
+
+  .ds-receipt__brand-sub {
+    font-size: 9pt;
+    color: #4a4639;
+  }
+
+  .ds-receipt__meta {
+    display: flex;
+    gap: 14pt;
+    margin-block-start: 6pt;
+    font-size: 10pt;
+  }
+
+  .ds-receipt__customer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10pt;
+    align-items: baseline;
+    margin-block-end: 10pt;
+    font-size: 10.5pt;
+  }
+
+  .ds-receipt__notes {
+    inline-size: 100%;
+    margin: 2pt 0 0;
+    font-size: 9.5pt;
+    color: #4a4639;
+    white-space: pre-wrap;
+  }
+
+  .ds-receipt__table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-size: 10.5pt;
+  }
+
+  .ds-receipt__table th,
+  .ds-receipt__table td {
+    border-block-end: 1px solid #d4cfc4;
+    padding: 4pt 6pt;
+    text-align: start;
+  }
+
+  .ds-receipt__table th {
+    border-block-end: 1.5px solid #a67c00;
+    font-weight: 700;
+  }
+
+  .ds-receipt__summary {
+    margin-block-start: 10pt;
+    margin-inline-start: auto;
+    inline-size: 55%;
+    font-size: 11pt;
+  }
+
+  .ds-receipt__summary > div {
+    display: flex;
+    justify-content: space-between;
+    padding-block: 2pt;
+  }
+
+  .ds-receipt__grand {
+    border-block-start: 1.5px solid #a67c00;
+    font-weight: 800;
+    font-size: 12.5pt;
+  }
+
+  .ds-receipt__foot {
+    margin-block-start: 18pt;
+    padding-block-start: 8pt;
+    border-block-start: 1px solid #d4cfc4;
+    font-size: 9pt;
+    color: #8a8477;
+    text-align: center;
+  }
+}
+
 /* ——— Mobile forms (auth + admin): no iOS zoom, thumb-sized controls ——— */
 
 @media (max-width: 768px) {

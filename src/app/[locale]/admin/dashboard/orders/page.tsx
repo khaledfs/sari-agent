@@ -14,6 +14,7 @@ type AdminOrderRow = {
   total: number;
   status: string;
   createdAt: string;
+  notes: string;
 };
 
 export default function AdminOrdersPage() {
@@ -129,7 +130,14 @@ export default function AdminOrdersPage() {
                   : [o.status, ...STATUSES];
                 return (
                   <tr key={o.id}>
-                    <td style={{ fontWeight: 600 }}>{o.customer?.businessName ?? t("orders.unknownCustomer")}</td>
+                    <td style={{ fontWeight: 600, maxWidth: "240px" }}>
+                      {o.customer?.businessName ?? t("orders.unknownCustomer")}
+                      {o.notes ? (
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>
+                          📝 {o.notes}
+                        </div>
+                      ) : null}
+                    </td>
                     <td dir="ltr">{o.customer?.phoneNumber ?? "—"}</td>
                     <td>{formatDate(o.createdAt)}</td>
                     <td>{o.itemCount}</td>

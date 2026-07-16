@@ -1481,6 +1481,141 @@
 }
 
 /* ======================================================
+   CHECKOUT FLOW (review → confirm → confirmation)
+   ====================================================== */
+
+.ds-flex-1 {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ds-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ds-checkout-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ds-checkout-line__body {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.ds-checkout-line__total {
+  flex-shrink: 0;
+}
+
+.ds-checkout-line__base,
+.ds-order-line__base {
+  color: var(--text-muted, #8a8477);
+  margin-inline-end: 0.25rem;
+}
+
+.ds-checkout-notes {
+  inline-size: 100%;
+  font: inherit;
+  font-size: 16px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border-strong, #d4cfc4);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #1a1814);
+  resize: vertical;
+  min-block-size: 84px;
+}
+
+.ds-checkout-notes:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 1px;
+}
+
+.ds-checkout-summary {
+  margin-block-start: 0.75rem;
+}
+
+.ds-checkout-confirm {
+  min-block-size: 52px;
+  margin-block-start: 0.5rem;
+}
+
+.ds-order-line__price {
+  flex-shrink: 0;
+  color: var(--text-secondary, #4a4639);
+}
+
+.ds-order-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* Confirmation hero */
+.ds-confirmation-hero {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  border: 1px solid var(--border-brand, rgba(166, 124, 0, 0.25));
+  border-radius: var(--radius-xl, 20px);
+  background: var(--brand-bg, #fdf8ec);
+  margin-block-end: 1rem;
+  animation: sari-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ds-confirmation-hero__icon {
+  display: inline-flex;
+  inline-size: 56px;
+  block-size: 56px;
+  color: var(--success, #15803d);
+  margin-block-end: 0.5rem;
+}
+
+.ds-confirmation-hero__icon svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.ds-confirmation-hero__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.ds-confirmation-hero__body {
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary, #4a4639);
+}
+
+.ds-confirmation-hero__meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #8a8477);
+}
+
+/* Mobile: totals + confirm stay reachable while reviewing. */
+@media (max-width: 768px) {
+  .ds-checkout .ds-checkout-summary {
+    position: sticky;
+    inset-block-end: calc(64px + env(safe-area-inset-bottom, 0px));
+    z-index: 60;
+    background: var(--background, #fafaf8);
+    padding-block: 0.5rem;
+    border-block-start: 1px solid var(--border, #e8e4dc);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-confirmation-hero {
+    animation: none;
+  }
+}
+
+/* ======================================================
    ASSISTANT CHAT REBUILD
    Mobile: full-height bottom sheet. Desktop: fixed side
    panel (~420px). Conversation state lives in the external

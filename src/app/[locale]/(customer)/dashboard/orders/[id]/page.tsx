@@ -5,24 +5,16 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+import {
+  OrderItemsList,
+  OrderReceipt,
+  OrderTotals,
+  shortOrderNumber,
+  type OrderViewData,
+} from "@/components/orders/order-view";
 import { OrderTimeline } from "../OrderTimeline";
 
-type OrderItem = {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  lineTotal: number;
-};
-
-type OrderDetail = {
-  id: string;
-  userId: string;
-  items: OrderItem[];
-  total: number;
-  status: string;
-  createdAt: string;
-};
+type OrderDetail = OrderViewData & { userId: string };
 
 function orderStatusBadgeClass(status: string) {
   const s = status.toLowerCase();
@@ -38,6 +30,7 @@ export default function OrderDetailPage() {
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [customer, setCustomer] = useState<{ businessName: string; phoneNumber: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reordering, setReordering] = useState(false);
@@ -69,6 +62,22 @@ export default function OrderDetailPage() {
       }
       if (res.status === 200 && json.success && json.data) {
         setOrder(json.data);
+        // Customer info for the printable receipt (fail-soft).
+        try {
+          const accountRes = await fetch("/api/account");
+          const accountJson = (await accountRes.json()) as {
+            success?: boolean;
+            data?: { profile?: { businessName?: string; phoneNumber?: string } };
+          };
+          if (accountJson.success && accountJson.data?.profile?.businessName) {
+            setCustomer({
+              businessName: accountJson.data.profile.businessName,
+              phoneNumber: accountJson.data.profile.phoneNumber ?? "",
+            });
+          }
+        } catch {
+          // receipt omits the customer block
+        }
         return;
       }
       setError(json.message ?? t("error"));
@@ -172,6 +181,9 @@ export default function OrderDetailPage() {
               <span className={orderStatusBadgeClass(order.status)}>{order.status}</span>
             </div>
             <p className="ds-text-small">
+              <strong>{t("orderNumber")}:</strong> <span dir="ltr">{shortOrderNumber(order.id)}</span>
+            </p>
+            <p className="ds-text-small">
               <strong>{t("createdAt")}:</strong> {formatDate(order.createdAt)}
             </p>
           </div>
@@ -181,36 +193,45 @@ export default function OrderDetailPage() {
             <OrderTimeline status={order.status} />
           </div>
 
-          <h2 className="ds-section-title">{t("items")}</h2>
-          <ul className="ds-list">
-            {order.items.map((item, index) => (
-              <li key={`${item.productId}-${index}`} className="ds-card ds-stack ds-stack--tight">
-                <p className="ds-product-name">{item.name}</p>
-                <p className="ds-text-small">
-                  <strong>{t("quantity")}:</strong> {item.quantity}
-                </p>
-                <p className="ds-text-small">
-                  <strong>{t("itemPrice")}:</strong> {item.price}
-                </p>
-                <p className="ds-text-small">
-                  <strong>{t("lineTotal")}:</strong> {item.lineTotal}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {order.notes ? (
+            <div className="ds-card ds-stack ds-stack--tight">
+              <h2 className="ds-section-title ds-m-0">{t("notesTitle")}</h2>
+              <p className="ds-text-small">{order.notes}</p>
+            </div>
+          ) : null}
 
-          <div className="ds-totals-strip">
-            <strong>{t("total")}:</strong> {order.total}
+          <h2 className="ds-section-title">{t("items")}</h2>
+          <div className="ds-card">
+            <OrderItemsList items={order.items} locale={locale} t={t} />
           </div>
 
-          <button
-            type="button"
-            className="ds-btn ds-btn--secondary ds-btn--block"
-            disabled={reordering}
-            onClick={() => void reorder()}
-          >
-            {reordering ? tSmart("reordering") : tSmart("reorder")}
-          </button>
+          <OrderTotals
+            items={order.items}
+            total={order.total}
+            promotionDiscount={order.promotionDiscount}
+            locale={locale}
+            t={t}
+          />
+
+          <div className="ds-actions-row">
+            <button
+              type="button"
+              className="ds-btn ds-btn--secondary ds-btn--block ds-flex-1"
+              disabled={reordering}
+              onClick={() => void reorder()}
+            >
+              {reordering ? tSmart("reordering") : tSmart("reorder")}
+            </button>
+            <button
+              type="button"
+              className="ds-btn ds-btn--secondary ds-btn--block ds-flex-1"
+              onClick={() => window.print()}
+            >
+              {t("printReceipt")}
+            </button>
+          </div>
+
+          <OrderReceipt order={order} customer={customer} locale={locale} t={t} />
         </div>
       ) : null}
     </main>

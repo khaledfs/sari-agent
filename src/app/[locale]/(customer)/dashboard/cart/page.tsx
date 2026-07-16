@@ -2,7 +2,6 @@
 
   import Image from "next/image";
   import Link from "next/link";
-  import { useRouter } from "next/navigation";
   import { useCallback, useEffect, useState } from "react";
   import { useLocale, useTranslations } from "next-intl";
   import { Button } from "@/components/ui/Button";
@@ -73,13 +72,11 @@
     const tOrders = useTranslations("orders");
     const tNav = useTranslations("dashboard.nav");
     const locale = useLocale();
-    const router = useRouter();
     const [cart, setCart] = useState<CartData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [busyId, setBusyId] = useState<string | null>(null);
     const [clearBusy, setClearBusy] = useState(false);
-    const [placeOrderBusy, setPlaceOrderBusy] = useState(false);
     const [qtyDraft, setQtyDraft] = useState<QtyDraftById>({});
 
     const loadCart = useCallback(async () => {
@@ -193,28 +190,6 @@
         setError(t("error"));
       } finally {
         setBusyId(null);
-      }
-    }
-
-    async function placeOrder() {
-      setPlaceOrderBusy(true);
-      setError("");
-      try {
-        const res = await fetch("/api/orders", { method: "POST" });
-        const json = (await res.json()) as { success?: boolean; message?: string };
-        if (res.status === 401) {
-          setError(tOrders("error"));
-          return;
-        }
-        if (res.status === 200 && json.success) {
-          router.push(`/${locale}/dashboard/orders`);
-          return;
-        }
-        setError(json.message ?? tOrders("error"));
-      } catch {
-        setError(tOrders("error"));
-      } finally {
-        setPlaceOrderBusy(false);
       }
     }
 
@@ -451,21 +426,14 @@
               <strong>{cart.promotions?.totalAfterDiscount ?? cart.cartTotal}</strong>
             </div>
             <div className="ds-actions-row ds-actions-row--summary">
-              <Button
-                variant="primary"
-                block
-                disabled={placeOrderBusy || clearBusy}
-                className="ds-cart-cta-main"
-                onClick={placeOrder}
-              >
-                {placeOrderBusy ? tOrders("placingOrder") : tOrders("placeOrder")}
-              </Button>
-              <Button
-                variant="secondary"
-                block
-                disabled={clearBusy || placeOrderBusy}
-                onClick={clearAll}
-              >
+              {/* Ordering is no longer direct — the review page is the only place
+                  with a Confirm Order button. */}
+              <Link href={`/${locale}/dashboard/checkout`} className="ds-cart-cta-main ds-flex-1">
+                <Button variant="primary" block disabled={clearBusy}>
+                  {tOrders("goToReview")}
+                </Button>
+              </Link>
+              <Button variant="secondary" block disabled={clearBusy} onClick={clearAll}>
                 {t("clearCart")}
               </Button>
             </div>
