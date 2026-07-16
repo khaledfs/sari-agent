@@ -232,15 +232,19 @@ export async function runAssistantCartCommand(
     };
   }
 
+  // The canned "write product name + quantity" instruction was DELETED (Work
+  // Order Issue 6): the assistant never demands a command format. This legacy
+  // route only remains for old-style clarification continuations; a truly
+  // ambiguous message gets a natural question instead.
   if (parsed.intent === "clarify") {
     return {
       intent: parsed.intent,
       actionResult: "clarification_required",
-      message: "כדי שאעזור בדיוק, כתוב שם מוצר וכמות (למשל: תוסיף 3 קמח מלא).",
+      message: "לא הצלחתי להבין למה התכוונת — איזה מוצר לחפש עבורך?",
       matchedProducts: [],
       chosenProduct: null,
       clarification: {
-        question: "מה שם המוצר שתרצה?",
+        question: "איזה מוצר לחפש עבורך?",
         options: [],
       },
       metadata: { parsed },
@@ -252,7 +256,7 @@ export async function runAssistantCartCommand(
     return {
       intent: parsed.intent,
       actionResult: "failed",
-      message: "חסר שם מוצר. נסה לכתוב שם מוצר קצר וברור.",
+      message: "לא זיהיתי איזה מוצר חיפשת — אפשר לנסח שוב חופשי, ואחפש בקטלוג.",
       matchedProducts: [],
       chosenProduct: null,
       clarification: null,

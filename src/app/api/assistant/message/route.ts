@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getAuthenticatedUserId } from "@/lib/auth-user";
-import { runAssistantAdvisorQuery } from "@/services/assistant-advisor.service";
-import { runAssistantCartCommand } from "@/services/assistant-command.service";
-import { classifyAssistantMessageRoute } from "@/services/assistant-router.service";
+import { runAssistantAgentTurn } from "@/services/assistant-agent.service";
 import { updateMemoryAfterConversation } from "@/services/customer-memory.service";
 
 const bodySchema = z.object({
@@ -28,10 +26,10 @@ function unauthorized() {
 }
 
 /**
- * Unified entry point that routes a message to the existing cart/order
- * pipeline (unchanged) or the new advisor pipeline. The legacy
- * /api/assistant/cart-command route is left untouched and still works as-is
- * (used directly for clarification resolveSelection continuations).
+ * Unified entry point (Work Order Issue 6): ONE catalog-grounded tool-calling
+ * agent turn — no intent branching. The legacy /api/assistant/cart-command and
+ * /api/assistant/resolve-clarification routes are left in place and still work
+ * (the UI uses resolve-clarification for old-style option-pick continuations).
  */
 export async function POST(req: Request) {
   try {
@@ -44,11 +42,7 @@ export async function POST(req: Request) {
     const body = bodySchema.parse(rawBody);
 
     const history = body.history.slice(-10);
-    const route = await classifyAssistantMessageRoute(body.message, history);
-    const data =
-      route === "cart"
-        ? await runAssistantCartCommand(userId, body.message, history)
-        : await runAssistantAdvisorQuery(userId, body.message, body.locale, history);
+    const data = await runAssistantAgentTurn(userId, body.message, body.locale, history);
 
     // Fire-and-forget: learn about the customer from this turn without ever
     // delaying or failing the response.

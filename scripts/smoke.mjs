@@ -1263,6 +1263,94 @@ async function localeSection() {
   }
 }
 
+// ---------- AI assistant section (Issue 6) — env-gated: SMOKE_AI=1 ----------
+// Hits OpenAI (cost + latency + slight nondeterminism), so it only runs when
+// explicitly requested. Assertions stay structural, never on exact AI wording.
+
+async function aiAssistantSection(customerCookie, adminCookie) {
+  if (process.env.SMOKE_AI !== "1") {
+    console.log("WARN  AI assistant section skipped — set SMOKE_AI=1 to enable (calls OpenAI)");
+    return;
+  }
+  if (!customerCookie) {
+    console.log("WARN  AI assistant section skipped — needs customer login");
+    return;
+  }
+
+  async function askAssistant(message) {
+    const { res, body } = await jsonFetch("/api/assistant/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ message, locale: "he" }),
+    });
+    return { res, data: body?.data };
+  }
+
+  // Advice question -> 200 with a real non-empty answer.
+  try {
+    const { res, data } = await askAssistant("איזה קמח מתאים ללחם כפרי?");
+    report(
+      "ai: advice question -> 200 + non-empty answer",
+      res.status === 200 && typeof data?.message === "string" && data.message.length > 20,
+      `status ${res.status}, len=${data?.message?.length}`
+    );
+  } catch (err) {
+    report("ai: advice question -> 200 + non-empty answer", false, String(err));
+  }
+
+  // Cart-add through the assistant actually changes the cart.
+  try {
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    const { res, data } = await askAssistant("תוסיף 2 סוכר לבן שק");
+    const { body: cartBody } = await jsonFetch("/api/cart", { headers: { Cookie: customerCookie } });
+    const items = cartBody?.data?.items ?? [];
+    report(
+      "ai: assistant cart-add actually changes the cart",
+      res.status === 200 && data?.actionResult === "added" && items.length > 0,
+      `actionResult=${data?.actionResult}, cartItems=${items.length}`
+    );
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+  } catch (err) {
+    report("ai: assistant cart-add actually changes the cart", false, String(err));
+  }
+
+  // Restricted: cart refused (no mutation), advice still 200.
+  if (adminCookie) {
+    let customerId = null;
+    try {
+      const { body } = await jsonFetch(
+        `/api/admin/customers?search=${encodeURIComponent(SMOKE_CUSTOMER_PHONE)}`,
+        { headers: { Cookie: adminCookie } }
+      );
+      customerId = body?.data?.items?.[0]?.id ?? null;
+      await jsonFetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie },
+        body: JSON.stringify({ accountStatus: "restricted" }),
+      });
+
+      const { res, data } = await askAssistant("תוסיף 1 קמח לבן");
+      const { body: cartBody } = await jsonFetch("/api/cart", { headers: { Cookie: customerCookie } });
+      const items = cartBody?.data?.items ?? [];
+      report(
+        "ai: restricted customer -> polite refusal, cart untouched, still 200",
+        res.status === 200 && data?.actionResult !== "added" && items.length === 0,
+        `status ${res.status}, actionResult=${data?.actionResult}, cartItems=${items.length}`
+      );
+    } catch (err) {
+      report("ai: restricted customer -> polite refusal, cart untouched, still 200", false, String(err));
+    } finally {
+      if (customerId) {
+        await jsonFetch(`/api/admin/customers/${customerId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Cookie: adminCookie },
+          body: JSON.stringify({ accountStatus: "active" }),
+        });
+      }
+    }
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -1284,6 +1372,7 @@ async function main() {
   await restrictedCustomerSection(cookie, adminCookie);
   await receiptSection(cookie, adminCookie);
   await ledgerSection(cookie, adminCookie);
+  await aiAssistantSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

@@ -46,6 +46,17 @@ const tokenReplacements = new Map<string, string>([
   ["cornflour", "עמילן"],
   ["ונילין", "וניל"],
   ["גלטינה", "גלטין"],
+  // QA scenario (Work Order Issue 6) — verified against live catalog names:
+  // the catalog spells בקלאוה (one vav) and both סמנה/סמנת appear (fuzzy
+  // distance-1 already bridges those two); cross-language ghee terms map to
+  // the Hebrew catalog family.
+  ["בקלאווה", "בקלאוה"],
+  ["בקלווה", "בקלאוה"],
+  ["baklava", "בקלאוה"],
+  ["بقلاوة", "בקלאוה"],
+  ["سمنة", "סמנה"],
+  ["ghee", "סמנה"],
+  ["samneh", "סמנה"],
 ]);
 
 function sanitize(input: string): string {
