@@ -38,6 +38,15 @@ location /api/events {
     proxy_set_header Connection '';
     proxy_http_version 1.1;
 }
+
+# Task C (2026-07-17): the assistant's streamed answers need the same treatment.
+location /api/assistant/message {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 300s;
+    proxy_http_version 1.1;
+}
 ```
 
 ---
@@ -52,6 +61,7 @@ location /api/events {
 | `OPENAI_AGENT_MODEL` | Optional (default `gpt-5-mini`) | The tool-calling agent (Issue 6). |
 | `OPENAI_PARSER_MODEL` / `OPENAI_ROUTER_MODEL` / `OPENAI_ADVISOR_MODEL` | Optional (default `gpt-5-mini`) | Legacy pipeline behind `/api/assistant/cart-command` only. |
 | `OPENAI_MEMORY_MODEL` | Optional (default `gpt-4o-mini`) | Per-customer memory updates. |
+| `OPENAI_AGENT_REASONING` | Optional (default `minimal`) | Agent reasoning effort (minimal/low/medium/high); raise for deeper reasoning at higher latency. |
 | `REVALIDATE_SECRET` | Optional | Lets `scripts/sync-products.js` bust the catalog cache via `POST /api/products/revalidate`. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional (tooling only) | Enable the admin sections of `npm run smoke`. |
 | `SMOKE_AI` | Optional (tooling only) | `1` enables the OpenAI-dependent smoke checks (cost). |

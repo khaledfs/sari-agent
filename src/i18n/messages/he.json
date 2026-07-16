@@ -171,7 +171,9 @@
       "chipCompare": "השווה מוצרים",
       "chipInfo": "מידע על מוצר",
       "chipReorder": "הזמן שוב פריט קבוע",
-      "chipAdvice": "בקש עצה"
+      "chipAdvice": "בקש עצה",
+      "statusChecking": "בודק בקטלוג…",
+      "streamError": "התשובה נקטעה. נסו שוב."
     },
     "home": {
       "eyebrow": "SARI · סחר סיטונאי",

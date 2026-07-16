@@ -1339,6 +1339,45 @@ async function aiAssistantSection(customerCookie, adminCookie) {
     report("ai: assistant cart-add actually changes the cart", false, String(err));
   }
 
+  // Streaming path (Task C): SSE stream completes with a final event whose
+  // text equals the concatenated deltas; the legacy JSON checks above prove
+  // the old contract still works.
+  try {
+    const res = await fetch(`${BASE_URL}/api/assistant/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ message: "מהו קמח מלא?", locale: "he", stream: true }),
+    });
+    const contentType = res.headers.get("content-type") ?? "";
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let deltas = "";
+    let finalText = null;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep;
+      while ((sep = buffer.indexOf("\n\n")) >= 0) {
+        const frame = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        const line = frame.split("\n").find((l) => l.startsWith("data: "));
+        if (!line) continue;
+        const ev = JSON.parse(line.slice(6));
+        if (ev.type === "delta") deltas += ev.text;
+        if (ev.type === "final") finalText = ev.data?.message ?? "";
+      }
+    }
+    report(
+      "ai: streaming -> event-stream completes, deltas == final text",
+      res.status === 200 && contentType.includes("text/event-stream") && typeof finalText === "string" && deltas.trim() === finalText.trim(),
+      `status ${res.status}, deltas=${deltas.length} chars, final=${finalText?.length ?? "none"}`
+    );
+  } catch (err) {
+    report("ai: streaming -> event-stream completes, deltas == final text", false, String(err));
+  }
+
   // Restricted: cart refused (no mutation), advice still 200.
   if (adminCookie) {
     let customerId = null;

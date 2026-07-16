@@ -171,7 +171,9 @@
       "chipCompare": "مقارنة منتجات",
       "chipInfo": "معلومات عن منتج",
       "chipReorder": "إعادة طلب المعتاد",
-      "chipAdvice": "اطلب نصيحة"
+      "chipAdvice": "اطلب نصيحة",
+      "statusChecking": "أتحقق من الكتالوج…",
+      "streamError": "انقطعت الإجابة. حاول مرة أخرى."
     },
     "home": {
       "eyebrow": "SARI · تجارة الجملة",

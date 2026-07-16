@@ -10,12 +10,14 @@ import {
   getChatState,
   getServerChatState,
   nextEntryId,
+  patchChatEntry,
   replaceChatEntry,
   resetConversation,
   setChatState,
   subscribeChat,
   type ChatEntry,
 } from "@/components/assistant/chat-store";
+import { createAssistantStreamParser } from "@/components/assistant/assistant-stream";
 import {
   AssistantBubble,
   AssistantCardsBlock,
@@ -89,15 +91,22 @@ export function AIAssistant() {
   const threadEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const launchRef = useRef<HTMLButtonElement>(null);
+  // Streaming turn in flight (Task C): closing the panel / sending a new
+  // message aborts it — the server cancels the generation via the signal.
+  const abortRef = useRef<AbortController | null>(null);
 
   const open = useCallback(() => setChatState({ isOpen: true }), []);
 
   /** Close keeps the thread — a fresh conversation is an explicit user action. */
   const close = useCallback(() => {
+    abortRef.current?.abort();
     setChatState({ isOpen: false });
     setResolvingId(null);
     launchRef.current?.focus();
   }, []);
+
+  // Never leave an orphaned generation behind an unmounted panel.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Focus the composer when the panel opens.
   useEffect(() => {
@@ -191,6 +200,12 @@ export function AIAssistant() {
 
     const turns = conversationTurns(getChatState().history);
     const loadingId = nextEntryId();
+    const streamEntryId = nextEntryId();
+
+    // Task C: a new message cancels any turn still streaming.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setLoading(true);
     setMessage("");
@@ -199,26 +214,93 @@ export function AIAssistant() {
       activeClarificationEntryId: null,
       pendingSourceMessage: input,
     });
+    // Typing indicator appears the moment the message is sent (before any
+    // network round trip) — Task C immediate-feedback requirement.
     appendEntries(
       { id: nextEntryId(), type: "user", text: input, ts: Date.now() },
       { id: loadingId, type: "assistant_loading", ts: Date.now() }
     );
 
+    let streamedText = "";
     try {
-      const { res, json } = await postJson("/api/assistant/message", { message: input, locale, history: turns });
-      if (res.ok && json.success) {
-        const entry = classifyEntry(json.data);
-        replaceLoadingWith(loadingId, entry);
-        applyResponse(json.data, entry);
+      const res = await fetch("/api/assistant/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input, locale, history: turns, stream: true }),
+        signal: controller.signal,
+      });
+
+      const isStream = (res.headers.get("content-type") ?? "").includes("text/event-stream");
+      if (!res.ok || !isStream || !res.body) {
+        // Fallback: legacy JSON contract (non-streaming callers keep working).
+        const json = (await res.json().catch(() => ({}))) as ApiResponse;
+        if (res.ok && json.success) {
+          const entry = classifyEntry(json.data);
+          replaceLoadingWith(loadingId, entry);
+          applyResponse(json.data, entry);
+        } else {
+          const errText = (!json.success && json.message) || t("failed");
+          replaceLoadingWith(loadingId, { id: nextEntryId(), type: "error", text: errText, ts: Date.now() });
+          setChatState({ assistantData: null, activeClarificationEntryId: null });
+        }
+        return;
+      }
+
+      const parser = createAssistantStreamParser();
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let sawFinal = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        for (const event of parser.feed(decoder.decode(value, { stream: true }))) {
+          if (event.type === "delta") {
+            if (!streamedText) {
+              // First token: swap the typing indicator for a live bubble.
+              replaceLoadingWith(loadingId, { id: streamEntryId, type: "assistant", text: event.text, ts: Date.now() });
+            } else {
+              patchChatEntry(streamEntryId, { text: streamedText + event.text });
+            }
+            streamedText += event.text;
+          } else if (event.type === "status") {
+            // Honest tool status — never fabricated progress.
+            patchChatEntry(loadingId, { statusText: t("statusChecking") });
+          } else if (event.type === "final") {
+            sawFinal = true;
+            const entry = classifyEntry(event.data);
+            replaceLoadingWith(loadingId, entry); // no-op if already swapped
+            replaceChatEntry(streamEntryId, entry);
+            applyResponse(event.data, entry);
+          } else if (event.type === "error") {
+            sawFinal = true;
+            const errEntry: ChatEntry = { id: nextEntryId(), type: "error", text: t("streamError"), ts: Date.now() };
+            replaceLoadingWith(loadingId, errEntry);
+            if (streamedText) replaceChatEntry(streamEntryId, errEntry);
+            setChatState({ assistantData: null, activeClarificationEntryId: null });
+          }
+        }
+      }
+
+      if (!sawFinal && !controller.signal.aborted) {
+        // Stream ended without a terminal event — surface it, never a silent
+        // half-sentence.
+        const errEntry: ChatEntry = { id: nextEntryId(), type: "error", text: t("streamError"), ts: Date.now() };
+        replaceLoadingWith(loadingId, errEntry);
+        if (streamedText) replaceChatEntry(streamEntryId, errEntry);
+      }
+    } catch (error) {
+      if (controller.signal.aborted) {
+        // User-initiated cancel: drop the indicator; any already-streamed
+        // text stays in the thread as-is.
+        setChatState({ history: getChatState().history.filter((m) => m.id !== loadingId) });
       } else {
-        const errText = (!json.success && json.message) || t("failed");
-        replaceLoadingWith(loadingId, { id: nextEntryId(), type: "error", text: errText, ts: Date.now() });
+        void error;
+        replaceLoadingWith(loadingId, { id: nextEntryId(), type: "error", text: t("networkError"), ts: Date.now() });
         setChatState({ assistantData: null, activeClarificationEntryId: null });
       }
-    } catch {
-      replaceLoadingWith(loadingId, { id: nextEntryId(), type: "error", text: t("networkError"), ts: Date.now() });
-      setChatState({ assistantData: null, activeClarificationEntryId: null });
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setLoading(false);
       inputRef.current?.focus();
     }
@@ -288,6 +370,11 @@ export function AIAssistant() {
       return (
         <div key={m.id} className="ds-ai-row ds-ai-row--assistant ds-ai-row--animate">
           <TypingIndicator t={t} />
+          {m.statusText ? (
+            <span className="ds-ai-time" role="status">
+              {m.statusText}
+            </span>
+          ) : null}
         </div>
       );
     }

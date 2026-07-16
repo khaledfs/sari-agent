@@ -154,28 +154,38 @@ describe("QA matching terms (catalog-verified normalization)", () => {
   });
 });
 
+function chunkStream(chunks: Array<Record<string, unknown>>) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const chunk of chunks) yield chunk;
+    },
+  };
+}
+
 describe("tool-call loop bound (runaway-cost cap)", () => {
   it("stops calling tools after MAX_TOOL_ITERATIONS and forces a final text answer", async () => {
     getCartMock.mockResolvedValue(EMPTY_CART);
     mockProductFind([]);
-    // The model "wants" to call get_cart forever:
+    // The model "wants" to call get_cart forever (streamed tool-call deltas):
     createMock.mockImplementation(async (params: { tools?: unknown[] }) => {
       if (params.tools) {
-        return {
-          choices: [
-            {
-              message: {
-                role: "assistant",
-                content: null,
-                tool_calls: [
-                  { id: "t1", type: "function", function: { name: "get_cart", arguments: "{}" } },
-                ],
+        return chunkStream([
+          {
+            choices: [
+              {
+                delta: {
+                  tool_calls: [{ index: 0, id: "t1", function: { name: "get_cart", arguments: "{}" } }],
+                },
               },
-            },
-          ],
-        };
+            ],
+          },
+          { choices: [{ delta: {}, finish_reason: "tool_calls" }] },
+        ]);
       }
-      return { choices: [{ message: { role: "assistant", content: "תשובה סופית" } }] };
+      return chunkStream([
+        { choices: [{ delta: { content: "תשובה סופית" } }] },
+        { choices: [{ delta: {}, finish_reason: "stop" }] },
+      ]);
     });
 
     const result = await runAssistantAgentTurn(USER, "מה בעגלה?", "he", []);

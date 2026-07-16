@@ -171,7 +171,9 @@
       "chipCompare": "Compare products",
       "chipInfo": "Product info",
       "chipReorder": "Reorder usual item",
-      "chipAdvice": "Ask for advice"
+      "chipAdvice": "Ask for advice",
+      "statusChecking": "Checking the catalog…",
+      "streamError": "The answer was interrupted. Please try again."
     },
     "home": {
       "eyebrow": "SARI · Wholesale Trade",

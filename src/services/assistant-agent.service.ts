@@ -29,6 +29,22 @@ import type {
 
 export const MAX_TOOL_ITERATIONS = 5;
 
+/** Conversation payload caps (Task C) — measured token diet, behavior kept. */
+export const HISTORY_TURNS = 8;
+export const HISTORY_TURN_CHARS = 1200;
+
+/** Streaming events emitted while a turn runs (Task C). */
+export type AssistantAgentEvent =
+  | { type: "delta"; text: string }
+  | { type: "status"; key: "tools" };
+
+export type AgentTurnOptions = {
+  /** Cancels in-flight OpenAI generations when the client goes away. */
+  signal?: AbortSignal;
+  /** Present = the caller streams; deltas/status are forwarded as they occur. */
+  onEvent?: (event: AssistantAgentEvent) => void;
+};
+
 /** Same auto-execution confidence bar the legacy decision layer used. */
 const STRONG_MATCH_THRESHOLD = 30;
 
@@ -380,6 +396,7 @@ function buildAgentSystemPrompt(locale: string, memoryBlock: string): string {
     `Answer naturally and concisely in the language of the customer's MOST RECENT message — even if earlier turns were in another language (default ${localeName}). Never require any command format — the customer writes freely.`,
     "Ask AT MOST ONE short clarification, and only when a mention is genuinely ambiguous; build the clarification from the ACTUAL catalog matches (offer 2-3 concrete options with name, package size and price).",
     "Cart actions: only via the cart tools, only with productIds returned by tools. Never claim an action succeeded before the tool returns ok=true. If a tool fails, explain plainly what happened and what the customer can do.",
+    "When you are about to call tools, FIRST write one very short sentence in the customer's language saying what you are checking (e.g. 'רגע, בודק את זה בקטלוג…') and then call the tools — never promise results before they return.",
     "If a cart tool returns blocked=account_restricted, explain politely in the customer's language that the account is on hold for new orders, that browsing/orders/balance remain available, and to contact the manager — never show raw errors.",
     "Treat corrections (e.g. 'לא, התכוונתי ל…') as context updates and continue naturally.",
     "If a food-safety topic comes up (allergens, storage, shelf life), add one brief, soft, non-alarmist caution.",
@@ -399,67 +416,153 @@ export async function runAssistantAgentTurn(
   userId: string,
   message: string,
   locale: string,
-  conversationHistory: AssistantChatTurn[] = []
+  conversationHistory: AssistantChatTurn[] = [],
+  options: AgentTurnOptions = {}
 ): Promise<AssistantCommandResponse> {
+  const turnStartedAt = Date.now();
   const client = getOpenAIClient();
   const model = process.env.OPENAI_AGENT_MODEL?.trim() || "gpt-5-mini";
+  // Latency lever (Task C): gpt-5-mini's default reasoning effort dominated
+  // turn time (8–17s measured; model calls were [2.2s, 0.9s, 12.6s] in one
+  // turn while tools took <1s). "minimal" cuts reasoning latency to first
+  // token; the QA suite verified grounding/tool use still pass. Env-overridable
+  // (OPENAI_AGENT_REASONING=low|medium restores slower, deeper reasoning).
+  const reasoningEffort = (process.env.OPENAI_AGENT_REASONING?.trim() ||
+    "minimal") as "minimal" | "low" | "medium" | "high";
 
   // Per-customer memory personalization (fail-soft, same as the old advisor).
+  const memoryStartedAt = Date.now();
   let memoryBlock = "";
   try {
     memoryBlock = buildMemorySystemPrompt(await getMemoryForUser(userId));
   } catch {
     memoryBlock = "";
   }
+  const memoryMs = Date.now() - memoryStartedAt;
 
   const ctx = createAgentToolContext(userId);
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: buildAgentSystemPrompt(locale, memoryBlock) },
-    ...conversationHistory.slice(-10).map((turn) => ({ role: turn.role, content: turn.content })),
+    // Payload trim (Task C): 8 turns × 1200 chars carries every reference the
+    // follow-up/correction tests need; the old 10 × 4000 mostly bought tokens.
+    ...conversationHistory.slice(-HISTORY_TURNS).map((turn) => ({
+      role: turn.role,
+      content: turn.content.slice(0, HISTORY_TURN_CHARS),
+    })),
     { role: "user", content: message },
   ];
 
+  const modelMs: number[] = [];
+  const promptTokens: number[] = [];
+  const toolMs: number[] = [];
+
+  // Every content token from EVERY round lands here (incl. the short
+  // "checking the catalog…" preamble before tool calls), so the streamed
+  // deltas and the final message are always identical.
+  const textParts: string[] = [];
   let finalText = "";
   for (let iteration = 0; iteration <= MAX_TOOL_ITERATIONS; iteration += 1) {
     const atBound = iteration === MAX_TOOL_ITERATIONS;
-    const response = await client.chat.completions.create({
-      model,
-      messages,
-      ...(atBound ? {} : { tools: TOOL_DEFINITIONS }),
-    });
 
-    const choice = response.choices[0];
-    const toolCalls = choice?.message?.tool_calls ?? [];
+    // Every round streams (Task C): when the model answers directly the user
+    // sees the first token immediately; tool-call rounds produce no content
+    // deltas, so nothing fake is shown.
+    const callStartedAt = Date.now();
+    const stream = await client.chat.completions.create(
+      {
+        model,
+        messages,
+        reasoning_effort: reasoningEffort,
+        ...(atBound ? {} : { tools: TOOL_DEFINITIONS }),
+        stream: true,
+        stream_options: { include_usage: true },
+      },
+      { signal: options.signal }
+    );
+
+    let content = "";
+    const pendingCalls: Array<{ id: string; name: string; args: string }> = [];
+    for await (const chunk of stream) {
+      if (chunk.usage?.prompt_tokens) promptTokens.push(chunk.usage.prompt_tokens);
+      const delta = chunk.choices?.[0]?.delta;
+      if (!delta) continue;
+      if (delta.content) {
+        // Separator between rounds' text keeps streamed deltas byte-identical
+        // to the final joined message.
+        if (!content && textParts.length > 0) {
+          options.onEvent?.({ type: "delta", text: "\n\n" });
+        }
+        content += delta.content;
+        options.onEvent?.({ type: "delta", text: delta.content });
+      }
+      for (const toolDelta of delta.tool_calls ?? []) {
+        const slot = (pendingCalls[toolDelta.index] ??= { id: "", name: "", args: "" });
+        if (toolDelta.id) slot.id = toolDelta.id;
+        if (toolDelta.function?.name) slot.name += toolDelta.function.name;
+        if (toolDelta.function?.arguments) slot.args += toolDelta.function.arguments;
+      }
+    }
+    modelMs.push(Date.now() - callStartedAt);
+
+    if (content.trim()) textParts.push(content.trim());
+
+    const toolCalls = pendingCalls.filter((c) => c.name);
     if (!toolCalls.length || atBound) {
-      finalText = choice?.message?.content?.trim() ?? "";
+      finalText = textParts.join("\n\n");
       break;
     }
 
-    messages.push(choice.message);
-    for (const call of toolCalls) {
-      if (call.type !== "function") continue;
-      const startedAt = Date.now();
-      let args: Record<string, unknown> = {};
-      try {
-        args = JSON.parse(call.function.arguments || "{}") as Record<string, unknown>;
-      } catch {
-        args = {};
-      }
-      const result = await executeTool(ctx, call.function.name, args);
-      const outcome = (result as { ok?: boolean }).ok === true ? "ok" : "failed";
-      // Operational log: tool name, outcome, latency, non-sensitive ids only.
-      console.info(
-        `assistant-tool ${call.function.name} ${outcome} ${Date.now() - startedAt}ms` +
-          (typeof args.productId === "string" ? ` product=${args.productId}` : "")
-      );
+    messages.push({
+      role: "assistant",
+      content: content || null,
+      tool_calls: toolCalls.map((call, index) => ({
+        id: call.id || `call_${iteration}_${index}`,
+        type: "function" as const,
+        function: { name: call.name, arguments: call.args || "{}" },
+      })),
+    });
+
+    // Tools can't stream — surface an honest localized status in the UI.
+    options.onEvent?.({ type: "status", key: "tools" });
+
+    // Independent tool calls in one round run in PARALLEL (Task C).
+    const roundStartedAt = Date.now();
+    const results = await Promise.all(
+      toolCalls.map(async (call) => {
+        const startedAt = Date.now();
+        let args: Record<string, unknown> = {};
+        try {
+          args = JSON.parse(call.args || "{}") as Record<string, unknown>;
+        } catch {
+          args = {};
+        }
+        const result = await executeTool(ctx, call.name, args);
+        const outcome = (result as { ok?: boolean }).ok === true ? "ok" : "failed";
+        // Operational log: tool name, outcome, latency, non-sensitive ids only.
+        console.info(
+          `assistant-tool ${call.name} ${outcome} ${Date.now() - startedAt}ms` +
+            (typeof args.productId === "string" ? ` product=${args.productId}` : "")
+        );
+        return result;
+      })
+    );
+    toolMs.push(Date.now() - roundStartedAt);
+
+    toolCalls.forEach((call, index) => {
       messages.push({
         role: "tool",
-        tool_call_id: call.id,
-        content: JSON.stringify(result),
+        tool_call_id: call.id || `call_${iteration}_${index}`,
+        content: JSON.stringify(results[index]),
       });
-    }
+    });
   }
+
+  // One turn-level telemetry line (Task C measurement contract).
+  console.info(
+    `assistant-turn total=${Date.now() - turnStartedAt}ms memory=${memoryMs}ms ` +
+      `model=[${modelMs.join(",")}]ms tools=[${toolMs.join(",")}]ms promptTokens=[${promptTokens.join(",")}] effort=${reasoningEffort}`
+  );
 
   if (!finalText) {
     throw new Error("Assistant returned empty output.");

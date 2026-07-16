@@ -22,7 +22,7 @@ import type { AssistantChatTurn, AssistantCommandResponse } from "@/types/assist
 
 export type ChatEntry =
   | { id: string; type: "user"; text: string; ts?: number }
-  | { id: string; type: "assistant_loading"; ts?: number }
+  | { id: string; type: "assistant_loading"; ts?: number; statusText?: string }
   | { id: string; type: "assistant"; text: string; ts?: number }
   | { id: string; type: "assistant_cards"; data: AssistantCommandResponse; ts?: number }
   | { id: string; type: "assistant_clarification"; data: AssistantCommandResponse; ts?: number }
@@ -146,6 +146,13 @@ export function appendChatEntries(entries: ChatEntry[]): void {
 export function replaceChatEntry(removeId: string, entry: ChatEntry): void {
   const remaining = getChatState().history.filter((m) => m.id !== removeId);
   setChatState({ history: mergeChatEntries(remaining, [entry]) });
+}
+
+/** In-place patch of one entry (streaming text growth / status line — Task C). */
+export function patchChatEntry(id: string, patch: Partial<ChatEntry>): void {
+  setChatState({
+    history: getChatState().history.map((m) => (m.id === id ? ({ ...m, ...patch } as ChatEntry) : m)),
+  });
 }
 
 /** Last 10 visible turns flattened for the server LLM calls. */
