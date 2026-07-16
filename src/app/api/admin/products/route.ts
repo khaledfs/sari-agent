@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import { createAdminProduct, listAdminProducts } from "@/lib/admin-products";
 
-function statusForError(message: string): number {
-  if (message === "Not authenticated." || message === "Access denied.") return 401;
-  if (message === "Product not found.") return 404;
-  return 400;
-}
 
 export async function GET(req: Request) {
   try {
@@ -20,8 +17,7 @@ export async function GET(req: Request) {
     });
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch products.";
-    return NextResponse.json({ success: false, message }, { status: statusForError(message) });
+    return mapAdminRouteError(error, "Failed to fetch products.");
   }
 }
 
@@ -31,7 +27,6 @@ export async function POST(req: Request) {
     const data = await createAdminProduct(body);
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create product.";
-    return NextResponse.json({ success: false, message }, { status: statusForError(message) });
+    return mapAdminRouteError(error, "Failed to create product.");
   }
 }

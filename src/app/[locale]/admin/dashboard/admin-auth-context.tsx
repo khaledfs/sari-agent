@@ -4,10 +4,19 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { useParams, useRouter } from "next/navigation";
 
 type Phase = "checking" | "allowed" | "denied";
+export type ConsoleRole = "admin" | "agent" | null;
 
-const AdminAuthContext = createContext<Phase>("checking");
+type ConsoleAuth = { phase: Phase; role: ConsoleRole };
 
-export function useAdminAuth() {
+const AdminAuthContext = createContext<ConsoleAuth>({ phase: "checking", role: null });
+
+/** Back-compat: existing pages read the phase only. */
+export function useAdminAuth(): Phase {
+  return useContext(AdminAuthContext).phase;
+}
+
+/** Task D: role-aware consumers (nav hiding, form scope limits — UX only). */
+export function useConsoleAuth(): ConsoleAuth {
   return useContext(AdminAuthContext);
 }
 
@@ -15,7 +24,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const params = useParams();
   const router = useRouter();
   const locale = typeof params.locale === "string" ? params.locale : "en";
-  const [phase, setPhase] = useState<Phase>("checking");
+  const [auth, setAuth] = useState<ConsoleAuth>({ phase: "checking", role: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -26,15 +35,18 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           data?: { authenticated?: boolean; payload?: { role?: string } };
         };
         if (cancelled) return;
-        if (json.data?.authenticated !== true || json.data.payload?.role !== "admin") {
-          setPhase("denied");
+        const role = json.data?.payload?.role;
+        // The console admits admins AND field agents (Task D); the server
+        // scopes every request regardless of what the UI shows.
+        if (json.data?.authenticated !== true || (role !== "admin" && role !== "agent")) {
+          setAuth({ phase: "denied", role: null });
           router.replace(`/${locale}/admin/login`);
           return;
         }
-        setPhase("allowed");
+        setAuth({ phase: "allowed", role });
       } catch {
         if (cancelled) return;
-        setPhase("denied");
+        setAuth({ phase: "denied", role: null });
         router.replace(`/${locale}/admin/login`);
       }
     })();
@@ -42,7 +54,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [locale, router]);
 
   return (
-    <AdminAuthContext.Provider value={phase}>
+    <AdminAuthContext.Provider value={auth}>
       {children}
     </AdminAuthContext.Provider>
   );

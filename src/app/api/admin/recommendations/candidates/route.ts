@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import { requireAdmin } from "@/lib/auth-user";
 import { buildRecommendationCandidatePoolForUser } from "@/services/recommendation-candidates.service";
 
@@ -29,8 +31,6 @@ export async function GET(req: Request) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load candidates.";
-    const status = message === "Not authenticated." ? 401 : message === "Access denied." ? 403 : 400;
-    return NextResponse.json({ success: false, message }, { status });
+    return mapAdminRouteError(error, "Failed to load candidates.");
   }
 }

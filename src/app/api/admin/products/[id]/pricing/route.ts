@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import {
   getProductPricing,
   removeCustomerPriceOverride,
@@ -7,15 +9,9 @@ import {
   setProductTierPrices,
 } from "@/lib/admin-pricing";
 
-function statusForError(message: string): number {
-  if (message === "Not authenticated." || message === "Access denied.") return 401;
-  if (message === "Product not found." || message === "Customer not found.") return 404;
-  return 400;
-}
 
 function fail(error: unknown, fallback: string) {
-  const message = error instanceof Error ? error.message : fallback;
-  return NextResponse.json({ success: false, message }, { status: statusForError(message) });
+  return mapAdminRouteError(error, fallback);
 }
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {

@@ -33,6 +33,7 @@ const EVENT_TYPES: RealtimeEventType[] = [
   "account.restricted",
   "account.unrestricted",
   "ledger.entry_created",
+  "message.created",
 ];
 
 type RealtimeHandler = (event: RealtimeEvent) => void;
@@ -74,7 +75,15 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       if (!event || typeof event.type !== "string") return;
 
       const entityId =
-        "orderId" in event ? event.orderId : "productId" in event ? event.productId : "entryId" in event ? event.entryId : event.userId;
+        "orderId" in event
+          ? event.orderId
+          : "productId" in event
+            ? event.productId
+            : "entryId" in event
+              ? event.entryId
+              : "threadId" in event
+                ? event.threadId
+                : event.userId;
       const key = `${event.type}:${entityId}:${event.at}`;
       if (seenRef.current.has(key)) return;
       seenRef.current.add(key);

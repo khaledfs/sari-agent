@@ -26,9 +26,27 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["customer", "admin"],
+      enum: ["customer", "admin", "agent"],
       default: "customer",
       required: true,
+    },
+    /**
+     * Field agent responsible for this customer (Work Order 2, Task D).
+     * Nullable by design — new customers start unassigned and must work
+     * everywhere without an agent. At most one agent per customer.
+     */
+    assignedAgentId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    /** Agent metadata: the route/line this agent drives (agents only). */
+    routeLabel: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: undefined,
     },
     isVerified: {
       type: Boolean,

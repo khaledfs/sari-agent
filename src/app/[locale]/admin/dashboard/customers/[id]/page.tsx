@@ -7,6 +7,8 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { formatMinorUnits } from "@/lib/money";
 
+import { useConsoleAuth } from "../../admin-auth-context";
+
 type CustomerProfile = {
   customer: {
     id: string;
@@ -18,6 +20,7 @@ type CustomerProfile = {
     accountStatus: "active" | "restricted";
     restrictedAt: string | null;
     restrictedReason: string;
+    assignedAgentId: string | null;
     createdAt: string;
     adminNotes: string;
   };
@@ -100,6 +103,48 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
   const [statusSaving, setStatusSaving] = useState(false);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reasonDraft, setReasonDraft] = useState("");
+
+  // Agent assignment (Task D) — ADMIN-ONLY control; agents never see it.
+  const { role } = useConsoleAuth();
+  const [agents, setAgents] = useState<Array<{ id: string; businessName: string }>>([]);
+  const [assignSaving, setAssignSaving] = useState(false);
+
+  useEffect(() => {
+    if (role !== "admin") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/agents");
+        const json = (await res.json()) as ApiEnvelope<Array<{ id: string; businessName: string }>>;
+        if (!cancelled && json.success && json.data) setAgents(json.data);
+      } catch {
+        // picker stays empty; assignment can still be cleared
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [role]);
+
+  async function assignAgent(agentId: string) {
+    setAssignSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/customers/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignedAgentId: agentId || null }),
+      });
+      const json = (await res.json()) as ApiEnvelope<CustomerProfile>;
+      if (res.status === 200 && json.success && json.data) {
+        setProfile(json.data);
+        return;
+      }
+      setError(json.message ?? t("customers.error"));
+    } catch {
+      setError(t("customers.error"));
+    } finally {
+      setAssignSaving(false);
+    }
+  }
 
   // Ledger tab (Work Order Issue 8).
   const [ledger, setLedger] = useState<LedgerData | null>(null);
@@ -331,6 +376,25 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
               {t("customers.restrictedSince")}: {formatDate(c.restrictedAt)}
               {c.restrictedReason ? ` — ${c.restrictedReason}` : ""}
             </p>
+          ) : null}
+          {role === "admin" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{t("customers.assignedAgent")}:</span>
+              <select
+                className="admin-select"
+                value={c.assignedAgentId ?? ""}
+                disabled={assignSaving}
+                onChange={(e) => void assignAgent(e.target.value)}
+                aria-label={t("customers.assignedAgent")}
+              >
+                <option value="">{t("customers.noAgent")}</option>
+                {agents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.businessName}
+                  </option>
+                ))}
+              </select>
+            </div>
           ) : null}
           {reasonOpen && c.accountStatus !== "restricted" ? (
             <div style={{ marginBottom: "0.75rem", display: "grid", gap: "0.5rem", maxInlineSize: "480px" }}>

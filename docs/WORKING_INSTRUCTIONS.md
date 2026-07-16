@@ -93,6 +93,19 @@ Orders integrity
   unique `idempotencyKey` (e.g. `order_charge:<orderId>`), never edits or deletes.
 - Financial writes tied to another write (order creation) go **inside the same transaction**;
   realtime publish happens after commit.
+
+### 3.9 Console authorization (admin + field agents)
+
+- **Every admin-side endpoint goes through the shared scope resolver**
+  (`resolveActorScope()` / `assertCanActOnCustomer` / `assertAdminOnly` in
+  `src/lib/actor-scope.ts`) — never a hand-rolled per-route check. Scope is loaded from the
+  DB per request; token claims are only the entry ticket.
+- Deny by default. Scope violations (another agent's customer) return **404** — never reveal
+  existence. Role violations (agent on an admin-only surface) return
+  **403 `{ code: "FORBIDDEN_SCOPE" }`** via `mapAdminRouteError`.
+- `agentId`/`customerId` scope values are NEVER accepted from the client.
+- Rules that affect more than one customer (global/businessType discounts, promotions,
+  banners, tier prices, catalog writes) are admin-only.
 ---
 
 ## 4. Internationalization (i18n)

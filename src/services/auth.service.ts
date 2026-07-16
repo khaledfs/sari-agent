@@ -223,7 +223,9 @@ export async function loginAdmin(input: { identifier: string; password: string }
     throw new Error("Invalid credentials.");
   }
 
-  if (user.role !== "admin") {
+  // The admin console is shared by admins and field AGENTS (Task D) — agents
+  // get in and are scoped server-side on every request; customers do not.
+  if (user.role !== "admin" && user.role !== "agent") {
     throw new Error("Access denied.");
   }
 

@@ -1,6 +1,6 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { assertCanActOnCustomer, resolveActorScope, scopedCustomerObjectIds } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
@@ -221,12 +221,17 @@ function toRow(o: OrderLean, user: UserLite | undefined): AdminOrderRow {
   };
 }
 
-/** All orders across every customer, newest first, with the buyer joined in. */
+/**
+ * Orders newest first with the buyer joined in — an ADMIN sees every order,
+ * an AGENT sees only orders whose buyer is assigned to them (Task D).
+ */
 export async function listAdminOrders(): Promise<AdminOrderRow[]> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   await connectDB();
 
-  const orders = (await OrderModel.find({}).sort({ createdAt: -1 }).lean().exec()) as unknown as OrderLean[];
+  const scopedIds = scopedCustomerObjectIds(scope);
+  const filter = scopedIds ? { userId: { $in: scopedIds } } : {};
+  const orders = (await OrderModel.find(filter).sort({ createdAt: -1 }).lean().exec()) as unknown as OrderLean[];
 
   const userIds = [...new Set(orders.map((o) => String(o.userId)))].filter((id) => isValidObjectId(id));
   const users = (await UserModel.find(
@@ -245,7 +250,7 @@ export async function listAdminOrders(): Promise<AdminOrderRow[]> {
  * (order → user + memory + product metadata), no per-item N+1.
  */
 export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDetail> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   if (!isValidObjectId(orderId)) {
     throw new Error("Order not found.");
   }
@@ -253,6 +258,12 @@ export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDe
 
   const order = (await OrderModel.findById(orderId).lean().exec()) as unknown as OrderLean | null;
   if (!order) {
+    throw new Error("Order not found.");
+  }
+  // Scope: another agent's customer's order reads as not-found (no leak).
+  try {
+    assertCanActOnCustomer(scope, String(order.userId));
+  } catch {
     throw new Error("Order not found.");
   }
 
@@ -284,9 +295,10 @@ export async function getAdminOrderDetail(orderId: string): Promise<AdminOrderDe
   return toAdminOrderDetail(order, user, memory?.businessType ?? null, productsById);
 }
 
-/** Sets the status on a single order (admin only). Returns the updated row. */
+/** Sets the status on a single order (admin or the buyer's agent — Task D). */
 export async function updateAdminOrderStatus(orderId: string, status: string): Promise<AdminOrderRow> {
-  const actor = await requireAdmin();
+  const scope = await resolveActorScope();
+  const actor = { userId: scope.userId, role: scope.role } as const;
   if (!isValidObjectId(orderId)) {
     throw new Error("Order not found.");
   }
@@ -296,10 +308,16 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
   }
 
   await connectDB();
-  const previous = (await OrderModel.findById(orderId, { status: 1 }).lean().exec()) as unknown as {
+  const previous = (await OrderModel.findById(orderId, { status: 1, userId: 1 }).lean().exec()) as unknown as {
     status: string;
+    userId: mongoose.Types.ObjectId;
   } | null;
   if (!previous) {
+    throw new Error("Order not found.");
+  }
+  try {
+    assertCanActOnCustomer(scope, String(previous.userId));
+  } catch {
     throw new Error("Order not found.");
   }
 

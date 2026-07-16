@@ -1415,6 +1415,211 @@ async function aiAssistantSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- field-agent scoping + messaging section (Work Order 2, Task D) ----------
+
+async function agentSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  agent section skipped — needs both customer and admin logins");
+    return;
+  }
+  const AGENT_PHONE = "+972-50-7199999";
+  const AGENT_PASSWORD = "Agent1234A";
+  const OTHER_PHONE = "+972-53-4906138";
+
+  async function findCustomerId(phone) {
+    const { body } = await jsonFetch(`/api/admin/customers?search=${encodeURIComponent(phone)}`, {
+      headers: { Cookie: adminCookie },
+    });
+    return body?.data?.items?.[0]?.id ?? null;
+  }
+
+  const myCustomerId = await findCustomerId(SMOKE_CUSTOMER_PHONE);
+  const otherCustomerId = await findCustomerId(OTHER_PHONE);
+  if (!myCustomerId || !otherCustomerId) {
+    report("agent: resolve seeded customers", false, "seeded customers missing");
+    return;
+  }
+
+  // 1. Admin creates (or reuses) the smoke agent.
+  let agentId = null;
+  try {
+    const { body } = await jsonFetch("/api/admin/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({
+        businessName: "SMOKE agent (auto)",
+        email: "smoke.agent@seed.sari.local",
+        phoneNumber: AGENT_PHONE,
+        password: AGENT_PASSWORD,
+        routeLabel: "SMOKE route",
+      }),
+    });
+    agentId = body?.data?.id ?? null;
+    if (!agentId) {
+      const { body: listBody } = await jsonFetch("/api/admin/agents", { headers: { Cookie: adminCookie } });
+      agentId = (listBody?.data ?? []).find((a) => a.phoneNumber === AGENT_PHONE)?.id ?? null;
+    }
+    report("agent: admin creates/reuses an agent", Boolean(agentId), `agentId=${agentId}`);
+  } catch (err) {
+    report("agent: admin creates/reuses an agent", false, String(err));
+    return;
+  }
+
+  // Remember original assignment to restore later.
+  const originalAssignment = null; // seeded customers start unassigned (verified by seed-agents --dry)
+
+  try {
+    // 2. Assign ONE customer to the agent (admin-only PATCH).
+    const { res: assignRes } = await jsonFetch(`/api/admin/customers/${myCustomerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ assignedAgentId: agentId }),
+    });
+    report("agent: admin assigns a customer", assignRes.status === 200, `got ${assignRes.status}`);
+
+    // 3. Agent logs in through the console login.
+    const agentLogin = await fetch(`${BASE_URL}/api/auth/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: AGENT_PHONE, password: AGENT_PASSWORD }),
+    });
+    const agentCookie = extractCookie(agentLogin, "authToken");
+    report("agent: console login works for agents", agentLogin.status === 200 && Boolean(agentCookie), `got ${agentLogin.status}`);
+    if (!agentCookie) return;
+
+    // 4. Agent sees EXACTLY their customer(s).
+    const { body: custBody } = await jsonFetch("/api/admin/customers", { headers: { Cookie: agentCookie } });
+    const ids = (custBody?.data?.items ?? []).map((c) => c.id);
+    report(
+      "agent: customer list is scoped to their book",
+      ids.length === 1 && ids[0] === myCustomerId,
+      `ids=${JSON.stringify(ids)}`
+    );
+
+    // 5. Orders list scoped; agent can update their customer's order status.
+    const { body: ordersBody } = await jsonFetch("/api/admin/orders", { headers: { Cookie: agentCookie } });
+    const orders = ordersBody?.data ?? [];
+    const foreign = orders.filter((o) => o.customer && o.customer.id !== myCustomerId);
+    report("agent: orders list contains only their customers' orders", foreign.length === 0, `foreign=${foreign.length}`);
+    if (orders.length > 0) {
+      const target = orders[0];
+      const bounce = target.status === "confirmed" ? "pending" : "confirmed";
+      const { res: up1 } = await jsonFetch(`/api/admin/orders/${target.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: agentCookie },
+        body: JSON.stringify({ status: bounce }),
+      });
+      await jsonFetch(`/api/admin/orders/${target.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: agentCookie },
+        body: JSON.stringify({ status: target.status }),
+      });
+      report("agent: can update own customer's order status (restored)", up1.status === 200, `got ${up1.status}`);
+    }
+
+    // 6. Cross-scope access -> 404 (no existence leak).
+    const { res: crossRes } = await jsonFetch(`/api/admin/customers/${otherCustomerId}`, {
+      headers: { Cookie: agentCookie },
+    });
+    report("agent: another agent's customer -> 404", crossRes.status === 404, `got ${crossRes.status}`);
+
+    // 7. Admin-only surfaces -> 403 FORBIDDEN_SCOPE.
+    const { res: prodRes, body: prodBody } = await jsonFetch(`/api/admin/products/000000000000000000000000`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: agentCookie },
+      body: JSON.stringify({ price: 1 }),
+    });
+    const { res: discRes, body: discBody } = await jsonFetch("/api/admin/discounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: agentCookie },
+      body: JSON.stringify({ label: "SMOKE agent global", scope: "global", type: "percent", value: 10 }),
+    });
+    report(
+      "agent: product edit + global discount -> 403 FORBIDDEN_SCOPE",
+      prodRes.status === 403 && prodBody?.code === "FORBIDDEN_SCOPE" && discRes.status === 403 && discBody?.code === "FORBIDDEN_SCOPE",
+      `product=${prodRes.status}/${prodBody?.code}, discount=${discRes.status}/${discBody?.code}`
+    );
+
+    // 8. Reports scoped: agent's orders report only covers their customers.
+    const now = new Date();
+    const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { body: reportBody } = await jsonFetch("/api/admin/reports/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: agentCookie },
+      body: JSON.stringify({ from, to: now.toISOString() }),
+    });
+    const reportRows = reportBody?.data ?? [];
+    const strangers = reportRows.filter((r) => r.phone && r.phone !== SMOKE_CUSTOMER_PHONE);
+    report("agent: reports cover only their customers", strangers.length === 0, `strangers=${strangers.length}`);
+
+    // 9. Agent records a payment on their customer's ledger (actor recorded).
+    const { res: payRes } = await jsonFetch(`/api/admin/customers/${myCustomerId}/ledger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: agentCookie },
+      body: JSON.stringify({ type: "payment", amount: 1.5, description: "SMOKE agent payment (auto)" }),
+    });
+    const { body: ledgerBody } = await jsonFetch(`/api/admin/customers/${myCustomerId}/ledger`, {
+      headers: { Cookie: agentCookie },
+    });
+    const paymentEntry = (ledgerBody?.data?.entries ?? []).find((e) => e.description === "SMOKE agent payment (auto)");
+    report(
+      "agent: ledger payment posted with the agent as actor",
+      payRes.status === 200 && paymentEntry?.createdByRole === "agent",
+      `status ${payRes.status}, actorRole=${paymentEntry?.createdByRole}`
+    );
+
+    // 10. Messaging round trip — while the customer is RESTRICTED.
+    await jsonFetch(`/api/admin/customers/${myCustomerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ accountStatus: "restricted" }),
+    });
+    const { res: msgRes } = await jsonFetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ body: "SMOKE: בקשה מהסוכן (auto)" }),
+    });
+    report("agent: RESTRICTED customer can still message", msgRes.status === 200, `got ${msgRes.status}`);
+    await jsonFetch(`/api/admin/customers/${myCustomerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ accountStatus: "active" }),
+    });
+
+    // Agent sees the thread with an unread badge and replies.
+    const { body: threadsBody } = await jsonFetch("/api/admin/messages", { headers: { Cookie: agentCookie } });
+    const thread = (threadsBody?.data ?? []).find((th) => th.customerId === myCustomerId);
+    report("agent: thread visible with unread indicator", Boolean(thread) && thread.unreadCount > 0, `unread=${thread?.unreadCount}`);
+    if (thread) {
+      const { res: replyRes } = await jsonFetch(`/api/admin/messages/${thread.threadId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: agentCookie },
+        body: JSON.stringify({ body: "SMOKE: תשובת הסוכן (auto)" }),
+      });
+      const { body: custThread } = await jsonFetch("/api/messages", { headers: { Cookie: customerCookie } });
+      const sawReply = (custThread?.data?.messages ?? []).some((m) => m.body.includes("תשובת הסוכן"));
+      report("agent: reply reaches the customer", replyRes.status === 200 && sawReply, `reply=${replyRes.status}, seen=${sawReply}`);
+
+      // Admin reads the whole thread.
+      const { res: adminReadRes, body: adminReadBody } = await jsonFetch(`/api/admin/messages/${thread.threadId}`, {
+        headers: { Cookie: adminCookie },
+      });
+      report(
+        "agent: admin can read the entire thread",
+        adminReadRes.status === 200 && (adminReadBody?.data?.messages ?? []).length >= 2,
+        `status ${adminReadRes.status}, messages=${adminReadBody?.data?.messages?.length}`
+      );
+    }
+  } finally {
+    // Restore: unassign the customer (seeded state = unassigned).
+    await jsonFetch(`/api/admin/customers/${myCustomerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ assignedAgentId: originalAssignment }),
+    });
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -1436,6 +1641,7 @@ async function main() {
   await restrictedCustomerSection(cookie, adminCookie);
   await receiptSection(cookie, adminCookie);
   await ledgerSection(cookie, adminCookie);
+  await agentSection(cookie, adminCookie);
   await aiAssistantSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);

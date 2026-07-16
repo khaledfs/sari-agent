@@ -43,6 +43,12 @@ const ProfileIcon = () => (
   </svg>
 );
 
+const MessagesIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
 const LedgerIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -98,7 +104,7 @@ const BoxIcon = () => (
 
 type HubItem = {
   href: string;
-  navKey: "products" | "cart" | "orders" | "profile" | "ledger";
+  navKey: "products" | "cart" | "orders" | "messages" | "profile" | "ledger";
   icon: React.FC;
 };
 
@@ -166,6 +172,7 @@ export default function DashboardPage() {
     { href: `/${locale}/dashboard/products`, navKey: "products", icon: ProductsIcon },
     { href: `/${locale}/dashboard/cart`, navKey: "cart", icon: CartIcon },
     { href: `/${locale}/dashboard/orders`, navKey: "orders", icon: OrdersIcon },
+    { href: `/${locale}/dashboard/messages`, navKey: "messages", icon: MessagesIcon },
     { href: `/${locale}/dashboard/profile`, navKey: "profile", icon: ProfileIcon },
     { href: `/${locale}/dashboard/ledger`, navKey: "ledger", icon: LedgerIcon },
   ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -8,7 +8,7 @@ import Image from "next/image";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 
-import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context";
+import { AdminAuthProvider, useConsoleAuth } from "./admin-auth-context";
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -23,8 +23,30 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const t = useTranslations("adminDashboard");
   const locale = typeof params.locale === "string" ? params.locale : "en";
-  const phase = useAdminAuth();
+  const { phase, role } = useConsoleAuth();
   const didPrefetch = useRef(false);
+
+  // Agent indicator (Task D): who am I + how many customers I hold.
+  const [identity, setIdentity] = useState<{ businessName: string; customerCount: number | null } | null>(null);
+  useEffect(() => {
+    if (phase !== "allowed" || role !== "agent") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        const json = (await res.json()) as {
+          success?: boolean;
+          data?: { businessName?: string; customerCount?: number | null };
+        };
+        if (!cancelled && json.success && json.data) {
+          setIdentity({ businessName: json.data.businessName ?? "", customerCount: json.data.customerCount ?? null });
+        }
+      } catch {
+        // indicator is decorative — fail soft
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [phase, role]);
 
   useEffect(() => {
     if (phase !== "allowed" || didPrefetch.current) return;
@@ -63,8 +85,14 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <Image src="/logo.png" alt="Sari" width={100} height={28} style={{ height: "28px", width: "auto", objectFit: "contain" }} priority />
           <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--brand)", background: "var(--brand-bg)", padding: "0.15rem 0.5rem", borderRadius: "var(--radius-pill)" }}>
-            {t("badge")}
+            {role === "agent" ? t("agentBadge") : t("badge")}
           </span>
+          {role === "agent" && identity ? (
+            <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+              {identity.businessName}
+              {identity.customerCount !== null ? ` · ${t("agentCustomers", { count: identity.customerCount })}` : ""}
+            </span>
+          ) : null}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <LanguageSwitcher />

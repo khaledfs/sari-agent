@@ -123,7 +123,8 @@
       "cart": "Cart",
       "orders": "Orders",
       "profile": "Profile",
-      "ledger": "Ledger"
+      "ledger": "Ledger",
+      "messages": "Messages"
     },
     "hub": {
       "title": "Your dashboard",
@@ -135,7 +136,8 @@
         "cart": "Review items",
         "orders": "Track history",
         "profile": "Account details",
-        "ledger": "Invoices, checks & balances"
+        "ledger": "Invoices, checks & balances",
+        "messages": "Talk to your agent"
       }
     },
     "assistant": {
@@ -445,7 +447,21 @@
       "logout": "Logout"
     },
     "messages": {
-      "loading": "Loading..."
+      "title": "Customer messages",
+      "subtitle": "Human conversations between customers and their agents.",
+      "error": "Failed to load messages.",
+      "loading": "Loading…",
+      "empty": "No conversations yet.",
+      "emptyThread": "No messages in this conversation yet.",
+      "pick": "Pick a conversation from the list.",
+      "replyPlaceholder": "Write a reply…",
+      "send": "Send",
+      "sending": "Sending…",
+      "role": {
+        "customer": "Customer",
+        "agent": "Agent",
+        "admin": "Manager"
+      }
     },
     "hub": {
       "title": "Admin Dashboard",
@@ -468,7 +484,11 @@
         "reports": "Reports",
         "reportsDesc": "Sales analytics & CSV export",
         "settings": "Settings",
-        "settingsDesc": "Change your password"
+        "settingsDesc": "Change your password",
+        "messages": "Messages",
+        "messagesDesc": "Customer conversations",
+        "agents": "Agents",
+        "agentsDesc": "Field agents & assignments"
       },
       "backToDashboard": "Back to dashboard",
       "comingSoon": "This section is under construction."
@@ -551,7 +571,9 @@
       "noMemory": "No AI memory for this customer yet.",
       "notesLabel": "Internal admin notes (never shown to the customer)",
       "notesSaving": "Saving…",
-      "notesSaved": "Saved"
+      "notesSaved": "Saved",
+      "assignedAgent": "Assigned agent",
+      "noAgent": "No agent"
     },
     "orders": {
       "title": "Orders",
@@ -889,6 +911,51 @@
         "required": "All fields are required.",
         "mismatch": "New password and confirmation do not match."
       }
+    },
+    "agentBadge": "Agent console",
+    "agentCustomers": "{count} customers",
+    "agents": {
+      "title": "Field agents",
+      "subtitle": "Each agent serves only the customers assigned to them.",
+      "create": "New agent",
+      "error": "Failed to load agents.",
+      "loading": "Loading agents…",
+      "empty": "No agents yet.",
+      "columns": {
+        "name": "Agent",
+        "route": "Route",
+        "customers": "Customers",
+        "orders30d": "Orders (30d)",
+        "revenue30d": "Revenue (30d)",
+        "lastActivity": "Last activity"
+      },
+      "form": {
+        "name": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "password": "Password",
+        "route": "Route / line label",
+        "creating": "Creating…",
+        "submit": "Create agent"
+      }
+    }
+  },
+  "agentMessages": {
+    "title": "Messages with your agent",
+    "subtitle": "A direct line to the person who handles your account — not the AI assistant.",
+    "subtitleWithAgent": "Talking with {name} — your personal agent (a human, not the AI assistant).",
+    "error": "Something went wrong. Try again.",
+    "retry": "Retry",
+    "noAgent": "No agent is assigned to your account yet. Once one is assigned, you can message them here.",
+    "emptyThread": "No messages yet — write the first one.",
+    "placeholder": "Write a message to your agent…",
+    "send": "Send",
+    "sending": "Sending…",
+    "you": "You",
+    "role": {
+      "agent": "Agent",
+      "admin": "Manager",
+      "customer": "Customer"
     }
   }
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import { getOrdersReport } from "@/lib/admin-reports";
 
 export async function POST(req: Request) {
@@ -22,8 +24,6 @@ export async function POST(req: Request) {
       meta: { count: result.count, from: body.from ?? "", to: body.to ?? "", hasMore: result.hasMore },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to build the report.";
-    const status = message === "Not authenticated." || message === "Access denied." ? 401 : 400;
-    return NextResponse.json({ success: false, message }, { status });
+    return mapAdminRouteError(error, "Failed to build the report.");
   }
 }

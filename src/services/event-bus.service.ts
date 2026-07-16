@@ -42,16 +42,23 @@ export function channelsForEvent(event: RealtimeEvent): Channel[] {
       return ["admin", userChannel(event.userId)];
     case "ledger.entry_created":
       return ["admin", userChannel(event.userId)];
+    case "message.created":
+      // The two participants + admin oversight — never anyone else.
+      return ["admin", userChannel(event.customerId), userChannel(event.agentId)];
   }
 }
 
 /**
  * Which channels a subscriber is entitled to (pure — unit-tested).
  * Derived from the server-verified session role, never from client input:
- * customers get their own private channel + the public catalog channel;
- * admins get the admin channel + the catalog channel.
+ * customers AND agents get their own private channel + the public catalog
+ * channel (an agent's private channel carries their messaging events — they
+ * are NOT entitled to the global admin firehose); admins get admin + catalog.
  */
-export function channelsForSubscriber(role: "customer" | "admin", userId: string): Channel[] {
+export function channelsForSubscriber(
+  role: "customer" | "admin" | "agent",
+  userId: string
+): Channel[] {
   return role === "admin" ? ["admin", "catalog"] : [userChannel(userId), "catalog"];
 }
 

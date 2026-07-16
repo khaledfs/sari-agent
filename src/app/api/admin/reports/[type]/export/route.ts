@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import { buildReportCsv, REPORT_TYPES, type ReportType } from "@/lib/admin-reports";
 
 /**
@@ -37,8 +39,6 @@ export async function GET(req: Request, context: { params: Promise<{ type: strin
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to export the report.";
-    const status = message === "Not authenticated." || message === "Access denied." ? 401 : 400;
-    return NextResponse.json({ success: false, message }, { status });
+    return mapAdminRouteError(error, "Failed to export the report.");
   }
 }

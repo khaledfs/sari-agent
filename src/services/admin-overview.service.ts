@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { resolveActorScope, scopedCustomerObjectIds } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
 import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
@@ -92,9 +92,9 @@ export function isLowStock(stock: number | null | undefined, threshold: number):
   return typeof stock === "number" && stock <= threshold;
 }
 
-async function periodStats(since: Date): Promise<OverviewPeriodStats> {
+async function periodStats(since: Date, scopeMatch: Record<string, unknown>): Promise<OverviewPeriodStats> {
   const rows = await OrderModel.aggregate<{ _id: null; revenue: number; orderCount: number }>([
-    { $match: { createdAt: { $gte: since }, status: { $not: CANCELLED_RX } } },
+    { $match: { ...scopeMatch, createdAt: { $gte: since }, status: { $not: CANCELLED_RX } } },
     { $group: { _id: null, revenue: { $sum: "$total" }, orderCount: { $sum: 1 } } },
   ]).exec();
   const row = rows[0];
@@ -105,8 +105,13 @@ async function periodStats(since: Date): Promise<OverviewPeriodStats> {
 }
 
 export async function getAdminOverview(): Promise<AdminOverview> {
-  await requireAdmin();
+  // Task D: an agent's overview is computed over THEIR customers only —
+  // revenue, top products, status mix, newest customers, weekly buckets.
+  // Low-stock stays catalog-level (product reads are allowed to agents).
+  const scope = await resolveActorScope();
   await connectDB();
+  const scopedIds = scopedCustomerObjectIds(scope);
+  const scopeMatch: Record<string, unknown> = scopedIds ? { userId: { $in: scopedIds } } : {};
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -116,12 +121,12 @@ export async function getAdminOverview(): Promise<AdminOverview> {
 
   const [today, last7d, last30d, topProductsRaw, statusRows, lowStockRaw, newestRaw, weeklyOrders] =
     await Promise.all([
-      periodStats(todayStart),
-      periodStats(d7),
-      periodStats(d30),
+      periodStats(todayStart, scopeMatch),
+      periodStats(d7, scopeMatch),
+      periodStats(d30, scopeMatch),
       // Top 10 products by 30d PAID quantity (gift lines excluded).
       OrderModel.aggregate<{ _id: mongoose.Types.ObjectId; name: string; quantity: number }>([
-        { $match: { createdAt: { $gte: d30 }, status: { $not: CANCELLED_RX } } },
+        { $match: { ...scopeMatch, createdAt: { $gte: d30 }, status: { $not: CANCELLED_RX } } },
         { $unwind: "$items" },
         { $match: { "items.isGift": { $ne: true } } },
         {
@@ -135,6 +140,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
         { $limit: 10 },
       ]).exec(),
       OrderModel.aggregate<{ _id: string; count: number }>([
+        ...(scopedIds ? [{ $match: scopeMatch }] : []),
         { $group: { _id: "$status", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 12 },
@@ -145,13 +151,16 @@ export async function getAdminOverview(): Promise<AdminOverview> {
         .limit(10)
         .lean()
         .exec(),
-      UserModel.find({ role: "customer" }, { businessName: 1, phoneNumber: 1, createdAt: 1 })
+      UserModel.find(
+        scopedIds ? { role: "customer", _id: { $in: scopedIds } } : { role: "customer" },
+        { businessName: 1, phoneNumber: 1, createdAt: 1 }
+      )
         .sort({ createdAt: -1 })
         .limit(5)
         .lean()
         .exec(),
       OrderModel.find(
-        { createdAt: { $gte: weekStarts[0] }, status: { $not: CANCELLED_RX } },
+        { ...scopeMatch, createdAt: { $gte: weekStarts[0] }, status: { $not: CANCELLED_RX } },
         { total: 1, createdAt: 1 }
       )
         .limit(5000)

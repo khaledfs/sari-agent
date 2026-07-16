@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import { getAdminCustomerLedger, postAdminLedgerEntry } from "@/lib/admin-ledger";
 
 function mapError(error: unknown, fallback: string) {
-  const message = error instanceof Error ? error.message : fallback;
-  const status =
-    message === "Not authenticated." || message === "Access denied."
-      ? 401
-      : message === "Customer not found."
-        ? 404
-        : 400;
-  return NextResponse.json({ success: false, message }, { status });
+  return mapAdminRouteError(error, fallback);
 }
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {

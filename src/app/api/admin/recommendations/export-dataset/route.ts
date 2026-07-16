@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
 import { z } from "zod";
 
 import { exportRecommendationDatasetToArtifacts } from "@/services/recommendation-export.service";
@@ -33,9 +35,6 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Export failed.";
-    const status =
-      message === "Not authenticated." ? 401 : message === "Access denied." ? 403 : 400;
-    return NextResponse.json({ success: false, message }, { status });
+    return mapAdminRouteError(error, "Export failed.");
   }
 }

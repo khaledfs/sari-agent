@@ -1,7 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { revalidateTag } from "next/cache";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { requireAdmin, requireConsoleUser } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { ProductModel } from "@/models/product.model";
@@ -216,7 +216,10 @@ export function buildManualSku(name: string): string {
 export async function listAdminProducts(
   params: AdminProductListParams = {}
 ): Promise<AdminProductListResult> {
-  await requireAdmin();
+  // Task D decision: catalog READS stay available to agents (they need the
+  // product reference for pricing/promotions on their own customers); every
+  // catalog WRITE below is admin-only (requireAdmin → 403 for agents).
+  await requireConsoleUser();
   await connectDB();
 
   const page = Math.max(1, Math.floor(params.page ?? 1));

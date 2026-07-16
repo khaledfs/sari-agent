@@ -1,6 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { resolveActorScope } from "@/lib/actor-scope";
+import { assertRuleWithinScope } from "@/lib/admin-pricing";
 import { connectDB } from "@/lib/db";
 import { BANNER_SCOPES, BannerModel } from "@/models/banner.model";
 import { CUSTOMER_MEMORY_BUSINESS_TYPES } from "@/models/customer-memory.model";
@@ -116,9 +117,12 @@ function toRow(d: BannerLeanDoc): AdminBannerRow {
 }
 
 export async function listAdminBanners(): Promise<AdminBannerRow[]> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   await connectDB();
-  const docs = (await BannerModel.find({})
+  // Task D: agents see only banners targeted at THEIR customers.
+  const filter =
+    scope.role === "admin" ? {} : { scope: "customer", targetId: { $in: scope.customerIds } };
+  const docs = (await BannerModel.find(filter)
     .sort({ createdAt: -1 })
     .limit(200)
     .lean()
@@ -127,8 +131,11 @@ export async function listAdminBanners(): Promise<AdminBannerRow[]> {
 }
 
 export async function createAdminBanner(input: Record<string, unknown>): Promise<AdminBannerRow> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   const doc = validateBannerInput(input);
+  // Global/businessType audiences are admin-only; agents may target only
+  // their own customers (Task D).
+  assertRuleWithinScope(scope, doc.scope, doc.targetId);
   await connectDB();
   const created = await BannerModel.create(doc);
   return toRow(created.toObject() as unknown as BannerLeanDoc);
@@ -138,12 +145,17 @@ export async function updateAdminBanner(
   bannerId: string,
   patch: Record<string, unknown>
 ): Promise<AdminBannerRow> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   if (!isValidObjectId(bannerId)) throw new Error("Banner not found.");
 
   await connectDB();
   const existing = (await BannerModel.findById(bannerId).lean().exec()) as unknown as BannerLeanDoc | null;
   if (!existing) throw new Error("Banner not found.");
+  if (scope.role !== "admin") {
+    if (existing.scope !== "customer" || !scope.customerIds.includes(existing.targetId ?? "")) {
+      throw new Error("Banner not found.");
+    }
+  }
 
   const merged = validateBannerInput({
     title: patch.title !== undefined ? patch.title : existing.title,
@@ -159,6 +171,7 @@ export async function updateAdminBanner(
     priority: patch.priority !== undefined ? patch.priority : existing.priority,
   });
 
+  assertRuleWithinScope(scope, merged.scope, merged.targetId);
   await BannerModel.updateOne({ _id: bannerId }, { $set: merged }).exec();
   const updated = (await BannerModel.findById(bannerId).lean().exec()) as unknown as BannerLeanDoc;
   return toRow(updated);

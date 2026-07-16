@@ -371,7 +371,7 @@ export type OrderReceiptData = {
  */
 export async function getOrderReceipt(
   requesterId: string,
-  requesterRole: "customer" | "admin",
+  requesterRole: "customer" | "admin" | "agent",
   orderId: string
 ): Promise<OrderReceiptData> {
   if (!isValidObjectId(orderId)) {

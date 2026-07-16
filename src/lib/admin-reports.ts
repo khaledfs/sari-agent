@@ -1,6 +1,6 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { assertCanActOnCustomer, resolveActorScope, scopedCustomerObjectIds } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
 import { OrderModel } from "@/models/order.model";
@@ -108,13 +108,17 @@ export async function getOrdersReport(params: {
   customerId?: string;
   status?: string;
 }): Promise<ReportResult<OrdersReportRow>> {
-  await requireAdmin();
+  // Task D: an agent's report covers ONLY their customers — no global totals.
+  const scope = await resolveActorScope();
   const { from, to } = validateDateRange(params.from, params.to);
   await connectDB();
 
   const filter: Record<string, unknown> = { createdAt: { $gte: from, $lte: to } };
+  const scopedIds = scopedCustomerObjectIds(scope);
+  if (scopedIds) filter.userId = { $in: scopedIds };
   if (params.customerId?.trim()) {
     if (!isValidObjectId(params.customerId)) throw new Error("Invalid customerId.");
+    assertCanActOnCustomer(scope, params.customerId); // out-of-book -> 404
     filter.userId = new mongoose.Types.ObjectId(params.customerId);
   }
   if (params.status?.trim()) filter.status = params.status.trim().toLowerCase();
@@ -172,10 +176,12 @@ export async function getTopProductsReport(params: {
   to: unknown;
   limit?: number;
 }): Promise<ReportResult<TopProductRow>> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   const { from, to } = validateDateRange(params.from, params.to);
   const limit = Math.min(REPORT_MAX_ROWS, Math.max(1, Math.floor(params.limit ?? 20)));
   await connectDB();
+  const scopedIds = scopedCustomerObjectIds(scope);
+  const scopeMatch = scopedIds ? { userId: { $in: scopedIds } } : {};
 
   // Same shape as the overview top-products pipeline (gift lines excluded),
   // extended with revenue and distinct-order counts.
@@ -186,7 +192,7 @@ export async function getTopProductsReport(params: {
     totalRevenue: number;
     orderIds: mongoose.Types.ObjectId[];
   }>([
-    { $match: { createdAt: { $gte: from, $lte: to }, status: { $not: CANCELLED_STATUS_RX } } },
+    { $match: { ...scopeMatch, createdAt: { $gte: from, $lte: to }, status: { $not: CANCELLED_STATUS_RX } } },
     { $unwind: "$items" },
     { $match: { "items.isGift": { $ne: true } } },
     {
@@ -247,7 +253,9 @@ export async function getCustomerSalesReport(params: {
   from: unknown;
   to: unknown;
 }): Promise<ReportResult<CustomerSalesRow>> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
+  const scopedIds = scopedCustomerObjectIds(scope);
+  const scopeMatch = scopedIds ? { userId: { $in: scopedIds } } : {};
   const { from, to } = validateDateRange(params.from, params.to);
   await connectDB();
 
@@ -257,7 +265,7 @@ export async function getCustomerSalesReport(params: {
     totalSpend: number;
     lastOrderDate: Date;
   }>([
-    { $match: { createdAt: { $gte: from, $lte: to }, status: { $not: CANCELLED_STATUS_RX } } },
+    { $match: { ...scopeMatch, createdAt: { $gte: from, $lte: to }, status: { $not: CANCELLED_STATUS_RX } } },
     {
       $group: {
         _id: "$userId",

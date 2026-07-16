@@ -16,7 +16,8 @@ export type RealtimeEventType =
   | "inventory.updated"
   | "account.restricted"
   | "account.unrestricted"
-  | "ledger.entry_created";
+  | "ledger.entry_created"
+  | "message.created";
 
 type BaseEvent = {
   /** ISO timestamp of the write that produced the event. */
@@ -68,6 +69,14 @@ export type LedgerEntryCreatedEvent = BaseEvent & {
   entryId: string;
 };
 
+export type MessageCreatedEvent = BaseEvent & {
+  type: "message.created";
+  threadId: string;
+  /** Both participants — used for channel routing (participants + admin only). */
+  customerId: string;
+  agentId: string;
+};
+
 export type RealtimeEvent =
   | OrderCreatedEvent
   | OrderStatusChangedEvent
@@ -75,4 +84,5 @@ export type RealtimeEvent =
   | InventoryUpdatedEvent
   | AccountRestrictedEvent
   | AccountUnrestrictedEvent
-  | LedgerEntryCreatedEvent;
+  | LedgerEntryCreatedEvent
+  | MessageCreatedEvent;

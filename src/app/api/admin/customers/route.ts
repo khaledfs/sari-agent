@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { mapAdminRouteError } from "@/lib/admin-route-errors";
+
 import { listAdminCustomers } from "@/lib/admin-customers";
 
 export async function GET(req: Request) {
@@ -14,8 +16,6 @@ export async function GET(req: Request) {
     });
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch customers.";
-    const status = message === "Not authenticated." || message === "Access denied." ? 401 : 400;
-    return NextResponse.json({ success: false, message }, { status });
+    return mapAdminRouteError(error, "Failed to fetch customers.");
   }
 }

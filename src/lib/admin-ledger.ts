@@ -1,6 +1,6 @@
 import { isValidObjectId } from "mongoose";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { assertCanActOnCustomer, resolveActorScope } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/models/user.model";
 import {
@@ -20,10 +20,10 @@ export async function getAdminCustomerLedger(
   customerId: string,
   params: { page?: number; pageSize?: number } = {}
 ): Promise<LedgerPage> {
-  await requireAdmin();
-  if (!isValidObjectId(customerId)) {
-    throw new Error("Customer not found.");
-  }
+  // Task D: reading a customer's ledger and recording payments/cheques is
+  // literally the field agent's job — allowed for THEIR customers only.
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, customerId);
   await connectDB();
   const exists = await UserModel.exists({ _id: customerId, role: "customer" });
   if (!exists) {
@@ -49,10 +49,9 @@ export async function postAdminLedgerEntry(
   customerId: string,
   input: AdminLedgerPostInput
 ): Promise<{ entryId: string }> {
-  const actor = await requireAdmin();
-  if (!isValidObjectId(customerId)) {
-    throw new Error("Customer not found.");
-  }
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, customerId);
+  const actor = { userId: scope.userId, role: scope.role };
 
   const type = String(input.type ?? "");
   if (!(ADMIN_POSTABLE_TYPES as readonly string[]).includes(type)) {

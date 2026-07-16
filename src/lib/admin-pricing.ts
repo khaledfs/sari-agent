@@ -1,7 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { revalidateTag } from "next/cache";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { assertAdminOnly, assertCanActOnCustomer, resolveActorScope, type ActorScope } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
 import { CUSTOMER_MEMORY_BUSINESS_TYPES } from "@/models/customer-memory.model";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
@@ -139,8 +139,13 @@ function discountToRow(d: DiscountLeanDoc): AdminDiscountRow {
   };
 }
 
-export async function getProductPricing(productId: string): Promise<ProductPricingInfo> {
-  await requireAdmin();
+export async function getProductPricing(
+  productId: string,
+  presetScope?: ActorScope
+): Promise<ProductPricingInfo> {
+  // Task D: agents may read pricing (they negotiate), but the override list is
+  // filtered to THEIR customers so they never see other agents' terms.
+  const scope = presetScope ?? (await resolveActorScope());
   assertValidProductId(productId);
   await connectDB();
 
@@ -155,7 +160,11 @@ export async function getProductPricing(productId: string): Promise<ProductPrici
   } | null;
   if (!product) throw new Error("Product not found.");
 
-  const overrides = await PriceOverrideModel.find({ productId }).lean().exec();
+  const overridesAll = await PriceOverrideModel.find({ productId }).lean().exec();
+  const overrides =
+    scope.role === "admin"
+      ? overridesAll
+      : overridesAll.filter((o) => scope.customerIds.includes(String(o.userId)));
   const userIds = overrides.map((o) => o.userId);
   const users = await UserModel.find(
     { _id: { $in: userIds } },
@@ -197,7 +206,8 @@ export async function setProductTierPrices(
   productId: string,
   tierPrices: Record<string, unknown>
 ): Promise<ProductPricingInfo> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
+  assertAdminOnly(scope); // tier prices are business-type-wide -> admin-only
   assertValidProductId(productId);
 
   const clean: Record<string, number> = {};
@@ -222,7 +232,7 @@ export async function setProductTierPrices(
 
   // tierPrices ride inside the cached catalog items — bust the catalog cache.
   revalidateTag(PRODUCTS_CACHE_TAG, { expire: 0 });
-  return getProductPricing(productId);
+  return getProductPricing(productId, scope);
 }
 
 export async function setCustomerPriceOverride(
@@ -230,9 +240,9 @@ export async function setCustomerPriceOverride(
   userId: string,
   price: number
 ): Promise<ProductPricingInfo> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, userId); // agents: own customers only (404 otherwise)
   assertValidProductId(productId);
-  if (!isValidObjectId(userId)) throw new Error("Customer not found.");
   if (!Number.isFinite(price) || price <= 0) throw new Error("Override price must be greater than 0.");
 
   await connectDB();
@@ -249,26 +259,30 @@ export async function setCustomerPriceOverride(
     { upsert: true }
   ).exec();
 
-  return getProductPricing(productId);
+  return getProductPricing(productId, scope);
 }
 
 export async function removeCustomerPriceOverride(
   productId: string,
   userId: string
 ): Promise<ProductPricingInfo> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, userId);
   assertValidProductId(productId);
-  if (!isValidObjectId(userId)) throw new Error("Customer not found.");
 
   await connectDB();
   await PriceOverrideModel.deleteOne({ userId, productId }).exec();
-  return getProductPricing(productId);
+  return getProductPricing(productId, scope);
 }
 
 export async function listAdminDiscounts(): Promise<AdminDiscountRow[]> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   await connectDB();
-  const docs = (await DiscountModel.find({})
+  const filter =
+    scope.role === "admin"
+      ? {}
+      : { scope: "customer", targetId: { $in: scope.customerIds } };
+  const docs = (await DiscountModel.find(filter)
     .sort({ createdAt: -1 })
     .limit(200)
     .lean()
@@ -276,9 +290,20 @@ export async function listAdminDiscounts(): Promise<AdminDiscountRow[]> {
   return docs.map(discountToRow);
 }
 
+/** Agent rule-writing guard shared by discounts/promotions/banners (Task D). */
+export function assertRuleWithinScope(scope: ActorScope, ruleScope: string, targetId: string): void {
+  if (scope.role === "admin") return;
+  if (ruleScope !== "customer") {
+    // A global or businessType rule changes what OTHER agents' customers pay.
+    assertAdminOnly(scope); // throws FORBIDDEN_SCOPE
+  }
+  assertCanActOnCustomer(scope, targetId); // 404 outside their book
+}
+
 export async function createAdminDiscount(input: Record<string, unknown>): Promise<AdminDiscountRow> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   const doc = validateDiscountInput(input);
+  assertRuleWithinScope(scope, doc.scope, doc.targetId);
   await connectDB();
   const created = await DiscountModel.create(doc);
   return discountToRow(created.toObject() as unknown as DiscountLeanDoc);
@@ -288,12 +313,19 @@ export async function updateAdminDiscount(
   discountId: string,
   patch: Record<string, unknown>
 ): Promise<AdminDiscountRow> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   if (!isValidObjectId(discountId)) throw new Error("Discount not found.");
 
   await connectDB();
   const existing = (await DiscountModel.findById(discountId).lean().exec()) as unknown as DiscountLeanDoc | null;
   if (!existing) throw new Error("Discount not found.");
+  if (scope.role !== "admin") {
+    // Agents may only touch customer-scoped rules for THEIR customers;
+    // anything else reads as not-found (no leak).
+    if (existing.scope !== "customer" || !scope.customerIds.includes(existing.targetId ?? "")) {
+      throw new Error("Discount not found.");
+    }
+  }
 
   // Validate the merged document so partial edits can't produce invalid state.
   const merged = validateDiscountInput({
@@ -310,6 +342,7 @@ export async function updateAdminDiscount(
     isActive: patch.isActive !== undefined ? patch.isActive : existing.isActive,
   });
 
+  assertRuleWithinScope(scope, merged.scope, merged.targetId);
   await DiscountModel.updateOne({ _id: discountId }, { $set: merged }).exec();
   const updated = (await DiscountModel.findById(discountId).lean().exec()) as unknown as DiscountLeanDoc;
   return discountToRow(updated);
@@ -324,8 +357,8 @@ export type CustomerPricingSummary = {
 
 /** Per-customer pricing view for the admin customers page. */
 export async function getCustomerPricingSummary(userId: string): Promise<CustomerPricingSummary> {
-  await requireAdmin();
-  if (!isValidObjectId(userId)) throw new Error("Customer not found.");
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, userId);
   await connectDB();
 
   const memory = await CustomerMemoryModel.findOne({ userId }).select("businessType").lean().exec();

@@ -1,6 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
-import { requireAdmin } from "@/lib/auth-user";
+import { resolveActorScope } from "@/lib/actor-scope";
+import { assertRuleWithinScope } from "@/lib/admin-pricing";
 import { connectDB } from "@/lib/db";
 import { CUSTOMER_MEMORY_BUSINESS_TYPES } from "@/models/customer-memory.model";
 import { PROMOTION_KINDS, PROMOTION_SCOPES, PromotionModel } from "@/models/promotion.model";
@@ -177,9 +178,12 @@ function toRow(d: PromotionLeanDoc): AdminPromotionRow {
 }
 
 export async function listAdminPromotions(): Promise<AdminPromotionRow[]> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   await connectDB();
-  const docs = (await PromotionModel.find({})
+  // Task D: agents see only promotions targeted at THEIR customers.
+  const filter =
+    scope.role === "admin" ? {} : { scope: "customer", targetId: { $in: scope.customerIds } };
+  const docs = (await PromotionModel.find(filter)
     .sort({ createdAt: -1 })
     .limit(200)
     .lean()
@@ -188,8 +192,9 @@ export async function listAdminPromotions(): Promise<AdminPromotionRow[]> {
 }
 
 export async function createAdminPromotion(input: Record<string, unknown>): Promise<AdminPromotionRow> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   const doc = validatePromotionInput(input);
+  assertRuleWithinScope(scope, doc.scope, doc.targetId);
   await connectDB();
   const created = await PromotionModel.create(doc);
   return toRow(created.toObject() as unknown as PromotionLeanDoc);
@@ -199,12 +204,17 @@ export async function updateAdminPromotion(
   promotionId: string,
   patch: Record<string, unknown>
 ): Promise<AdminPromotionRow> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   if (!isValidObjectId(promotionId)) throw new Error("Promotion not found.");
 
   await connectDB();
   const existing = (await PromotionModel.findById(promotionId).lean().exec()) as unknown as PromotionLeanDoc | null;
   if (!existing) throw new Error("Promotion not found.");
+  if (scope.role !== "admin") {
+    if (existing.scope !== "customer" || !scope.customerIds.includes(existing.targetId ?? "")) {
+      throw new Error("Promotion not found.");
+    }
+  }
 
   // Validate the merged document so partial edits can't produce invalid state.
   const merged = validatePromotionInput({
@@ -226,6 +236,7 @@ export async function updateAdminPromotion(
     isActive: patch.isActive !== undefined ? patch.isActive : existing.isActive,
   });
 
+  assertRuleWithinScope(scope, merged.scope, merged.targetId);
   await PromotionModel.updateOne({ _id: promotionId }, { $set: merged }).exec();
   const updated = (await PromotionModel.findById(promotionId).lean().exec()) as unknown as PromotionLeanDoc;
   return toRow(updated);

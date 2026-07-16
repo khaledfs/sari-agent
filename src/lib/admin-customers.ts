@@ -1,7 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
+import { assertAdminOnly, assertCanActOnCustomer, resolveActorScope, scopedCustomerObjectIds } from "@/lib/actor-scope";
 import { getCustomerPricingSummary, type CustomerPricingSummary } from "@/lib/admin-pricing";
-import { requireAdmin } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
 import { OrderModel } from "@/models/order.model";
@@ -28,6 +28,8 @@ export type AdminCustomerRow = {
   accountStatus: AccountStatus;
   restrictedAt: string | null;
   restrictedReason: string;
+  /** Responsible field agent (nullable — unassigned customers work everywhere). */
+  assignedAgentId: string | null;
   createdAt: string;
   totalOrders: number;
   lifetimeSpend: number;
@@ -88,6 +90,7 @@ type UserLean = {
   accountStatus?: string;
   restrictedAt?: Date;
   restrictedReason?: string;
+  assignedAgentId?: mongoose.Types.ObjectId | null;
   adminNotes?: string;
   createdAt?: Date;
 };
@@ -158,6 +161,7 @@ function toRow(
     accountStatus: resolveAccountStatus(u),
     restrictedAt: u.restrictedAt instanceof Date ? u.restrictedAt.toISOString() : null,
     restrictedReason: u.restrictedReason ?? "",
+    assignedAgentId: u.assignedAgentId ? String(u.assignedAgentId) : null,
     createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : String(u.createdAt ?? ""),
     totalOrders: stats?.totalOrders ?? 0,
     lifetimeSpend: stats?.lifetimeSpend ?? 0,
@@ -174,13 +178,16 @@ export async function listAdminCustomers(
     pageSize?: number;
   } = {}
 ): Promise<AdminCustomerListResult> {
-  await requireAdmin();
+  const scope = await resolveActorScope();
   await connectDB();
 
   const page = Math.max(1, Math.floor(params.page ?? 1));
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(params.pageSize ?? DEFAULT_PAGE_SIZE)));
 
   const filter: Record<string, unknown> = { role: "customer" };
+  // Agents see ONLY their assigned customers (Task D).
+  const scopedIds = scopedCustomerObjectIds(scope);
+  if (scopedIds) filter._id = { $in: scopedIds };
 
   const search = params.search?.trim();
   if (search) {
@@ -193,11 +200,18 @@ export async function listAdminCustomers(
     filter.$and = [RESTRICTED_DB_FILTER];
   }
 
-  // businessType lives on CustomerMemory — resolve matching userIds first.
+  // businessType lives on CustomerMemory — resolve matching userIds first
+  // (intersected with the agent scope when one is active).
   const businessType = params.businessType?.trim();
   if (businessType) {
     const memories = await CustomerMemoryModel.find({ businessType }).select("userId").lean().exec();
-    filter._id = { $in: memories.map((m) => m.userId) };
+    const typeIds = memories.map((m) => String(m.userId));
+    const allowed = scopedIds ? new Set(scopedIds.map(String)) : null;
+    filter._id = {
+      $in: typeIds
+        .filter((id) => (allowed ? allowed.has(id) : true))
+        .map((id) => new mongoose.Types.ObjectId(id)),
+    };
   }
 
   const [total, users] = await Promise.all([
@@ -230,8 +244,8 @@ export async function listAdminCustomers(
 }
 
 export async function getAdminCustomer(customerId: string): Promise<AdminCustomerProfile> {
-  await requireAdmin();
-  if (!isValidObjectId(customerId)) throw new Error("Customer not found.");
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, customerId); // agent scope → 404 outside it
   await connectDB();
 
   const user = (await UserModel.findOne({ _id: customerId, role: "customer" }, { password: 0 })
@@ -326,16 +340,18 @@ export async function getAdminCustomer(customerId: string): Promise<AdminCustome
 export const RESTRICTED_REASON_MAX_LENGTH = 500;
 
 /**
- * Whitelist-only update: accountStatus (ordering hold — replaces the former
- * isActive soft-disable), restrictedReason, and adminNotes. Nothing else.
+ * Whitelist-only update: accountStatus (ordering hold), restrictedReason,
+ * adminNotes — allowed for the customer's agent too (their job, Task D) —
+ * plus assignedAgentId, which is ADMIN-ONLY (agents must not reassign
+ * customers, least of all to themselves).
  * Emits account.restricted / account.unrestricted after a real status change.
  */
 export async function updateAdminCustomer(
   customerId: string,
   patch: Record<string, unknown>
 ): Promise<AdminCustomerProfile> {
-  await requireAdmin();
-  if (!isValidObjectId(customerId)) throw new Error("Customer not found.");
+  const scope = await resolveActorScope();
+  assertCanActOnCustomer(scope, customerId);
 
   const keys = Object.keys(patch ?? {});
   if (keys.length === 0) throw new Error("At least one field is required for update.");
@@ -344,7 +360,19 @@ export async function updateAdminCustomer(
   const $unset: Record<string, unknown> = {};
   let nextStatus: AccountStatus | null = null;
   for (const key of keys) {
-    if (key === "accountStatus") {
+    if (key === "assignedAgentId") {
+      assertAdminOnly(scope); // reassignment is the ADMIN's power alone
+      if (patch.assignedAgentId === null) {
+        $set.assignedAgentId = null;
+      } else {
+        const agentId = String(patch.assignedAgentId ?? "");
+        if (!isValidObjectId(agentId)) throw new Error("Agent not found.");
+        await connectDB();
+        const agent = await UserModel.exists({ _id: agentId, role: "agent" });
+        if (!agent) throw new Error("Agent not found.");
+        $set.assignedAgentId = new mongoose.Types.ObjectId(agentId);
+      }
+    } else if (key === "accountStatus") {
       if (patch.accountStatus !== "active" && patch.accountStatus !== "restricted") {
         throw new Error('accountStatus must be "active" or "restricted".');
       }
