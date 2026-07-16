@@ -7,6 +7,8 @@ import { UserModel } from "@/models/user.model";
 import { requireOrderingEnabled } from "@/services/account-status.service";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
+import { postLedgerEntry, toMinorUnits } from "@/services/ledger.service";
+import { LedgerEntryModel } from "@/models/ledger-entry.model";
 import type { PriceBreakdown } from "@/services/pricing.service";
 import {
   evaluatePromotionsForCart,
@@ -235,13 +237,28 @@ export async function createOrderFromCart(userId: string, notes = ""): Promise<O
 
   await connectDB();
   let createdId: mongoose.Types.ObjectId | null = null;
+  let ledgerEntryId = "";
 
   const session = await mongoose.startSession();
   try {
+    // Atomic path: order + cart clear + ledger order_charge commit together
+    // (Work Order Issue 8) — or none of them do.
     await session.withTransaction(async () => {
       const [created] = await OrderModel.create([orderDoc], { session });
       createdId = created._id as mongoose.Types.ObjectId;
       await CartModel.updateOne({ userId: uid }, { $set: { items: [] } }, { session });
+      const posted = await postLedgerEntry({
+        userId,
+        type: "order_charge",
+        amountMinor: toMinorUnits(total),
+        description: `Order charge #${String(createdId).slice(-8).toUpperCase()}`,
+        orderId: String(createdId),
+        idempotencyKey: `order_charge:${String(createdId)}`,
+        onDuplicate: "ignore",
+        session,
+        deferPublish: true, // published after commit below
+      });
+      ledgerEntryId = posted.entryId;
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "";
@@ -253,15 +270,28 @@ export async function createOrderFromCart(userId: string, notes = ""): Promise<O
       throw e instanceof Error ? e : new Error("Failed to create order.");
     }
 
-    // Standalone-Mongo fallback: original compensating behavior.
+    // Standalone-Mongo fallback: original compensating behavior, extended so
+    // the ledger entry participates (delete order + entry on failure).
     createdId = null;
     const created = await OrderModel.create(orderDoc);
     createdId = created._id as mongoose.Types.ObjectId;
     try {
+      const posted = await postLedgerEntry({
+        userId,
+        type: "order_charge",
+        amountMinor: toMinorUnits(total),
+        description: `Order charge #${String(createdId).slice(-8).toUpperCase()}`,
+        orderId: String(createdId),
+        idempotencyKey: `order_charge:${String(createdId)}`,
+        onDuplicate: "ignore",
+        deferPublish: true,
+      });
+      ledgerEntryId = posted.entryId;
       await clearCart(userId);
-    } catch (clearErr) {
+    } catch (fallbackErr) {
+      await LedgerEntryModel.deleteOne({ idempotencyKey: `order_charge:${String(createdId)}` }).exec();
       await OrderModel.deleteOne({ _id: createdId }).exec();
-      throw clearErr instanceof Error ? clearErr : new Error("Failed to finalize order.");
+      throw fallbackErr instanceof Error ? fallbackErr : new Error("Failed to finalize order.");
     }
   } finally {
     await session.endSession();
@@ -276,13 +306,20 @@ export async function createOrderFromCart(userId: string, notes = ""): Promise<O
     throw new Error("Order not found after creation.");
   }
 
-  // Realtime: publish AFTER the transaction committed (admin channel only).
+  // Realtime: publish AFTER the transaction committed.
   publishRealtimeEvent({
     type: "order.created",
     orderId: String(saved._id),
     userId,
     total: saved.total,
   });
+  if (ledgerEntryId) {
+    publishRealtimeEvent({
+      type: "ledger.entry_created",
+      userId,
+      entryId: ledgerEntryId,
+    });
+  }
 
   return serializeOrder({
     _id: saved._id as mongoose.Types.ObjectId,

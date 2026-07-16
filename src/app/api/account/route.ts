@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getAuthenticatedUserId } from "@/lib/auth-user";
-import { getAccountByUser, getMockPaymentsByUser } from "@/services/account.service";
+import { getAccountByUser } from "@/services/account.service";
+import { getLedgerSummary } from "@/services/ledger.service";
 
 function unauthorized() {
   return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
@@ -13,8 +14,9 @@ export async function GET() {
     if (!userId) {
       return unauthorized();
     }
-    const account = await getAccountByUser(userId);
-    const payments = getMockPaymentsByUser(userId);
+    // Financial summary now comes from the REAL ledger (Work Order Issue 8);
+    // the former mock payments array and fabricated totalDebt are gone.
+    const [account, ledger] = await Promise.all([getAccountByUser(userId), getLedgerSummary(userId)]);
     const data = {
       profile: {
         businessName: account.businessName,
@@ -22,11 +24,10 @@ export async function GET() {
         email: account.email,
       },
       summary: {
-        balance: account.balance,
-        totalDebt: account.totalDebt,
-        lastPaymentDate: account.lastPaymentDate ? account.lastPaymentDate.toISOString() : null,
+        balanceMinor: ledger.currentBalanceMinor,
+        currency: ledger.currency,
+        lastEntryAt: ledger.lastEntryAt,
       },
-      payments,
     };
     return NextResponse.json({ success: true, data });
   } catch (error) {

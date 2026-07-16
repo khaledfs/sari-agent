@@ -348,6 +348,8 @@
     "balance": "יתרה",
     "totalDebt": "סה\"כ חוב",
     "lastPaymentDate": "תשלום אחרון",
+    "lastEntryAt": "תנועה אחרונה בכרטסת",
+    "viewLedger": "לצפייה בכרטסת המלאה ←",
     "paymentsOverview": "סקירת תשלומים",
     "paymentDate": "תאריך",
     "paymentAmount": "סכום",
@@ -357,25 +359,41 @@
   },
   "ledger": {
     "title": "כרטסת",
-    "subtitle": "חשבוניות, תשלומים, צ'קים וסיכום חשבון במקום אחד.",
+    "subtitle": "החיובים, התשלומים והיתרה השוטפת שלך במקום אחד.",
     "loading": "טוען כרטסת…",
     "error": "משהו השתבש. נסה שוב.",
+    "retry": "נסו שוב",
     "sections": {
       "summary": "סיכום חשבון",
-      "payments": "תשלומים",
-      "checks": "צ'קים",
-      "invoices": "חשבוניות"
+      "entries": "תנועות"
     },
-    "checkNumber": "מספר צ'ק",
-    "bank": "בנק",
-    "checkDate": "תאריך",
-    "amount": "סכום",
-    "checkStatus": {
-      "cleared": "פרוע",
-      "pending": "ממתין",
-      "returned": "חוזר"
+    "currentBalance": "יתרה נוכחית",
+    "balanceExplainer": "יתרה חיובית היא הסכום שעליכם לשלם; תשלומים וזיכויים מקטינים אותה.",
+    "lastEntryAt": "תנועה אחרונה",
+    "empty": "אין עדיין תנועות בכרטסת — ההזמנה הראשונה תופיע כאן.",
+    "loadMore": "טענו עוד",
+    "columns": {
+      "date": "תאריך",
+      "type": "סוג",
+      "reference": "אסמכתה",
+      "description": "תיאור",
+      "debit": "חובה",
+      "credit": "זכות",
+      "balance": "יתרה",
+      "status": "סטטוס"
     },
-    "checksEmpty": "אין צ'קים להצגה."
+    "types": {
+      "order_charge": "חיוב הזמנה",
+      "payment": "תשלום",
+      "credit": "זיכוי",
+      "refund": "החזר",
+      "adjustment": "התאמה",
+      "opening_balance": "יתרת פתיחה"
+    },
+    "status": {
+      "posted": "נרשם",
+      "void": "מבוטל"
+    }
   },
   "invoices": {
     "title": "חשבוניות",
@@ -492,9 +510,37 @@
       "tabs": {
         "overview": "סקירה",
         "orders": "הזמנות",
+        "ledger": "כרטסת",
         "memory": "זיכרון AI",
         "notes": "הערות",
         "pricing": "תמחור"
+      },
+      "ledgerBalance": "יתרה נוכחית",
+      "ledgerEmpty": "אין עדיין תנועות בכרטסת ללקוח זה.",
+      "ledgerTypes": {
+        "order_charge": "חיוב הזמנה",
+        "payment": "תשלום",
+        "credit": "זיכוי",
+        "refund": "החזר",
+        "adjustment": "התאמה",
+        "opening_balance": "יתרת פתיחה"
+      },
+      "ledgerColumns": {
+        "date": "תאריך",
+        "type": "סוג",
+        "reference": "אסמכתה",
+        "description": "תיאור",
+        "debit": "חובה",
+        "credit": "זכות",
+        "balance": "יתרה"
+      },
+      "ledgerForm": {
+        "type": "סוג",
+        "amount": "סכום (₪)",
+        "description": "תיאור",
+        "record": "רישום תנועה",
+        "recording": "רושם…",
+        "invalid": "יש להזין סכום חיובי ותיאור."
       },
       "memoryReadOnly": "לקריאה בלבד — נוצר על ידי העוזר",
       "noMemory": "אין עדיין זיכרון AI ללקוח זה.",

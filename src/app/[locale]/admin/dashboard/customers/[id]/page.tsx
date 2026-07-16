@@ -5,6 +5,8 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
+import { formatMinorUnits } from "@/lib/money";
+
 type CustomerProfile = {
   customer: {
     id: string;
@@ -50,8 +52,31 @@ type CustomerProfile = {
 
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string };
 
-const TABS = ["overview", "orders", "memory", "notes", "pricing"] as const;
+type LedgerEntry = {
+  id: string;
+  type: "order_charge" | "payment" | "credit" | "refund" | "adjustment" | "opening_balance";
+  orderId: string | null;
+  description: string;
+  debitMinor: number;
+  creditMinor: number;
+  status: "posted" | "void";
+  createdAt: string;
+  balanceAfterMinor: number;
+};
+
+type LedgerData = {
+  entries: LedgerEntry[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+  summary: { currentBalanceMinor: number; currency: string; lastEntryAt: string | null };
+};
+
+const TABS = ["overview", "orders", "ledger", "memory", "notes", "pricing"] as const;
 type Tab = (typeof TABS)[number];
+
+const ADMIN_LEDGER_TYPES = ["payment", "credit", "adjustment"] as const;
 
 const NOTES_MAX = 1000;
 
@@ -75,6 +100,93 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
   const [statusSaving, setStatusSaving] = useState(false);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reasonDraft, setReasonDraft] = useState("");
+
+  // Ledger tab (Work Order Issue 8).
+  const [ledger, setLedger] = useState<LedgerData | null>(null);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerError, setLedgerError] = useState("");
+  const [entryForm, setEntryForm] = useState({ type: "payment", amount: "", description: "" });
+  const [posting, setPosting] = useState(false);
+
+  const loadLedger = useCallback(async () => {
+    setLedgerError("");
+    setLedgerLoading(true);
+    try {
+      const res = await fetch(`/api/admin/customers/${id}/ledger`);
+      if (res.status === 401) {
+        router.replace(`/${locale}/admin/login`);
+        return;
+      }
+      const json = (await res.json()) as ApiEnvelope<LedgerData>;
+      if (res.status === 200 && json.success && json.data) {
+        setLedger(json.data);
+        return;
+      }
+      setLedgerError(json.message ?? t("customers.error"));
+    } catch {
+      setLedgerError(t("customers.error"));
+    } finally {
+      setLedgerLoading(false);
+    }
+  }, [id, locale, router, t]);
+
+  useEffect(() => {
+    if (tab === "ledger" && !ledger && !ledgerLoading) void loadLedger();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lazy first load only
+  }, [tab]);
+
+  /** Record payment/credit/adjustment with optimistic insert + rollback. */
+  async function recordEntry() {
+    if (!ledger || posting) return;
+    const amount = Number(entryForm.amount);
+    const description = entryForm.description.trim();
+    if (!Number.isFinite(amount) || amount <= 0 || !description) {
+      setLedgerError(t("customers.ledgerForm.invalid"));
+      return;
+    }
+    setPosting(true);
+    setLedgerError("");
+    const prev = ledger;
+    const amountMinor = Math.round(amount * 100);
+    const isDebit = entryForm.type === "adjustment";
+    const optimistic: LedgerEntry = {
+      id: `optimistic-${Date.now()}`,
+      type: entryForm.type as LedgerEntry["type"],
+      orderId: null,
+      description,
+      debitMinor: isDebit ? amountMinor : 0,
+      creditMinor: isDebit ? 0 : amountMinor,
+      status: "posted",
+      createdAt: new Date().toISOString(),
+      balanceAfterMinor:
+        ledger.summary.currentBalanceMinor + (isDebit ? amountMinor : -amountMinor),
+    };
+    setLedger({
+      ...ledger,
+      entries: [optimistic, ...ledger.entries],
+      summary: { ...ledger.summary, currentBalanceMinor: optimistic.balanceAfterMinor },
+    });
+    try {
+      const res = await fetch(`/api/admin/customers/${id}/ledger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: entryForm.type, amount, description }),
+      });
+      const json = (await res.json()) as ApiEnvelope<{ entryId: string }>;
+      if (res.status === 200 && json.success) {
+        setEntryForm({ type: entryForm.type, amount: "", description: "" });
+        await loadLedger(); // authoritative rows + running balances
+        return;
+      }
+      setLedger(prev);
+      setLedgerError(json.message ?? t("customers.error"));
+    } catch {
+      setLedger(prev);
+      setLedgerError(t("customers.error"));
+    } finally {
+      setPosting(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -323,6 +435,99 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
                   </table>
                 </div>
               )}
+            </div>
+          ) : null}
+
+          {tab === "ledger" ? (
+            <div role="tabpanel">
+              {ledgerError ? <p style={{ color: "var(--danger)", marginBottom: "0.75rem" }}>{ledgerError}</p> : null}
+              {ledgerLoading && !ledger ? (
+                <p style={{ color: "var(--text-muted)", padding: "2rem 0", textAlign: "center" }}>
+                  {t("customers.loading")}
+                </p>
+              ) : ledger ? (
+                <>
+                  <p style={{ marginBottom: "0.75rem", fontSize: "0.95rem" }}>
+                    <strong>{t("customers.ledgerBalance")}:</strong>{" "}
+                    <span dir="ltr">{formatMinorUnits(locale, ledger.summary.currentBalanceMinor)}</span>
+                  </p>
+
+                  <div className="admin-toolbar" style={{ alignItems: "flex-end" }}>
+                    <label className="admin-field" style={{ marginBottom: 0 }}>
+                      <span>{t("customers.ledgerForm.type")}</span>
+                      <select
+                        className="admin-select"
+                        value={entryForm.type}
+                        onChange={(e) => setEntryForm((f) => ({ ...f, type: e.target.value }))}
+                      >
+                        {ADMIN_LEDGER_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {t(`customers.ledgerTypes.${type}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="admin-field" style={{ marginBottom: 0 }}>
+                      <span>{t("customers.ledgerForm.amount")}</span>
+                      <input
+                        className="admin-input"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={entryForm.amount}
+                        onChange={(e) => setEntryForm((f) => ({ ...f, amount: e.target.value }))}
+                      />
+                    </label>
+                    <label className="admin-field" style={{ marginBottom: 0, flex: 1 }}>
+                      <span>{t("customers.ledgerForm.description")}</span>
+                      <input
+                        className="admin-input"
+                        value={entryForm.description}
+                        maxLength={500}
+                        onChange={(e) => setEntryForm((f) => ({ ...f, description: e.target.value }))}
+                      />
+                    </label>
+                    <button type="button" className="admin-btn-primary" disabled={posting} onClick={() => void recordEntry()}>
+                      {posting ? t("customers.ledgerForm.recording") : t("customers.ledgerForm.record")}
+                    </button>
+                  </div>
+
+                  {ledger.entries.length === 0 ? (
+                    <p className="admin-panel__empty">{t("customers.ledgerEmpty")}</p>
+                  ) : (
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>{t("customers.ledgerColumns.date")}</th>
+                            <th>{t("customers.ledgerColumns.type")}</th>
+                            <th>{t("customers.ledgerColumns.reference")}</th>
+                            <th>{t("customers.ledgerColumns.description")}</th>
+                            <th>{t("customers.ledgerColumns.debit")}</th>
+                            <th>{t("customers.ledgerColumns.credit")}</th>
+                            <th>{t("customers.ledgerColumns.balance")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ledger.entries.map((entry) => (
+                            <tr key={entry.id}>
+                              <td style={{ whiteSpace: "nowrap" }}>{formatDate(entry.createdAt)}</td>
+                              <td>{t(`customers.ledgerTypes.${entry.type}`)}</td>
+                              <td dir="ltr">{entry.orderId ? `#${entry.orderId.slice(-8).toUpperCase()}` : "—"}</td>
+                              <td>{entry.description}</td>
+                              <td dir="ltr">{entry.debitMinor > 0 ? formatMinorUnits(locale, entry.debitMinor) : "—"}</td>
+                              <td dir="ltr">{entry.creditMinor > 0 ? formatMinorUnits(locale, entry.creditMinor) : "—"}</td>
+                              <td dir="ltr" style={{ fontWeight: 600 }}>
+                                {formatMinorUnits(locale, entry.balanceAfterMinor)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : null}
             </div>
           ) : null}
 

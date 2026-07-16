@@ -348,6 +348,8 @@
     "balance": "الرصيد",
     "totalDebt": "إجمالي الدين",
     "lastPaymentDate": "آخر دفعة",
+    "lastEntryAt": "آخر حركة في دفتر الحسابات",
+    "viewLedger": "عرض دفتر الحسابات الكامل ←",
     "paymentsOverview": "نظرة على المدفوعات",
     "paymentDate": "التاريخ",
     "paymentAmount": "المبلغ",
@@ -357,25 +359,41 @@
   },
   "ledger": {
     "title": "دفتر الحسابات",
-    "subtitle": "الفواتير والمدفوعات والشيكات وملخص الحساب في مكان واحد.",
+    "subtitle": "رسوم الطلبات والمدفوعات والرصيد الجاري في مكان واحد.",
     "loading": "جارٍ تحميل دفتر الحسابات…",
     "error": "حدث خطأ. حاول مرة أخرى.",
+    "retry": "إعادة المحاولة",
     "sections": {
       "summary": "ملخص الحساب",
-      "payments": "المدفوعات",
-      "checks": "الشيكات",
-      "invoices": "الفواتير"
+      "entries": "الحركات"
     },
-    "checkNumber": "رقم الشيك",
-    "bank": "البنك",
-    "checkDate": "التاريخ",
-    "amount": "المبلغ",
-    "checkStatus": {
-      "cleared": "مسدد",
-      "pending": "قيد الانتظار",
-      "returned": "مرتجع"
+    "currentBalance": "الرصيد الحالي",
+    "balanceExplainer": "الرصيد الموجب هو المبلغ المستحق عليك؛ المدفوعات والأرصدة الدائنة تخفّضه.",
+    "lastEntryAt": "آخر حركة",
+    "empty": "لا توجد حركات بعد — سيظهر طلبك الأول هنا.",
+    "loadMore": "تحميل المزيد",
+    "columns": {
+      "date": "التاريخ",
+      "type": "النوع",
+      "reference": "المرجع",
+      "description": "الوصف",
+      "debit": "مدين",
+      "credit": "دائن",
+      "balance": "الرصيد",
+      "status": "الحالة"
     },
-    "checksEmpty": "لا توجد شيكات لعرضها."
+    "types": {
+      "order_charge": "رسوم طلب",
+      "payment": "دفعة",
+      "credit": "رصيد دائن",
+      "refund": "استرداد",
+      "adjustment": "تسوية",
+      "opening_balance": "رصيد افتتاحي"
+    },
+    "status": {
+      "posted": "مسجّل",
+      "void": "ملغى"
+    }
   },
   "invoices": {
     "title": "الفواتير",
@@ -492,9 +510,37 @@
       "tabs": {
         "overview": "نظرة عامة",
         "orders": "الطلبات",
+        "ledger": "دفتر الحسابات",
         "memory": "ذاكرة AI",
         "notes": "ملاحظات",
         "pricing": "التسعير"
+      },
+      "ledgerBalance": "الرصيد الحالي",
+      "ledgerEmpty": "لا توجد حركات لهذا العميل بعد.",
+      "ledgerTypes": {
+        "order_charge": "رسوم طلب",
+        "payment": "دفعة",
+        "credit": "رصيد دائن",
+        "refund": "استرداد",
+        "adjustment": "تسوية",
+        "opening_balance": "رصيد افتتاحي"
+      },
+      "ledgerColumns": {
+        "date": "التاريخ",
+        "type": "النوع",
+        "reference": "المرجع",
+        "description": "الوصف",
+        "debit": "مدين",
+        "credit": "دائن",
+        "balance": "الرصيد"
+      },
+      "ledgerForm": {
+        "type": "النوع",
+        "amount": "المبلغ (₪)",
+        "description": "الوصف",
+        "record": "تسجيل الحركة",
+        "recording": "جارٍ التسجيل…",
+        "invalid": "أدخل مبلغًا موجبًا ووصفًا."
       },
       "memoryReadOnly": "للقراءة فقط — من إنشاء المساعد",
       "noMemory": "لا توجد ذاكرة AI لهذا العميل بعد.",

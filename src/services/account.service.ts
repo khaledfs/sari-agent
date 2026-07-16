@@ -13,11 +13,6 @@ export type AccountRecord = {
   lastPaymentDate: Date | null;
 };
 
-export type MockPaymentRow = {
-  date: string;
-  amount: number;
-};
-
 function toUserObjectId(userId: string) {
   if (!isValidObjectId(userId)) {
     throw new Error("Invalid user id.");
@@ -43,14 +38,17 @@ function docToRecord(doc: {
   };
 }
 
-/** Mock financial defaults when provisioning a new account from User. */
-function mockFinancialDefaults() {
-  const lastPaymentDate = new Date();
-  lastPaymentDate.setDate(lastPaymentDate.getDate() - 12);
+/**
+ * Provisioning defaults. The former MOCK values (fabricated totalDebt 1280.5,
+ * fake lastPaymentDate) were removed with the real ledger (Work Order Issue 8)
+ * — CustomerAccount.balance/totalDebt/lastPaymentDate are legacy fields no
+ * longer surfaced anywhere; financial truth lives in the ledger entries.
+ */
+function provisioningDefaults() {
   return {
     balance: 0,
-    totalDebt: 1280.5,
-    lastPaymentDate,
+    totalDebt: 0,
+    lastPaymentDate: null as Date | null,
   };
 }
 
@@ -71,43 +69,17 @@ export async function getAccountByUser(userId: string): Promise<AccountRecord> {
     throw new Error("User not found.");
   }
 
-  const mock = mockFinancialDefaults();
+  const defaults = provisioningDefaults();
   doc = await CustomerAccountModel.create({
     userId: uid,
     businessName: user.businessName,
     phoneNumber: user.phoneNumber,
     email: user.email,
-    balance: mock.balance,
-    totalDebt: mock.totalDebt,
-    lastPaymentDate: mock.lastPaymentDate,
+    balance: defaults.balance,
+    totalDebt: defaults.totalDebt,
+    ...(defaults.lastPaymentDate ? { lastPaymentDate: defaults.lastPaymentDate } : {}),
   });
 
   return docToRecord(doc);
-}
-
-/**
- * Mock payment rows for UI; structure is ready to swap for a real data source later.
- * `userId` is accepted so future implementations can scope data per user without API changes.
- */
-export function getMockPaymentsByUser(userId: string): MockPaymentRow[] {
-  if (!isValidObjectId(userId)) {
-    return [];
-  }
-  const base = userId.slice(-4);
-  const n = parseInt(base, 16) || 0;
-  const offset = n % 50;
-
-  const d1 = new Date();
-  d1.setDate(d1.getDate() - 5);
-  const d2 = new Date();
-  d2.setDate(d2.getDate() - 18);
-  const d3 = new Date();
-  d3.setDate(d3.getDate() - 44);
-
-  return [
-    { date: d1.toISOString(), amount: Math.round((420 + offset) * 100) / 100 },
-    { date: d2.toISOString(), amount: Math.round((150 + offset / 2) * 100) / 100 },
-    { date: d3.toISOString(), amount: Math.round((980 - offset) * 100) / 100 },
-  ];
 }
 

@@ -4,71 +4,76 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
-import type { CheckStatus, InvoiceStatus } from "@/services/financial.service";
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
+import { formatMinorUnits } from "@/lib/money";
+import { shortOrderNumber } from "@/components/orders/order-view";
 
-type LedgerData = {
-  summary: {
-    balance: number;
-    totalDebt: number;
-    lastPaymentDate: string | null;
-  };
-  payments: Array<{ date: string; amount: number }>;
-  checks: Array<{
-    id: string;
-    checkNumber: string;
-    bankName: string;
-    amount: number;
-    date: string;
-    status: CheckStatus;
-  }>;
-  invoices: Array<{
-    id: string;
-    invoiceNumber: string;
-    date: string;
-    dueDate: string;
-    amount: number;
-    status: InvoiceStatus;
-  }>;
+/**
+ * Real customer ledger (Work Order Issue 8) — replaces the former mock
+ * payments/checks/invoices screen. Amounts arrive as integers in agorot and
+ * are rendered without client-side float math (formatMinorUnits).
+ */
+
+type LedgerEntry = {
+  id: string;
+  type: "order_charge" | "payment" | "credit" | "refund" | "adjustment" | "opening_balance";
+  orderId: string | null;
+  description: string;
+  debitMinor: number;
+  creditMinor: number;
+  currency: string;
+  status: "posted" | "void";
+  createdAt: string;
+  balanceAfterMinor: number;
 };
 
-function invoiceBadgeClass(status: InvoiceStatus) {
-  if (status === "paid") return "ds-badge ds-badge--paid";
-  if (status === "unpaid") return "ds-badge ds-badge--unpaid";
-  return "ds-badge ds-badge--overdue";
-}
+type LedgerData = {
+  entries: LedgerEntry[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+  summary: {
+    currentBalanceMinor: number;
+    currency: string;
+    lastEntryAt: string | null;
+  };
+};
 
-function checkBadgeClass(status: CheckStatus) {
-  if (status === "cleared") return "ds-badge ds-badge--paid";
-  if (status === "pending") return "ds-badge ds-badge--unpaid";
-  return "ds-badge ds-badge--overdue";
+function typeBadgeClass(type: LedgerEntry["type"]) {
+  if (type === "order_charge" || type === "adjustment" || type === "opening_balance") {
+    return "ds-badge ds-badge--unpaid";
+  }
+  return "ds-badge ds-badge--paid";
 }
 
 export default function LedgerPage() {
   const t = useTranslations("ledger");
-  const tAcc = useTranslations("account");
-  const tInv = useTranslations("invoices");
   const tNav = useTranslations("dashboard.nav");
   const locale = useLocale();
   const [data, setData] = useState<LedgerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (page: number, append: boolean) => {
+    if (append) setLoadingMore(true);
     setError("");
     try {
-      const res = await fetch("/api/account/ledger", { method: "GET" });
-      const json = (await res.json()) as {
-        success?: boolean;
-        data?: LedgerData;
-        message?: string;
-      };
+      const res = await fetch(`/api/account/ledger?page=${page}`, { method: "GET" });
+      const json = (await res.json()) as { success?: boolean; data?: LedgerData; message?: string };
       if (res.status === 401) {
         setError(t("error"));
-        setData(null);
+        if (!append) setData(null);
         return;
       }
       if (res.status === 200 && json.success && json.data) {
-        setData(json.data);
+        const next = json.data;
+        setData((prev) =>
+          append && prev
+            ? { ...next, entries: [...prev.entries, ...next.entries] }
+            : next
+        );
         return;
       }
       setError(json.message ?? t("error"));
@@ -76,47 +81,25 @@ export default function LedgerPage() {
       setError(t("error"));
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [t]);
 
   useEffect(() => {
-    void load();
+    void load(1, false);
   }, [load]);
 
-  function formatDate(iso: string | null, withTime = false) {
+  // Live: new entries (order placed, admin recorded a payment) refresh the
+  // ledger silently; reconnects refetch the authoritative state.
+  useRealtimeRefetch(["ledger.entry_created"], () => void load(1, false));
+
+  function formatDate(iso: string | null) {
     if (!iso) return "—";
     try {
-      return new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        ...(withTime ? { timeStyle: "short" } : {}),
-      }).format(new Date(iso));
+      return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
     } catch {
       return iso;
     }
-  }
-
-  function formatMoney(value: number) {
-    try {
-      return new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: "ILS",
-        maximumFractionDigits: 2,
-      }).format(value);
-    } catch {
-      return String(value);
-    }
-  }
-
-  function invoiceStatusLabel(status: InvoiceStatus) {
-    if (status === "paid") return tInv("paid");
-    if (status === "unpaid") return tInv("unpaid");
-    return tInv("overdue");
-  }
-
-  function checkStatusLabel(status: CheckStatus) {
-    if (status === "cleared") return t("checkStatus.cleared");
-    if (status === "pending") return t("checkStatus.pending");
-    return t("checkStatus.returned");
   }
 
   return (
@@ -131,8 +114,25 @@ export default function LedgerPage() {
         </Link>
       </div>
 
-      {loading ? <p className="ds-text-muted">{t("loading")}</p> : null}
-      {error ? <p className="ds-error">{error}</p> : null}
+      {loading ? (
+        <ul className="ds-skeleton-list" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="ds-skeleton-card">
+              <span className="ds-skeleton ds-skeleton-line ds-skeleton-line--title" />
+              <span className="ds-skeleton ds-skeleton-line ds-skeleton-line--wide" />
+              <span className="ds-skeleton ds-skeleton-block" />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {error ? (
+        <div className="ds-mt-sm">
+          <p className="ds-error">{error}</p>
+          <button type="button" className="ds-btn ds-btn--secondary" onClick={() => void load(1, false)}>
+            {t("retry")}
+          </button>
+        </div>
+      ) : null}
 
       {!loading && data ? (
         <div className="ds-stack ds-content-after-title">
@@ -141,96 +141,75 @@ export default function LedgerPage() {
               {t("sections.summary")}
             </h2>
             <p className="ds-text-small">
-              <strong>{tAcc("balance")}:</strong> {formatMoney(data.summary.balance)}
+              <strong>{t("currentBalance")}:</strong>{" "}
+              <span dir="ltr">{formatMinorUnits(locale, data.summary.currentBalanceMinor)}</span>
             </p>
+            <p className="ds-text-caption">{t("balanceExplainer")}</p>
             <p className="ds-text-small">
-              <strong>{tAcc("totalDebt")}:</strong> {formatMoney(data.summary.totalDebt)}
-            </p>
-            <p className="ds-text-small">
-              <strong>{tAcc("lastPaymentDate")}:</strong> {formatDate(data.summary.lastPaymentDate, true)}
+              <strong>{t("lastEntryAt")}:</strong> {formatDate(data.summary.lastEntryAt)}
             </p>
           </section>
 
-          <section className="ds-card ds-stack ds-stack--tight" aria-labelledby="ledger-payments-heading">
-            <h2 id="ledger-payments-heading" className="ds-section-title">
-              {t("sections.payments")}
+          <section className="ds-card ds-stack ds-stack--tight" aria-labelledby="ledger-entries-heading">
+            <h2 id="ledger-entries-heading" className="ds-section-title">
+              {t("sections.entries")}
             </h2>
-            {data.payments.length === 0 ? (
-              <p className="ds-text-muted">{tAcc("noPayments")}</p>
+            {data.entries.length === 0 ? (
+              <p className="ds-text-muted">{t("empty")}</p>
             ) : (
-              <ul className="ds-list">
-                {data.payments.map((p, index) => (
-                  <li key={`${p.date}-${index}`} className="ds-payment-row">
-                    <span className="ds-text-small">
-                      <strong>{tAcc("paymentDate")}:</strong> {formatDate(p.date, true)}
-                    </span>
-                    <span className="ds-text-small">
-                      <strong>{tAcc("paymentAmount")}:</strong> {formatMoney(p.amount)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div style={{ overflowX: "auto" }}>
+                <table className="ds-ledger-table">
+                  <thead>
+                    <tr>
+                      <th>{t("columns.date")}</th>
+                      <th>{t("columns.type")}</th>
+                      <th>{t("columns.reference")}</th>
+                      <th>{t("columns.description")}</th>
+                      <th>{t("columns.debit")}</th>
+                      <th>{t("columns.credit")}</th>
+                      <th>{t("columns.balance")}</th>
+                      <th>{t("columns.status")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.entries.map((entry) => (
+                      <tr key={entry.id}>
+                        <td style={{ whiteSpace: "nowrap" }}>{formatDate(entry.createdAt)}</td>
+                        <td>
+                          <span className={typeBadgeClass(entry.type)}>{t(`types.${entry.type}`)}</span>
+                        </td>
+                        <td dir="ltr">
+                          {entry.orderId ? (
+                            <Link href={`/${locale}/dashboard/orders/${entry.orderId}`} className="ds-link">
+                              #{shortOrderNumber(entry.orderId)}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td>{entry.description}</td>
+                        <td dir="ltr">{entry.debitMinor > 0 ? formatMinorUnits(locale, entry.debitMinor) : "—"}</td>
+                        <td dir="ltr">{entry.creditMinor > 0 ? formatMinorUnits(locale, entry.creditMinor) : "—"}</td>
+                        <td dir="ltr" style={{ fontWeight: 600 }}>
+                          {formatMinorUnits(locale, entry.balanceAfterMinor)}
+                        </td>
+                        <td>{t(`status.${entry.status}`)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </section>
-
-          <section className="ds-card ds-stack ds-stack--tight" aria-labelledby="ledger-checks-heading">
-            <h2 id="ledger-checks-heading" className="ds-section-title">
-              {t("sections.checks")}
-            </h2>
-            {data.checks.length === 0 ? (
-              <p className="ds-text-muted">{t("checksEmpty")}</p>
-            ) : (
-              <ul className="ds-list">
-                {data.checks.map((c) => (
-                  <li key={c.id} className="ds-card ds-stack ds-stack--tight">
-                    <div className="ds-invoice-card-header">
-                      <span className="ds-invoice-number">
-                        {t("checkNumber")} {c.checkNumber}
-                      </span>
-                      <span className={checkBadgeClass(c.status)}>{checkStatusLabel(c.status)}</span>
-                    </div>
-                    <p className="ds-text-small">
-                      <strong>{t("bank")}:</strong> {c.bankName}
-                    </p>
-                    <p className="ds-text-small">
-                      <strong>{t("checkDate")}:</strong> {formatDate(c.date)}
-                    </p>
-                    <p className="ds-text-small">
-                      <strong>{t("amount")}:</strong> {formatMoney(c.amount)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="ds-card ds-stack ds-stack--tight" aria-labelledby="ledger-invoices-heading">
-            <h2 id="ledger-invoices-heading" className="ds-section-title">
-              {t("sections.invoices")}
-            </h2>
-            {data.invoices.length === 0 ? (
-              <p className="ds-text-muted">{tInv("empty")}</p>
-            ) : (
-              <ul className="ds-list">
-                {data.invoices.map((inv) => (
-                  <li key={inv.id} className="ds-card ds-stack ds-stack--tight">
-                    <div className="ds-invoice-card-header">
-                      <span className="ds-invoice-number">{inv.invoiceNumber}</span>
-                      <span className={invoiceBadgeClass(inv.status)}>{invoiceStatusLabel(inv.status)}</span>
-                    </div>
-                    <p className="ds-text-small">
-                      <strong>{tInv("date")}:</strong> {formatDate(inv.date)}
-                    </p>
-                    <p className="ds-text-small">
-                      <strong>{tInv("dueDate")}:</strong> {formatDate(inv.dueDate)}
-                    </p>
-                    <p className="ds-text-small">
-                      <strong>{tInv("amount")}:</strong> {formatMoney(inv.amount)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {data.hasMore ? (
+              <button
+                type="button"
+                className="ds-btn ds-btn--secondary"
+                disabled={loadingMore}
+                onClick={() => void load(data.page + 1, true)}
+              >
+                {loadingMore ? t("loading") : t("loadMore")}
+              </button>
+            ) : null}
           </section>
         </div>
       ) : null}

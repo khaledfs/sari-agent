@@ -4,18 +4,20 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { formatMinorUnits } from "@/lib/money";
+
 type AccountApiData = {
   profile: {
     businessName: string;
     phoneNumber: string;
     email: string;
   };
+  /** Real ledger-derived summary (agorot) — Work Order Issue 8. */
   summary: {
-    balance: number;
-    totalDebt: number;
-    lastPaymentDate: string | null;
+    balanceMinor: number;
+    currency: string;
+    lastEntryAt: string | null;
   };
-  payments: Array<{ date: string; amount: number }>;
 };
 
 export default function ProfilePage() {
@@ -98,34 +100,14 @@ export default function ProfilePage() {
           <section className="ds-card ds-stack ds-stack--tight">
             <h2 className="ds-section-title">{t("accountSummary")}</h2>
             <p className="ds-text-small">
-              <strong>{t("balance")}:</strong> {data.summary.balance}
+              <strong>{t("balance")}:</strong> {formatMinorUnits(locale, data.summary.balanceMinor)}
             </p>
             <p className="ds-text-small">
-              <strong>{t("totalDebt")}:</strong> {data.summary.totalDebt}
+              <strong>{t("lastEntryAt")}:</strong> {formatDate(data.summary.lastEntryAt)}
             </p>
-            <p className="ds-text-small">
-              <strong>{t("lastPaymentDate")}:</strong> {formatDate(data.summary.lastPaymentDate)}
-            </p>
-          </section>
-
-          <section className="ds-card ds-stack ds-stack--tight">
-            <h2 className="ds-section-title">{t("paymentsOverview")}</h2>
-            {data.payments.length === 0 ? (
-              <p className="ds-text-muted">{t("noPayments")}</p>
-            ) : (
-              <ul className="ds-list">
-                {data.payments.map((p, index) => (
-                  <li key={`${p.date}-${index}`} className="ds-payment-row">
-                    <span className="ds-text-small">
-                      <strong>{t("paymentDate")}:</strong> {formatDate(p.date)}
-                    </span>
-                    <span className="ds-text-small">
-                      <strong>{t("paymentAmount")}:</strong> {p.amount}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <Link href={`/${locale}/dashboard/ledger`} className="ds-link">
+              {t("viewLedger")}
+            </Link>
           </section>
         </div>
       ) : null}

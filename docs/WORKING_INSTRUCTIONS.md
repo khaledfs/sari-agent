@@ -81,6 +81,18 @@ Orders integrity
 - Routes map the guard error via `mapAccountRestrictedError()` →
   `403 { code: "ACCOUNT_RESTRICTED" }`. Frontend disabling is UX only, never the enforcement.
 - Restricted customers keep ALL read access (orders, ledger, catalog, receipts, realtime).
+
+### 3.8 Ledger money rules
+
+- Ledger money is stored as **integers in minor units (agorot)** — `debitMinor`/`creditMinor`.
+  No floating-point arithmetic anywhere in the ledger feature; conversion from ₪ happens once
+  at the API boundary via `toMinorUnits()`, display via `formatMinorUnits()` (integer math).
+- Balance = Σdebit − Σcredit over POSTED entries, **computed** server-side in deterministic
+  chronological order — never store a denormalized balance.
+- **Posted entries are immutable**: corrections are compensating reversal entries, keyed by a
+  unique `idempotencyKey` (e.g. `order_charge:<orderId>`), never edits or deletes.
+- Financial writes tied to another write (order creation) go **inside the same transaction**;
+  realtime publish happens after commit.
 ---
 
 ## 4. Internationalization (i18n)

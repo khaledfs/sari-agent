@@ -1101,6 +1101,150 @@ async function receiptSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- ledger section (Issue 8) ----------
+
+async function ledgerSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  ledger section skipped — needs both customer and admin logins");
+    return;
+  }
+
+  async function readLedger() {
+    const { res, body } = await jsonFetch("/api/account/ledger", { headers: { Cookie: customerCookie } });
+    return { res, data: body?.data };
+  }
+
+  // Shape.
+  let before = null;
+  try {
+    const { res, data } = await readLedger();
+    const ok =
+      res.status === 200 &&
+      Array.isArray(data?.entries) &&
+      typeof data?.summary?.currentBalanceMinor === "number" &&
+      Number.isInteger(data.summary.currentBalanceMinor) &&
+      data?.summary?.currency === "ILS" &&
+      data.entries.every(
+        (e) => Number.isInteger(e.debitMinor) && Number.isInteger(e.creditMinor) && Number.isInteger(e.balanceAfterMinor)
+      );
+    report("ledger: GET -> 200 + integer minor-unit shape", ok, `status ${res.status}, entries=${data?.entries?.length}`);
+    before = data;
+  } catch (err) {
+    report("ledger: GET -> 200 + integer minor-unit shape", false, String(err));
+  }
+
+  // Unauthenticated -> 401.
+  try {
+    const res = await fetch(`${BASE_URL}/api/account/ledger`);
+    report("ledger: unauthenticated -> 401", res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report("ledger: unauthenticated -> 401", false, String(err));
+  }
+
+  // Admin ledger endpoint rejects customer tokens (scope enforcement).
+  let customerId = null;
+  try {
+    const { body } = await jsonFetch(
+      `/api/admin/customers?search=${encodeURIComponent(SMOKE_CUSTOMER_PHONE)}`,
+      { headers: { Cookie: adminCookie } }
+    );
+    customerId = body?.data?.items?.[0]?.id ?? null;
+    const { res } = await jsonFetch(`/api/admin/customers/${customerId}/ledger`, {
+      headers: { Cookie: customerCookie },
+    });
+    report("ledger: admin endpoint with customer token -> 401", res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report("ledger: admin endpoint with customer token -> 401", false, String(err));
+  }
+
+  // Order placement posts an order_charge for exactly the order total.
+  let orderId = null;
+  let orderTotalMinor = null;
+  try {
+    const { body: productsBody } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    const product = (productsBody?.data ?? []).find((p) => p.price > 1);
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product._id, quantity: 1 }),
+    });
+    const { body: orderBody } = await jsonFetch("/api/orders", { method: "POST", headers: { Cookie: customerCookie } });
+    orderId = orderBody?.data?.id ?? null;
+    orderTotalMinor = Math.round((orderBody?.data?.total ?? 0) * 100);
+
+    const { data: after } = await readLedger();
+    const delta = (after?.summary?.currentBalanceMinor ?? 0) - (before?.summary?.currentBalanceMinor ?? 0);
+    const chargeEntry = (after?.entries ?? []).find((e) => e.type === "order_charge" && e.orderId === orderId);
+    report(
+      "ledger: new order -> order_charge for exactly the order total",
+      delta === orderTotalMinor && chargeEntry?.debitMinor === orderTotalMinor,
+      `delta=${delta}, expected=${orderTotalMinor}, entry=${Boolean(chargeEntry)}`
+    );
+  } catch (err) {
+    report("ledger: new order -> order_charge for exactly the order total", false, String(err));
+  }
+
+  // Admin records a payment -> balance decreases by the amount.
+  try {
+    const paymentAmount = 7.5; // ₪
+    const { res } = await jsonFetch(`/api/admin/customers/${customerId}/ledger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ type: "payment", amount: paymentAmount, description: "SMOKE payment (auto)" }),
+    });
+    const { data: after } = await readLedger();
+    const paymentEntry = (after?.entries ?? []).find((e) => e.description === "SMOKE payment (auto)");
+    report(
+      "ledger: admin payment -> credit posted with correct sign",
+      res.status === 200 && paymentEntry?.creditMinor === 750 && paymentEntry?.debitMinor === 0,
+      `status ${res.status}, credit=${paymentEntry?.creditMinor}`
+    );
+  } catch (err) {
+    report("ledger: admin payment -> credit posted with correct sign", false, String(err));
+  }
+
+  // Cancelling the order posts a compensating reversal; balance returns.
+  try {
+    const { data: beforeCancel } = await readLedger();
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+    const { data: after } = await readLedger();
+    const reversal = (after?.entries ?? []).find((e) => e.type === "refund" && e.orderId === orderId);
+    const delta = (after?.summary?.currentBalanceMinor ?? 0) - (beforeCancel?.summary?.currentBalanceMinor ?? 0);
+    const original = (after?.entries ?? []).find((e) => e.type === "order_charge" && e.orderId === orderId);
+    report(
+      "ledger: cancel -> reversal appears, balance returns, original untouched",
+      reversal?.creditMinor === orderTotalMinor && delta === -orderTotalMinor && original?.debitMinor === orderTotalMinor,
+      `reversal=${reversal?.creditMinor}, delta=${delta}`
+    );
+  } catch (err) {
+    report("ledger: cancel -> reversal appears, balance returns, original untouched", false, String(err));
+  }
+
+  // Double-cancel is idempotent (unique order_reversal key).
+  try {
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: "pending" }),
+    });
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+    const { data: after } = await readLedger();
+    const reversals = (after?.entries ?? []).filter((e) => e.type === "refund" && e.orderId === orderId);
+    report("ledger: re-cancel does not duplicate the reversal (idempotency)", reversals.length === 1, `count=${reversals.length}`);
+  } catch (err) {
+    report("ledger: re-cancel does not duplicate the reversal (idempotency)", false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -1119,6 +1263,7 @@ async function main() {
   await realtimeSection(cookie);
   await restrictedCustomerSection(cookie, adminCookie);
   await receiptSection(cookie, adminCookie);
+  await ledgerSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

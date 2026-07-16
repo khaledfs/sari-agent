@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
+import { postLedgerEntry, toMinorUnits } from "@/services/ledger.service";
 import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
 import { UserModel } from "@/models/user.model";
@@ -323,6 +324,27 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
     status: o.status,
     previousStatus: previous.status,
   });
+
+  // Ledger (Work Order Issue 8): cancelling an order posts a compensating
+  // reversal — the original order_charge is never mutated. The idempotency
+  // key makes a double-cancel a no-op. Fail-soft: a ledger outage must not
+  // block the status change itself (the key allows posting later).
+  if (next === "cancelled" && previous.status.toLowerCase() !== "cancelled") {
+    try {
+      await postLedgerEntry({
+        userId: String(o.userId),
+        type: "refund",
+        amountMinor: toMinorUnits(o.total),
+        description: `Order cancelled — reversal #${orderId.slice(-8).toUpperCase()}`,
+        orderId,
+        idempotencyKey: `order_reversal:${orderId}`,
+        actor: { userId: actor.userId, role: actor.role },
+        onDuplicate: "ignore",
+      });
+    } catch {
+      console.error(`ledger: failed to post order_reversal for order ${orderId}`);
+    }
+  }
 
   const user = (await UserModel.findById(o.userId, { businessName: 1, phoneNumber: 1 })
     .lean()

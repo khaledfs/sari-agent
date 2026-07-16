@@ -2004,3 +2004,25 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+/* ——— Customer ledger table (Work Order Issue 8) ——— */
+
+.ds-ledger-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.ds-ledger-table th,
+.ds-ledger-table td {
+  text-align: start;
+  padding: 0.5rem 0.6rem;
+  border-block-end: 1px solid var(--border, #e5ddc9);
+  vertical-align: top;
+}
+
+.ds-ledger-table th {
+  color: var(--text-muted, #8a8065);
+  font-weight: 600;
+  white-space: nowrap;
+}
