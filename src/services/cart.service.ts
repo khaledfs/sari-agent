@@ -87,6 +87,11 @@ async function assertActiveProduct(productId: string) {
   if (!product.isActive) {
     throw new Error("Product is not available.");
   }
+  // Task E finding: tracked stock 0 was addable server-side (only the UI
+  // disabled it). Sold-out products are now rejected at the source.
+  if (typeof product.stock === "number" && product.stock <= 0) {
+    throw new Error("Product is out of stock.");
+  }
   return product;
 }
 

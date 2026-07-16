@@ -20,6 +20,12 @@ const fillerWords = new Set([
   "אני",
   "צריך",
   "צריכה",
+  // Arabic texture qualifiers — meaningful to the buyer but absent from
+  // catalog names; keeping them poisons token matching (Task E eval case).
+  "ناعم",
+  "ناعمة",
+  "خشن",
+  "خشنة",
 ]);
 
 const tokenReplacements = new Map<string, string>([
