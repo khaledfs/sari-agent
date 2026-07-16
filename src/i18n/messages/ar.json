@@ -435,6 +435,8 @@
         "promotionsDesc": "هدايا وعروض الطلبات",
         "banners": "اللافتات",
         "bannersDesc": "إعلانات للعملاء",
+        "reports": "التقارير",
+        "reportsDesc": "تحليلات المبيعات وتصدير CSV",
         "settings": "الإعدادات",
         "settingsDesc": "تغيير كلمة المرور الخاصة بك"
       },
@@ -691,6 +693,45 @@
       "lowStock": "مخزون منخفض",
       "noLowStock": "لا يوجد منتج متتبَّع بمخزون منخفض.",
       "newestCustomers": "أحدث العملاء"
+    },
+    "reports": {
+      "title": "التقارير",
+      "subtitle": "تحليلات المبيعات والمنتجات والعملاء مع تصدير CSV جاهز لإكسل.",
+      "loading": "جارٍ إعداد التقرير…",
+      "empty": "لا توجد بيانات في هذا النطاق الزمني.",
+      "error": "فشل إعداد التقرير.",
+      "invalidRange": "اختر نطاقاً زمنياً صحيحاً (حتى سنة).",
+      "exportCsv": "تصدير CSV",
+      "rowCount": "{count} صفوف",
+      "hasMore": "توجد صفوف إضافية — قلّص النطاق",
+      "previewNote": "عرض أول 10",
+      "totalsRow": "الإجمالي",
+      "tabs": {
+        "orders": "الطلبات",
+        "top-products": "أفضل المنتجات",
+        "customer-sales": "حسب العميل"
+      },
+      "columns": {
+        "orderNumber": "طلب رقم",
+        "date": "التاريخ",
+        "customerName": "العميل",
+        "itemCount": "العناصر",
+        "subtotal": "المجموع الفرعي",
+        "discount": "الخصم",
+        "total": "الإجمالي",
+        "status": "الحالة",
+        "name": "المنتج",
+        "sku": "رقم الصنف",
+        "category": "الفئة",
+        "totalQty": "الكمية المباعة",
+        "totalRevenue": "الإيرادات",
+        "orderCount": "الطلبات",
+        "businessType": "النوع",
+        "phone": "الهاتف",
+        "totalSpend": "إجمالي الإنفاق",
+        "avgOrderValue": "متوسط الطلب",
+        "lastOrderDate": "آخر طلب"
+      }
     },
     "banners": {
       "title": "اللافتات",

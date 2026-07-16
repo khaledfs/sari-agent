@@ -435,6 +435,8 @@
         "promotionsDesc": "Gifts & order deals",
         "banners": "Banners",
         "bannersDesc": "Customer announcements",
+        "reports": "Reports",
+        "reportsDesc": "Sales analytics & CSV export",
         "settings": "Settings",
         "settingsDesc": "Change your password"
       },
@@ -691,6 +693,45 @@
       "lowStock": "Low stock",
       "noLowStock": "No tracked product is low on stock.",
       "newestCustomers": "Newest customers"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Sales, product, and customer analytics with Excel-ready CSV export.",
+      "loading": "Building the report…",
+      "empty": "No data in this date range.",
+      "error": "Failed to build the report.",
+      "invalidRange": "Pick a valid date range (max one year).",
+      "exportCsv": "Export CSV",
+      "rowCount": "{count} rows",
+      "hasMore": "more rows exist — narrow the range",
+      "previewNote": "showing first 10",
+      "totalsRow": "Total",
+      "tabs": {
+        "orders": "Orders",
+        "top-products": "Top products",
+        "customer-sales": "By customer"
+      },
+      "columns": {
+        "orderNumber": "Order #",
+        "date": "Date",
+        "customerName": "Customer",
+        "itemCount": "Items",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "total": "Total",
+        "status": "Status",
+        "name": "Product",
+        "sku": "SKU",
+        "category": "Category",
+        "totalQty": "Qty sold",
+        "totalRevenue": "Revenue",
+        "orderCount": "Orders",
+        "businessType": "Type",
+        "phone": "Phone",
+        "totalSpend": "Total spend",
+        "avgOrderValue": "Avg. order",
+        "lastOrderDate": "Last order"
+      }
     },
     "banners": {
       "title": "Banners",

@@ -11,6 +11,7 @@ const CARDS = [
   { key: "discounts", icon: "💰", href: "/admin/dashboard/discounts" },
   { key: "promotions", icon: "🎁", href: "/admin/dashboard/promotions" },
   { key: "banners", icon: "📣", href: "/admin/dashboard/banners" },
+  { key: "reports", icon: "📈", href: "/admin/dashboard/reports" },
   { key: "settings", icon: "⚙️", href: "/admin/dashboard/settings" },
 ] as const;
 

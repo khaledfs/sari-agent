@@ -435,6 +435,8 @@
         "promotionsDesc": "מתנות והטבות הזמנה",
         "banners": "באנרים",
         "bannersDesc": "הודעות ללקוחות",
+        "reports": "דוחות",
+        "reportsDesc": "ניתוח מכירות וייצוא CSV",
         "settings": "הגדרות",
         "settingsDesc": "שינוי הסיסמה שלך"
       },
@@ -691,6 +693,45 @@
       "lowStock": "מלאי נמוך",
       "noLowStock": "אין מוצר במעקב עם מלאי נמוך.",
       "newestCustomers": "לקוחות חדשים"
+    },
+    "reports": {
+      "title": "דוחות",
+      "subtitle": "ניתוחי מכירות, מוצרים ולקוחות עם ייצוא CSV מוכן לאקסל.",
+      "loading": "בונה את הדוח…",
+      "empty": "אין נתונים בטווח התאריכים הזה.",
+      "error": "בניית הדוח נכשלה.",
+      "invalidRange": "בחרו טווח תאריכים תקין (עד שנה).",
+      "exportCsv": "ייצוא CSV",
+      "rowCount": "{count} שורות",
+      "hasMore": "קיימות שורות נוספות — צמצמו את הטווח",
+      "previewNote": "מוצגות 10 הראשונות",
+      "totalsRow": "סה״כ",
+      "tabs": {
+        "orders": "הזמנות",
+        "top-products": "מוצרים מובילים",
+        "customer-sales": "לפי לקוח"
+      },
+      "columns": {
+        "orderNumber": "הזמנה מס׳",
+        "date": "תאריך",
+        "customerName": "לקוח",
+        "itemCount": "פריטים",
+        "subtotal": "סכום ביניים",
+        "discount": "הנחה",
+        "total": "סה״כ",
+        "status": "סטטוס",
+        "name": "מוצר",
+        "sku": "מק״ט",
+        "category": "קטגוריה",
+        "totalQty": "כמות שנמכרה",
+        "totalRevenue": "הכנסות",
+        "orderCount": "הזמנות",
+        "businessType": "סוג",
+        "phone": "טלפון",
+        "totalSpend": "סה״כ רכישות",
+        "avgOrderValue": "הזמנה ממוצעת",
+        "lastOrderDate": "הזמנה אחרונה"
+      }
     },
     "banners": {
       "title": "באנרים",
