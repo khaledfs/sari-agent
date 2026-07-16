@@ -24,7 +24,8 @@ export async function POST(req: Request) {
     return res;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to login.";
-    return NextResponse.json({ success: false, message }, { status: 400 });
+    const status = message === "Account disabled." ? 401 : 400;
+    return NextResponse.json({ success: false, message }, { status });
   }
 }
 

@@ -442,20 +442,47 @@
     },
     "customers": {
       "title": "לקוחות",
+      "subtitle": "פרופילים, ניתוח הזמנות, הערות וסטטוס חשבון.",
       "columns": {
         "businessName": "שם העסק",
         "email": "אימייל",
         "phone": "טלפון",
         "verified": "מאומת",
         "joined": "תאריך הצטרפות",
-        "pricing": "תמחור"
+        "pricing": "תמחור",
+        "businessType": "סוג",
+        "totalOrders": "הזמנות",
+        "lifetimeSpend": "סה״כ רכישות",
+        "lastOrder": "הזמנה אחרונה",
+        "status": "סטטוס"
       },
       "pricingLink": "תמחור",
       "verified": "כן",
       "notVerified": "לא",
       "loading": "טוען לקוחות…",
       "empty": "לא נמצאו לקוחות.",
-      "error": "טעינת הלקוחות נכשלה."
+      "error": "טעינת הלקוחות נכשלה.",
+      "searchPlaceholder": "חיפוש לפי שם, טלפון או אימייל…",
+      "allTypes": "כל סוגי העסקים",
+      "activeOnly": "פעילים בלבד",
+      "inactiveOnly": "מושבתים בלבד",
+      "active": "פעיל",
+      "disabled": "מושבת",
+      "disable": "השבת חשבון",
+      "enable": "הפעל חשבון",
+      "avgOrder": "הזמנה ממוצעת",
+      "tabs": {
+        "overview": "סקירה",
+        "orders": "הזמנות",
+        "memory": "זיכרון AI",
+        "notes": "הערות",
+        "pricing": "תמחור"
+      },
+      "memoryReadOnly": "לקריאה בלבד — נוצר על ידי העוזר",
+      "noMemory": "אין עדיין זיכרון AI ללקוח זה.",
+      "notesLabel": "הערות פנימיות למנהל (לא מוצג ללקוח לעולם)",
+      "notesSaving": "שומר…",
+      "notesSaved": "נשמר"
     },
     "orders": {
       "title": "הזמנות",

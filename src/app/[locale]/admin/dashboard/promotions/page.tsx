@@ -23,7 +23,7 @@ type PromotionRow = {
   isActive: boolean;
 };
 
-type CustomerOption = { _id: string; businessName: string; phoneNumber: string };
+type CustomerOption = { id: string; businessName: string; phoneNumber: string };
 type ProductOption = { id: string; name: string; sku: string };
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string };
 
@@ -190,8 +190,8 @@ export default function AdminPromotionsPage() {
     if (customers.length > 0) return;
     try {
       const res = await fetch("/api/admin/customers");
-      const json = (await res.json()) as ApiEnvelope<CustomerOption[]>;
-      if (json.success && json.data) setCustomers(json.data);
+      const json = (await res.json()) as ApiEnvelope<{ items: CustomerOption[] }>;
+      if (json.success && json.data?.items) setCustomers(json.data.items);
     } catch {
       // picker stays empty
     }
@@ -311,7 +311,7 @@ export default function AdminPromotionsPage() {
   function scopeLabel(p: PromotionRow) {
     if (p.scope === "global") return t("discounts.scopes.global");
     if (p.scope === "businessType") return `${t("discounts.scopes.businessType")}: ${t(`pricing.businessTypes.${p.targetId}`)}`;
-    const c = customers.find((x) => x._id === p.targetId);
+    const c = customers.find((x) => x.id === p.targetId);
     return `${t("discounts.scopes.customer")}: ${c?.businessName ?? p.targetId.slice(-6)}`;
   }
 
@@ -436,7 +436,7 @@ export default function AdminPromotionsPage() {
                 <select className="admin-select" value={form.targetId} onChange={(e) => setForm((f) => ({ ...f, targetId: e.target.value }))}>
                   <option value="">—</option>
                   {customers.map((c) => (
-                    <option key={c._id} value={c._id}>
+                    <option key={c.id} value={c.id}>
                       {c.businessName} · {c.phoneNumber}
                     </option>
                   ))}

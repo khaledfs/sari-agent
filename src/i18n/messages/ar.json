@@ -442,20 +442,47 @@
     },
     "customers": {
       "title": "العملاء",
+      "subtitle": "الملفات، تحليلات الطلبات، الملاحظات وحالة الحساب.",
       "columns": {
         "businessName": "اسم النشاط التجاري",
         "email": "البريد الإلكتروني",
         "phone": "الهاتف",
         "verified": "موثّق",
         "joined": "تاريخ الانضمام",
-        "pricing": "التسعير"
+        "pricing": "التسعير",
+        "businessType": "النوع",
+        "totalOrders": "الطلبات",
+        "lifetimeSpend": "إجمالي الإنفاق",
+        "lastOrder": "آخر طلب",
+        "status": "الحالة"
       },
       "pricingLink": "التسعير",
       "verified": "نعم",
       "notVerified": "لا",
       "loading": "جارٍ تحميل العملاء…",
       "empty": "لا يوجد عملاء.",
-      "error": "فشل تحميل العملاء."
+      "error": "فشل تحميل العملاء.",
+      "searchPlaceholder": "بحث بالاسم أو الهاتف أو البريد…",
+      "allTypes": "كل أنواع الأنشطة",
+      "activeOnly": "الفعّالون فقط",
+      "inactiveOnly": "المعطّلون فقط",
+      "active": "فعّال",
+      "disabled": "معطّل",
+      "disable": "تعطيل الحساب",
+      "enable": "تفعيل الحساب",
+      "avgOrder": "متوسط الطلب",
+      "tabs": {
+        "overview": "نظرة عامة",
+        "orders": "الطلبات",
+        "memory": "ذاكرة AI",
+        "notes": "ملاحظات",
+        "pricing": "التسعير"
+      },
+      "memoryReadOnly": "للقراءة فقط — من إنشاء المساعد",
+      "noMemory": "لا توجد ذاكرة AI لهذا العميل بعد.",
+      "notesLabel": "ملاحظات داخلية للمشرف (لا تُعرض للعميل أبداً)",
+      "notesSaving": "جارٍ الحفظ…",
+      "notesSaved": "تم الحفظ"
     },
     "orders": {
       "title": "الطلبات",

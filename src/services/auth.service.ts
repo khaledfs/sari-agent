@@ -155,6 +155,12 @@ export async function loginWithPassword(input: { identifier: string; password: s
     throw new Error("Phone number is not verified.");
   }
 
+  // Soft-disabled accounts (admin CRM) must not receive a session. Message is
+  // deliberately terse — reveal nothing beyond the fact the account is disabled.
+  if ((user as { isActive?: boolean }).isActive === false) {
+    throw new Error("Account disabled.");
+  }
+
   const userId = String((user as { _id: unknown })._id);
   const token = signAuthToken({ userId, role: user.role });
   return { success: true, token };

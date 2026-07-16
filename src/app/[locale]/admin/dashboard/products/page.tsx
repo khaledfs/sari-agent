@@ -41,7 +41,7 @@ type ProductPricingInfo = {
   overrides: Array<{ userId: string; businessName: string; phoneNumber: string; price: number }>;
 };
 
-type CustomerOption = { _id: string; businessName: string; phoneNumber: string };
+type CustomerOption = { id: string; businessName: string; phoneNumber: string };
 
 const EMPTY_FORM = {
   name: "",
@@ -249,8 +249,8 @@ export default function AdminProductsPage() {
       }
       applyPricingData(pricingJson.data);
       if (customersRes) {
-        const customersJson = (await customersRes.json()) as ApiEnvelope<CustomerOption[]>;
-        if (customersJson.success && customersJson.data) setCustomers(customersJson.data);
+        const customersJson = (await customersRes.json()) as ApiEnvelope<{ items: CustomerOption[] }>;
+        if (customersJson.success && customersJson.data?.items) setCustomers(customersJson.data.items);
       }
     } catch {
       setPricingError(t("pricing.error"));
@@ -750,13 +750,13 @@ export default function AdminProductsPage() {
                   {overrideSearch.trim() && !overrideUserId ? (
                     <ul style={{ listStyle: "none", padding: 0, margin: "0 0 0.75rem", border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "160px", overflowY: "auto" }}>
                       {overrideCandidates.map((c) => (
-                        <li key={c._id}>
+                        <li key={c.id}>
                           <button
                             type="button"
                             className="admin-btn"
                             style={{ display: "block", width: "100%", textAlign: "start", border: "none", borderRadius: 0 }}
                             onClick={() => {
-                              setOverrideUserId(c._id);
+                              setOverrideUserId(c.id);
                               setOverrideSearch(`${c.businessName} · ${c.phoneNumber}`);
                             }}
                           >

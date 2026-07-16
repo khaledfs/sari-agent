@@ -47,8 +47,9 @@ export function isRevenueCountedStatus(status: string): boolean {
   return !["cancel", "fail", "reject", "refund", "return", "void"].some((k) => s.includes(k));
 }
 
-/** Statuses excluded from revenue, as a Mongo-friendly regex. */
-const CANCELLED_RX = /cancel|fail|reject|refund|return|void/i;
+/** Statuses excluded from revenue, as a Mongo-friendly regex (shared with reports/CRM). */
+export const CANCELLED_STATUS_RX = /cancel|fail|reject|refund|return|void/i;
+const CANCELLED_RX = CANCELLED_STATUS_RX;
 
 /** Start-of-day (local server time). Pure. */
 export function startOfDay(date: Date): Date {

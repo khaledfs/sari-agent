@@ -827,6 +827,22 @@ button:disabled,
   }
 }
 
+/* ——— Admin CRM tabs ——— */
+
+.admin-crm-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.admin-crm-tab--active {
+  border-color: var(--brand);
+  background: var(--brand-bg);
+  color: var(--brand-hover);
+  font-weight: 700;
+}
+
 /* ——— Admin overview: metric cards, panels, status bars ——— */
 
 .admin-metric-grid {

@@ -35,6 +35,18 @@ const userSchema = new Schema(
       default: false,
       required: true,
     },
+    /** Soft account disable (admin CRM). false = login rejected, data kept. */
+    isActive: {
+      type: Boolean,
+      default: true,
+      required: true,
+    },
+    /** Internal admin notes — never exposed through customer-facing endpoints. */
+    adminNotes: {
+      type: String,
+      default: "",
+      maxlength: 1000,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
