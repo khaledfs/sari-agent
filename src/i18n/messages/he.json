@@ -212,6 +212,7 @@
     },
     "outOfStock": "אזל מהמלאי",
     "loadMore": "טען עוד",
+    "didYouMean": "התכוונת ל:",
     "actions": {
       "addToCart": "הוסף לעגלה",
       "adding": "מוסיף…"

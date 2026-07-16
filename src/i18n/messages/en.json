@@ -212,6 +212,7 @@
     },
     "outOfStock": "Out of stock",
     "loadMore": "Load more",
+    "didYouMean": "Did you mean:",
     "actions": {
       "addToCart": "Add to cart",
       "adding": "Adding…"

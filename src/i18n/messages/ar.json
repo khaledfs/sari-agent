@@ -212,6 +212,7 @@
     },
     "outOfStock": "نفد من المخزون",
     "loadMore": "تحميل المزيد",
+    "didYouMean": "هل تقصد:",
     "actions": {
       "addToCart": "أضف إلى السلة",
       "adding": "جارٍ الإضافة…"

@@ -82,7 +82,8 @@ export default function ProductsPage() {
   const [favLoading, setFavLoading] = useState(true);
   const [smartError, setSmartError] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [searchMeta, setSearchMeta] = useState<{ page: number; totalPages: number } | null>(null);
+  const [searchMeta, setSearchMeta] = useState<{ page: number; hasMore: boolean } | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -91,7 +92,8 @@ export default function ProductsPage() {
   const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const qNorm = searchTerm.trim().toLowerCase();
-  const searchActive = qNorm.length > 0;
+  // Smart search kicks in from 2 characters (single chars are too noisy).
+  const searchActive = qNorm.length >= 2;
 
   const favoriteIds = useMemo(() => new Set(favorites.map((f) => f._id)), [favorites]);
 
@@ -244,33 +246,35 @@ export default function ProductsPage() {
     })();
   }, [refetchFavorites]);
 
-  // Server-side paginated search (max 50/page) — replaces the old
-  // "download all 610 products for client-side filtering" behavior.
+  // Smart multilingual search (/api/products/search): normalization + synonyms
+  // (סמיד→סולת, flour→קמח), ranking, and typo suggestions — server-side, paginated.
   const fetchSearchPage = useCallback(async (query: string, page: number, append: boolean) => {
     if (append) setLoadingMore(true);
     else setCatalogLoading(true);
     try {
-      const params = new URLSearchParams({ search: query, page: String(page) });
-      const res = await fetch(`/api/products?${params.toString()}`);
+      const params = new URLSearchParams({ query, page: String(page) });
+      const res = await fetch(`/api/products/search?${params.toString()}`);
       const payload = (await res.json()) as {
         success?: boolean;
-        data?: Product[];
-        meta?: { page: number; totalPages: number };
+        data?: { products: Product[]; total: number; page: number; hasMore: boolean; suggestions?: string[] };
       };
       if (res.status === 200 && payload.success && payload.data) {
-        const items = payload.data;
-        setSearchResults((prev) => (append ? [...prev, ...items] : items));
-        setSearchMeta(payload.meta ? { page: payload.meta.page, totalPages: payload.meta.totalPages } : null);
+        const { products, page: currentPage, hasMore, suggestions: nextSuggestions } = payload.data;
+        setSearchResults((prev) => (append ? [...prev, ...products] : products));
+        setSearchMeta({ page: currentPage, hasMore });
+        if (!append) setSuggestions(nextSuggestions ?? []);
         return;
       }
       if (!append) {
         setSearchResults([]);
         setSearchMeta(null);
+        setSuggestions([]);
       }
     } catch {
       if (!append) {
         setSearchResults([]);
         setSearchMeta(null);
+        setSuggestions([]);
       }
     } finally {
       setCatalogLoading(false);
@@ -278,11 +282,13 @@ export default function ProductsPage() {
     }
   }, []);
 
-  // Debounced: refetch page 1 whenever the search term changes.
+  // Debounced (300ms): refetch page 1 whenever the search term changes.
+  // Clearing the input resets the grid back to normal browsing.
   useEffect(() => {
     if (!searchActive) {
       setSearchResults([]);
       setSearchMeta(null);
+      setSuggestions([]);
       setCatalogLoading(false);
       return;
     }
@@ -469,6 +475,7 @@ export default function ProductsPage() {
       <div className="ds-mb-md">
         <Input
           search
+          dir="auto"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={tSmart("searchPlaceholder")}
@@ -516,7 +523,24 @@ export default function ProductsPage() {
           ) : null}
 
           {!catalogLoading && filteredProducts.length === 0 ? (
-            <p className="ds-text-muted">{t("noProducts")}</p>
+            <>
+              <p className="ds-text-muted">{t("noProducts")}</p>
+              {suggestions.length > 0 ? (
+                <div className="ds-search-suggest" role="group" aria-label={t("didYouMean")}>
+                  <span className="ds-text-small">{t("didYouMean")}</span>
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="ds-search-suggest__chip"
+                      onClick={() => setSearchTerm(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {!catalogLoading && filteredProducts.length > 0 ? (
@@ -582,7 +606,7 @@ export default function ProductsPage() {
             </ul>
           ) : null}
 
-          {!catalogLoading && searchMeta && searchMeta.page < searchMeta.totalPages ? (
+          {!catalogLoading && searchMeta?.hasMore ? (
             <div className="ds-mt-sm">
               <Button
                 variant="secondary"

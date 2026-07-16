@@ -1942,6 +1942,38 @@
   margin-block-start: 0.5rem;
 }
 
+/* ——— Search "did you mean" suggestion chips ——— */
+
+.ds-search-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-block-start: 0.5rem;
+}
+
+.ds-search-suggest__chip {
+  min-block-size: 44px;
+  padding: 0.35rem 0.95rem;
+  border: 1px solid var(--border-brand, rgba(166, 124, 0, 0.25));
+  border-radius: var(--radius-pill, 999px);
+  background: var(--brand-bg, #fdf8ec);
+  color: var(--brand-hover, #8b6800);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ds-search-suggest__chip:hover {
+  background: var(--brand-lighter, #fdf6e3);
+}
+
+.ds-search-suggest__chip:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 1px;
+}
+
 /* ——— Out-of-stock badge (tracked stock === 0) ——— */
 
 .ds-out-of-stock-badge {

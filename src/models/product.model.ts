@@ -74,6 +74,12 @@ const productSchema = new Schema(
 productSchema.index({ sku: 1 }, { unique: true });
 /** Speeds up customer catalog: active products by category, newest first. */
 productSchema.index({ isActive: 1, category: 1, createdAt: -1 });
+/**
+ * Text index for smart catalog search (name + category). Declared on the
+ * schema so creation is idempotent — mongoose ensures it once per collection
+ * and never duplicates it.
+ */
+productSchema.index({ name: "text", category: "text" }, { name: "catalog_text_search" });
 
 export type ProductDocument = InferSchemaType<typeof productSchema>;
 
