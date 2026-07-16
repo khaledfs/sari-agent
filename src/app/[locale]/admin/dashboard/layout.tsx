@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context";
@@ -65,6 +66,8 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
             {t("badge")}
           </span>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <LanguageSwitcher />
         <button
           onClick={async () => {
             await fetch("/api/auth/logout", { method: "POST" });
@@ -81,6 +84,7 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
         >
           {t("actions.logout")}
         </button>
+        </div>
       </header>
       <main style={{ flex: 1, display: "flex", justifyContent: "center", padding: "2rem 1.5rem" }}>
         <div style={{ width: "100%", maxWidth: "900px" }}>

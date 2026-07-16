@@ -3,6 +3,7 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { routing } from "@/i18n/routing";
+import { HtmlLangSync } from "@/components/html-lang-sync";
 import { SessionBootstrap } from "@/app/[locale]/SessionBootstrap";
 
 function getDirection(locale: string) {
@@ -28,6 +29,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div lang={locale} dir={dir} className="flex min-h-full flex-1">
+        <HtmlLangSync locale={locale} dir={dir} />
         <SessionBootstrap locale={locale} />
         {children}
       </div>

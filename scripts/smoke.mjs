@@ -1245,11 +1245,31 @@ async function ledgerSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- locale section (Issue 5) ----------
+
+async function localeSection() {
+  // The NEXT_LOCALE cookie steers the root redirect (SSR and cookie agree).
+  const name = "locale: NEXT_LOCALE cookie steers the root redirect";
+  try {
+    const res = await fetch(`${BASE_URL}/`, {
+      redirect: "manual",
+      headers: { Cookie: "NEXT_LOCALE=he" },
+    });
+    const location = res.headers.get("location") ?? "";
+    const ok = res.status >= 300 && res.status < 400 && /\/he(\/|$)/.test(location);
+    report(name, ok, `status ${res.status}, location=${location}`);
+  } catch (err) {
+    report(name, false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
   await checkPageStatus("/en");
   await checkPageStatus("/he");
+  await checkPageStatus("/ar");
+  await localeSection();
 
   const cookie = await loginSeededCustomer();
   await checkCartWithCookie(cookie);

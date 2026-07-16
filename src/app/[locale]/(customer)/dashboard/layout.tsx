@@ -9,6 +9,7 @@ import { AccountStatusProvider, RestrictedBanner } from "@/components/account-st
 import { AIAssistant } from "@/components/ai-assistant";
 import { BannerStrip } from "@/components/banner-strip";
 import { DashboardNav, HeaderCartLink } from "@/components/dashboard-nav";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { SceneStage } from "@/components/living-bakery/SceneStage";
 import { CartDropLayer, FlourDrift } from "@/components/living-bakery/micro";
@@ -98,8 +99,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SceneStage />
           <FlourDrift />
           <CartDropLayer />
-          <div className="ds-top-header" style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center" }}>
+          <div className="ds-top-header" style={{ padding: "0.85rem 0 0.35rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "0.75rem" }}>
             <Image src="/logo.png" alt="Sari" width={120} height={34} style={{ height: "30px", width: "auto", objectFit: "contain" }} priority />
+            <LanguageSwitcher />
             <HeaderCartLink />
           </div>
           <div className="ds-nav-border">

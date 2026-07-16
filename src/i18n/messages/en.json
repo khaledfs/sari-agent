@@ -272,6 +272,9 @@
     "unavailableLine": "This product is currently unavailable — remove it to continue.",
     "unavailableCheckout": "Some items in your cart are no longer available. Remove them to continue to checkout."
   },
+  "localeSwitcher": {
+    "label": "Change language"
+  },
   "restricted": {
     "banner": "This account is on hold for new orders. You can still view orders, balance and history. Contact the manager for details.",
     "actionBlocked": "Account on hold for new orders — contact the manager for details."
