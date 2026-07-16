@@ -79,12 +79,16 @@ export function BannerStrip() {
       {visible.map((banner, index) => (
         <div
           key={banner.id}
-          className="ds-banner"
+          className={`ds-banner${banner.imageUrl ? " ds-banner--image" : ""}`}
           style={{ animationDelay: `${index * 90}ms` }}
         >
           {banner.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="ds-banner__img" src={banner.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+            <>
+              {/* Full-bleed cover image + legibility scrim (Task B). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="ds-banner__bg" src={banner.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+              <div className="ds-banner__scrim" aria-hidden="true" />
+            </>
           ) : (
             <span className="ds-banner__icon" aria-hidden="true">
               📣

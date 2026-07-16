@@ -630,7 +630,9 @@
 .ds-home-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 26px;
+  /* Sizing shared with the promo banner via the --hero-* tokens (Task B) —
+     token values equal the previous literals, so the hero is unchanged. */
+  border-radius: var(--hero-radius, 26px);
   padding: 1.6rem 1.35rem;
   margin-block-end: 1.6rem;
   background: transparent;
@@ -1781,10 +1783,10 @@ input.ds-qty-input:disabled {
 
 /* ---------- Home / hero polish ---------- */
 .ds-home-hero {
-  min-height: 14rem;
+  min-height: var(--hero-min-block-size, 14rem);
   display: flex;
   align-items: center;
-  padding: 1.8rem 1.5rem;
+  padding: var(--hero-padding-block, 1.8rem) var(--hero-padding-inline, 1.5rem);
   margin-block-end: 1.25rem;
 }
 

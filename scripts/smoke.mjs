@@ -602,6 +602,31 @@ async function bannersSection(customerCookie, adminCookie) {
     report("banner: seeded bakery customer sees global + bakery, NOT cafe, max 3", false, String(err));
   }
 
+  // Image field round-trips to the customer feed (Task B: hero-sized banner).
+  let imageBannerId = null;
+  try {
+    imageBannerId = await createBanner({
+      title: `${SMOKE_LABEL} image`,
+      scope: "global",
+      priority: 96,
+      imageUrl: "https://sarihassan.com/wp-content/uploads/banner-test.jpg",
+    });
+    const { body } = await jsonFetch("/api/banners", { headers: { Cookie: customerCookie } });
+    const row = (body?.data ?? []).find((b) => b.id === imageBannerId);
+    report(
+      "banner: imageUrl round-trips to the customer feed",
+      typeof row?.imageUrl === "string" && row.imageUrl.includes("banner-test.jpg"),
+      `imageUrl=${row?.imageUrl}`
+    );
+    await jsonFetch(`/api/admin/banners/${imageBannerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ isActive: false }),
+    });
+  } catch (err) {
+    report("banner: imageUrl round-trips to the customer feed", false, String(err));
+  }
+
   // ctaHref validation: external URL rejected.
   try {
     const { res } = await jsonFetch("/api/admin/banners", {
