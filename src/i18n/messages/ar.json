@@ -268,7 +268,9 @@
     "freeDeliveryMet": "رائع! لقد فتحت التوصيل المجاني",
     "giftLine": "هدية",
     "promoDiscount": "خصم العرض",
-    "promoHintRemaining": "أضِف ₪<strong>{amount}</strong> إضافية للحصول على عرض"
+    "promoHintRemaining": "أضِف ₪<strong>{amount}</strong> إضافية للحصول على عرض",
+    "unavailableLine": "هذا المنتج غير متوفر حاليًا — أزِله للمتابعة.",
+    "unavailableCheckout": "بعض العناصر في سلتك لم تعد متوفرة. أزِلها للمتابعة إلى الدفع."
   },
   "banners": {
     "regionLabel": "الإعلانات",

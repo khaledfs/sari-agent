@@ -35,6 +35,10 @@ export type CartLineItem = {
     price: number;
     unit: string;
     imageUrl: string;
+    /** Availability snapshot for the cart UI (realtime inline notices — Issue 4). */
+    isActive: boolean;
+    /** null = stock not tracked; 0 = tracked and sold out. */
+    stock: number | null;
   };
   /** Pricing-engine audit trail for this line (base/tier/override/discount). */
   priceBreakdown?: PriceBreakdown;
@@ -114,7 +118,7 @@ function buildCartWithTotals(
   items: Array<{ productId: mongoose.Types.ObjectId; quantity: number }>,
   productById: Map<
     string,
-    { name: string; sku: string; price: number; unit: string; imageUrl: string }
+    { name: string; sku: string; price: number; unit: string; imageUrl: string; isActive: boolean; stock: number | null }
   >,
   breakdownById: Map<string, PriceBreakdown>
 ): CartWithTotals {
@@ -144,6 +148,8 @@ function buildCartWithTotals(
         price: unitPrice,
         unit: product.unit,
         imageUrl: product.imageUrl,
+        isActive: product.isActive,
+        stock: product.stock,
       },
       ...(breakdown ? { priceBreakdown: breakdown } : {}),
     });
@@ -159,6 +165,8 @@ type ProductLeanForCart = {
   price: number;
   unit?: string;
   imageUrl?: string;
+  isActive?: boolean;
+  stock?: number | null;
   tierPrices?: Map<string, number> | Record<string, number> | null;
 };
 
@@ -247,6 +255,8 @@ export async function getCartByUserId(userId: string): Promise<CartWithTotals> {
         price: p.price,
         unit: p.unit ?? "",
         imageUrl: p.imageUrl ?? "",
+        isActive: p.isActive !== false,
+        stock: typeof p.stock === "number" ? p.stock : null,
       },
     ])
   );

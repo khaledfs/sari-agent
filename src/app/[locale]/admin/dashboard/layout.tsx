@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { RealtimeProvider } from "@/components/realtime/realtime-provider";
+
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context";
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +48,7 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <RealtimeProvider>
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh", width: "100%" }}>
       <header style={{
         display: "flex",
@@ -85,5 +88,6 @@ function AdminDashboardShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
     </div>
+    </RealtimeProvider>
   );
 }

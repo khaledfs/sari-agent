@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+
+import { useRealtimeEvent, useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -91,6 +93,17 @@ export default function OrdersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Live: admin status changes update the list (and any expanded card) without
+  // a refresh — this is what advances the timeline in real time.
+  useRealtimeRefetch(["order.status_changed"], load);
+  useRealtimeEvent(["order.status_changed"], (event) => {
+    if (event.type !== "order.status_changed") return;
+    setOrders((list) => list.map((o) => (o.id === event.orderId ? { ...o, status: event.status } : o)));
+    setDetailsById((map) =>
+      map[event.orderId] ? { ...map, [event.orderId]: { ...map[event.orderId], status: event.status } } : map
+    );
+  });
 
   async function reorder(orderId: string) {
     setReorderingId(orderId);

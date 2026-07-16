@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
+
 const STATUSES = ["pending", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled"] as const;
 
 type AdminOrderRow = {
@@ -137,6 +139,9 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Live: new orders and status changes refresh the list silently (no loader).
+  useRealtimeRefetch(["order.created", "order.status_changed"], load);
 
   async function changeStatus(id: string, status: string) {
     const prev = orders;

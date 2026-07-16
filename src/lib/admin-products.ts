@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
+import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { ProductModel } from "@/models/product.model";
 import { PRODUCTS_CACHE_TAG } from "@/services/product.service";
 
@@ -265,6 +266,17 @@ export async function updateAdminProduct(
   }
   // Customer catalog is cached under this tag — bust it on every admin edit.
   revalidateTag(PRODUCTS_CACHE_TAG, { expire: 0 });
+
+  // Realtime (catalog channel, ids only — clients refetch their own prices).
+  const changedId = String(updated._id);
+  if ("stock" in clean) {
+    publishRealtimeEvent({
+      type: "inventory.updated",
+      productId: changedId,
+      stock: typeof updated.stock === "number" ? updated.stock : null,
+    });
+  }
+  publishRealtimeEvent({ type: "product.updated", productId: changedId });
   return toRow(updated);
 }
 
@@ -305,6 +317,7 @@ export async function createAdminProduct(data: Record<string, unknown>): Promise
       stock,
     });
     revalidateTag(PRODUCTS_CACHE_TAG, { expire: 0 });
+    publishRealtimeEvent({ type: "product.updated", productId: String(created._id) });
     return toRow(created.toObject() as unknown as ProductLean);
   } catch (error) {
     if (error instanceof Error && "code" in error && (error as { code?: number }).code === 11000) {

@@ -12,6 +12,7 @@ import {
   shortOrderNumber,
   type OrderViewData,
 } from "@/components/orders/order-view";
+import { useRealtimeEvent } from "@/components/realtime/realtime-provider";
 import { OrderTimeline } from "../OrderTimeline";
 
 type OrderDetail = OrderViewData & { userId: string };
@@ -91,6 +92,13 @@ export default function OrderDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Live: the admin advancing this order's status moves the timeline (and,
+  // once dispatched, unlocks the receipt) without a refresh.
+  useRealtimeEvent(["order.status_changed"], (event) => {
+    if (event.type !== "order.status_changed" || event.orderId !== id) return;
+    setOrder((current) => (current ? { ...current, status: event.status } : current));
+  });
 
   async function reorder() {
     if (!id) return;

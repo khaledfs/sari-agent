@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { emitCartAdd } from "@/components/living-bakery/micro";
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
@@ -248,9 +249,9 @@ export default function ProductsPage() {
 
   // Smart multilingual search (/api/products/search): normalization + synonyms
   // (סמיד→סולת, flour→קמח), ranking, and typo suggestions — server-side, paginated.
-  const fetchSearchPage = useCallback(async (query: string, page: number, append: boolean) => {
+  const fetchSearchPage = useCallback(async (query: string, page: number, append: boolean, silent = false) => {
     if (append) setLoadingMore(true);
-    else setCatalogLoading(true);
+    else if (!silent) setCatalogLoading(true);
     try {
       const params = new URLSearchParams({ query, page: String(page) });
       const res = await fetch(`/api/products/search?${params.toString()}`);
@@ -297,6 +298,12 @@ export default function ProductsPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [qNorm, searchActive, fetchSearchPage]);
+
+  // Live catalog updates: refresh active search results silently (stale data
+  // stays visible; no skeleton flash).
+  useRealtimeRefetch(["product.updated", "inventory.updated"], () => {
+    if (searchActive) void fetchSearchPage(qNorm, 1, false, true);
+  });
 
   const filteredCategories = useMemo(() => {
     if (!searchActive) return categories;

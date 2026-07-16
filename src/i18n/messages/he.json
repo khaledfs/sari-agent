@@ -268,7 +268,9 @@
     "freeDeliveryMet": "כל הכבוד! פתחתם משלוח חינם",
     "giftLine": "מתנה",
     "promoDiscount": "הנחת מבצע",
-    "promoHintRemaining": "הוסיפו עוד ₪<strong>{amount}</strong> לקבלת מבצע"
+    "promoHintRemaining": "הוסיפו עוד ₪<strong>{amount}</strong> לקבלת מבצע",
+    "unavailableLine": "המוצר אינו זמין כרגע — הסירו אותו כדי להמשיך.",
+    "unavailableCheckout": "חלק מהפריטים בעגלה אינם זמינים עוד. הסירו אותם כדי להמשיך לתשלום."
   },
   "banners": {
     "regionLabel": "הודעות",

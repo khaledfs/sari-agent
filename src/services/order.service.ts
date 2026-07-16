@@ -3,6 +3,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { CartModel } from "@/models/cart.model";
 import { clearCart, getCartByUserId } from "@/services/cart.service";
+import { publishRealtimeEvent } from "@/services/event-bus.service";
 import type { PriceBreakdown } from "@/services/pricing.service";
 import {
   evaluatePromotionsForCart,
@@ -270,6 +271,15 @@ export async function createOrderFromCart(userId: string, notes = ""): Promise<O
   if (!saved) {
     throw new Error("Order not found after creation.");
   }
+
+  // Realtime: publish AFTER the transaction committed (admin channel only).
+  publishRealtimeEvent({
+    type: "order.created",
+    orderId: String(saved._id),
+    userId,
+    total: saved.total,
+  });
+
   return serializeOrder({
     _id: saved._id as mongoose.Types.ObjectId,
     userId: saved.userId as mongoose.Types.ObjectId,

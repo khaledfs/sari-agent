@@ -3,6 +3,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 import { requireAdmin } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
+import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
 import { UserModel } from "@/models/user.model";
@@ -307,21 +308,35 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
   }
 
   await connectDB();
-  const res = await OrderModel.updateOne(
+  const previous = (await OrderModel.findById(orderId, { status: 1 }).lean().exec()) as unknown as {
+    status: string;
+  } | null;
+  if (!previous) {
+    throw new Error("Order not found.");
+  }
+
+  await OrderModel.updateOne(
     { _id: new mongoose.Types.ObjectId(orderId) },
     {
       $set: { status: next },
       $push: { statusHistory: buildStatusHistoryEntry(next, actor, new Date()) },
     }
   ).exec();
-  if (res.matchedCount === 0) {
-    throw new Error("Order not found.");
-  }
 
   const o = (await OrderModel.findById(orderId).lean().exec()) as unknown as OrderLean | null;
   if (!o) {
     throw new Error("Order not found.");
   }
+
+  // Realtime: after the successful write — admin channel + the owner's channel.
+  publishRealtimeEvent({
+    type: "order.status_changed",
+    orderId: String(o._id),
+    userId: String(o.userId),
+    status: o.status,
+    previousStatus: previous.status,
+  });
+
   const user = (await UserModel.findById(o.userId, { businessName: 1, phoneNumber: 1 })
     .lean()
     .exec()) as unknown as UserLite | null;

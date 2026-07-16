@@ -801,6 +801,51 @@ async function adminOrderDetailSection(adminCookie) {
   }
 }
 
+// ---------- realtime SSE section (Issue 4) ----------
+
+async function realtimeSection(customerCookie) {
+  // Unauthenticated -> 401 (json error, not a stream).
+  try {
+    const res = await fetch(`${BASE_URL}/api/events`);
+    report("sse: unauthenticated -> 401", res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report("sse: unauthenticated -> 401", false, String(err));
+  }
+
+  if (!customerCookie) {
+    console.log("WARN  sse authed check skipped — needs customer login");
+    return;
+  }
+
+  // Authed -> text/event-stream and at least one frame (connected comment or
+  // heartbeat) inside 30s; the read is timeout-bounded and the stream closed.
+  const name = "sse: authed -> event-stream + heartbeat within 30s";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const res = await fetch(`${BASE_URL}/api/events`, {
+      headers: { Cookie: customerCookie },
+      signal: controller.signal,
+    });
+    const contentType = res.headers.get("content-type") ?? "";
+    if (res.status !== 200 || !contentType.includes("text/event-stream")) {
+      report(name, false, `status ${res.status}, content-type ${contentType}`);
+      return;
+    }
+    const reader = res.body.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value ?? new Uint8Array());
+    const ok = text.includes(": connected") || text.includes(": ping") || text.includes("event:");
+    report(name, ok, `first frame: ${JSON.stringify(text.slice(0, 60))}`);
+    await reader.cancel().catch(() => {});
+  } catch (err) {
+    report(name, false, String(err));
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -816,6 +861,7 @@ async function main() {
   await bannersSection(cookie, adminCookie);
   await overviewSection(cookie, adminCookie);
   await adminOrderDetailSection(adminCookie);
+  await realtimeSection(cookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

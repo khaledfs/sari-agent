@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { emitCartAdd } from "@/components/living-bakery/micro";
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 import { typography } from "@/design/typography";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
@@ -94,9 +95,9 @@ export default function CategoryProductsPage() {
   }, []);
 
   const fetchPage = useCallback(
-    async (page: number, append: boolean) => {
+    async (page: number, append: boolean, silent = false) => {
       if (append) setLoadingMore(true);
-      else {
+      else if (!silent) {
         setLoading(true);
         setError("");
       }
@@ -129,6 +130,12 @@ export default function CategoryProductsPage() {
   useEffect(() => {
     void fetchPage(1, false);
   }, [fetchPage]);
+
+  // Live catalog updates: silently refresh the first page (keeps stale data
+  // visible — never a loader). Deeper Load-More pages refresh on next demand.
+  useRealtimeRefetch(["product.updated", "inventory.updated"], () => {
+    if (!meta || meta.page === 1) void fetchPage(1, false, true);
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

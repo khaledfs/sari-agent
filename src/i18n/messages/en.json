@@ -268,7 +268,9 @@
     "freeDeliveryMet": "Nice! You've unlocked free delivery",
     "giftLine": "Gift",
     "promoDiscount": "Promotion discount",
-    "promoHintRemaining": "Add ₪<strong>{amount}</strong> more to earn a promotion"
+    "promoHintRemaining": "Add ₪<strong>{amount}</strong> more to earn a promotion",
+    "unavailableLine": "This product is currently unavailable — remove it to continue.",
+    "unavailableCheckout": "Some items in your cart are no longer available. Remove them to continue to checkout."
   },
   "banners": {
     "regionLabel": "Announcements",

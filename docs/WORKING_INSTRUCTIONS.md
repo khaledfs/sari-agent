@@ -56,6 +56,19 @@ Orders integrity
 
 - Frontend must NEVER access MongoDB directly
 - All data must go through API routes → services
+
+### 3.6 Realtime events (SSE)
+
+- Realtime events are published **only from the service layer, after the write succeeded**
+  (after the transaction commits) — never from a route handler, never before commit.
+  Use `publishRealtimeEvent()` from `src/services/event-bus.service.ts`.
+- Channel names are derived server-side from the session role — **never accept a channel
+  name from the client**. Customers: own `user:<id>` channel + `catalog`. Admin: `admin` +
+  `catalog`.
+- The shared `catalog` channel carries ids only — never prices, identities, or financial
+  data; clients refetch through their own authorized endpoints.
+- The bus is in-process: deployment must stay **single-instance (fork mode)**, and the
+  reverse proxy must disable buffering for `/api/events` (see DEV_NOTES §15).
 ---
 
 ## 4. Internationalization (i18n)

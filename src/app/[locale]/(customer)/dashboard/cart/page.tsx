@@ -4,6 +4,8 @@
   import Link from "next/link";
   import { useCallback, useEffect, useState } from "react";
   import { useLocale, useTranslations } from "next-intl";
+
+  import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
   import { Button } from "@/components/ui/Button";
   import { Card } from "@/components/ui/Card";
   import { typography } from "@/design/typography";
@@ -43,8 +45,16 @@
       price: number;
       unit: string;
       imageUrl: string;
+      /** Availability (Issue 4 realtime): false / 0 stock = unavailable line. */
+      isActive?: boolean;
+      stock?: number | null;
     };
   };
+
+  /** A line the customer can no longer buy: product deactivated or sold out. */
+  function isLineUnavailable(line: CartLineItem): boolean {
+    return line.product.isActive === false || line.product.stock === 0;
+  }
 
   type CartPromotions = {
     gifts: Array<{
@@ -116,6 +126,11 @@
     useEffect(() => {
       void loadCart();
     }, [loadCart]);
+
+    // Live: catalog changes (price/stock/active) silently refresh the cart so
+    // unavailable lines surface an inline notice. The cart contents are NEVER
+    // mutated behind the user's back — only the notice appears.
+    useRealtimeRefetch(["product.updated", "inventory.updated"], loadCart);
 
     async function updateQty(productId: string, nextQty: number) {
       setBusyId(productId);
@@ -390,6 +405,11 @@
                   <p className="ds-text-small">
                     <strong>{t("lineTotal")}:</strong> {line.lineTotal}
                   </p>
+                  {isLineUnavailable(line) ? (
+                    <p className="ds-error" role="alert" style={{ marginBlockStart: "0.25rem" }}>
+                      ⚠️ {t("unavailableLine")}
+                    </p>
+                  ) : null}
                 </Card>
               ))}
 
@@ -425,14 +445,27 @@
               <span>{t("total")}:</span>
               <strong>{cart.promotions?.totalAfterDiscount ?? cart.cartTotal}</strong>
             </div>
+            {cart.items.some(isLineUnavailable) ? (
+              <p className="ds-error" role="alert">
+                {t("unavailableCheckout")}
+              </p>
+            ) : null}
             <div className="ds-actions-row ds-actions-row--summary">
               {/* Ordering is no longer direct — the review page is the only place
                   with a Confirm Order button. */}
-              <Link href={`/${locale}/dashboard/checkout`} className="ds-cart-cta-main ds-flex-1">
-                <Button variant="primary" block disabled={clearBusy}>
-                  {tOrders("goToReview")}
-                </Button>
-              </Link>
+              {cart.items.some(isLineUnavailable) ? (
+                <span className="ds-cart-cta-main ds-flex-1">
+                  <Button variant="primary" block disabled title={t("unavailableCheckout")}>
+                    {tOrders("goToReview")}
+                  </Button>
+                </span>
+              ) : (
+                <Link href={`/${locale}/dashboard/checkout`} className="ds-cart-cta-main ds-flex-1">
+                  <Button variant="primary" block disabled={clearBusy}>
+                    {tOrders("goToReview")}
+                  </Button>
+                </Link>
+              )}
               <Button variant="secondary" block disabled={clearBusy} onClick={clearAll}>
                 {t("clearCart")}
               </Button>
