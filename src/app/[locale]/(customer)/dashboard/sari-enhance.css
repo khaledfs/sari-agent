@@ -2026,3 +2026,83 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ══════════════════════════════════════════
+   Task A3 (2026-07-17): assistant controls — explicit legible colors, real
+   boundaries, and hover/focus/pressed/disabled states. Root defect class: the
+   global `button` reset paints white text (--text-on-brand) on gold; any
+   control that overrides the background without re-setting `color` renders
+   white-on-light and disappears. Every control below sets BOTH.
+   Measured pairs are documented in DEV_NOTES §23.
+   ══════════════════════════════════════════ */
+
+/* Header icon buttons (new conversation ＋ / close ✕): filled surface +
+   visible boundary — 8.7:1 icon contrast on the fill. */
+.ds-ai-head-btn {
+  background: var(--brand-bg, #fdf8ec);
+  border: 1px solid var(--border-brand, rgba(166, 124, 0, 0.25));
+  color: var(--text-secondary, #4a4639);
+}
+
+.ds-ai-head-btn:hover:not(:disabled) {
+  background: var(--brand-lighter, #fdf6e3);
+  border-color: var(--brand, #a67c00);
+}
+
+.ds-ai-head-btn:active:not(:disabled) {
+  background: var(--surface-3, #eeece6);
+}
+
+.ds-ai-head-btn:disabled {
+  background: var(--surface-2, #f7f6f3);
+  border-color: var(--border, #e8e4dc);
+  color: #6b6557; /* 4.9:1 on the disabled fill — visibly dimmed, never gone */
+  cursor: not-allowed;
+  opacity: 1; /* overrides the global opacity fade that made it vanish */
+}
+
+/* Send button: keep the gold fill (label #5f440d = 5.0:1 on the darkest stop)
+   but give disabled a REAL disabled look instead of a 0.6-opacity ghost. */
+.ds-ai-send-btn {
+  color: #5f440d;
+}
+
+.ds-ai-send-btn:disabled {
+  background: var(--surface-3, #eeece6);
+  border-color: var(--border-strong, #d4cfc4);
+  color: #6b6557; /* 4.9:1 — reads as disabled, not missing */
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* Suggestion chips: explicit text color + full state set. */
+.ds-ai-chip {
+  color: var(--text-primary, #1a1814); /* ≥12:1 on the chip fill */
+}
+
+.ds-ai-chip:active:not(:disabled) {
+  background: var(--brand-lighter, #fdf6e3);
+}
+
+.ds-ai-chip:disabled {
+  background: var(--surface-2, #f7f6f3);
+  color: #6b6557;
+  border-color: var(--border, #e8e4dc);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* In-chat add-to-cart on product cards: explicit disabled state. */
+.ds-ai-pcard-add:disabled:not(.ds-ai-pcard-add--done) {
+  background: var(--surface-2, #f7f6f3);
+  border-color: var(--border-strong, #d4cfc4);
+  color: #6b6557;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* Launch pill: visible keyboard focus (3.8:1 ring on white). */
+.ds-ai-launch:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 2px;
+}

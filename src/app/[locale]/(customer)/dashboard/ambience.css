@@ -5,8 +5,18 @@
    everything is decorative (aria-hidden) and pointer-events: none.
    ============================================================ */
 
+/*
+ * 2026-07-17 (Work Order Task A1): the dark-brown photo band this stage used
+ * to paint (fallback #3a2410 + rgba(58,36,16,…) gradient scrims + time-of-day
+ * photos) split every page into a brown top half over a cream body — hard on
+ * the eyes and on text contrast. The stage now paints ONE calm warm wash from
+ * the existing palette tokens (--brand-bg → --background, a difference that is
+ * imperceptible for reading), and the photo/scrim/particle layers are disabled
+ * below. Geometry is untouched, so there is NO layout shift; the home hero has
+ * its own gold surface and is unaffected.
+ */
 :root {
-  --ambience-fallback: #3a2410;
+  --ambience-fallback: var(--brand-bg, #fdf8ec);
   --ambience-rim: rgba(255, 235, 205, 0.16);
   --ambience-dust: rgba(255, 246, 224, 0.72);
   --ambience-ray: rgba(255, 241, 210, 0.28);
@@ -22,7 +32,8 @@
   pointer-events: none;
   overflow: hidden;
   isolation: isolate;
-  background-color: var(--ambience-fallback);
+  /* Single calm surface (Task A1) — soft wash, no perceptible split. */
+  background: linear-gradient(180deg, var(--brand-bg, #fdf8ec) 0%, var(--background, #fafaf8) 100%);
 }
 
 .lb-stage--home {
@@ -34,15 +45,9 @@
   block-size: 120px;
 }
 
+/* Task A1: photo layers disabled — they created the dark half of the split. */
 .lb-photo-layer {
-  position: absolute;
-  inset: 0;
-  background-color: var(--ambience-fallback);
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
-  transform: scale(1);
-  animation: lb-photo-kenburns 45s ease-in-out infinite;
+  display: none;
 }
 
 .lb-photo-layer--in {
@@ -53,20 +58,12 @@
   animation: lb-fade-out 2s ease both;
 }
 
-.lb-light-ray {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(135deg, transparent 24%, var(--ambience-ray) 34%, var(--ambience-ray-strong) 44%, transparent 68%);
-  opacity: 0.28;
-  mix-blend-mode: screen;
-  animation: lb-light-breathe 7s ease-in-out infinite;
-}
-
-.lb-steam {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+/* Task A1: light ray / steam were tuned for the dark photo — invisible noise
+   on the calm surface, so they are disabled with it. */
+.lb-light-ray,
+.lb-steam,
+.lb-stage .lb-dust {
+  display: none;
 }
 
 .lb-steam-wisp {
@@ -95,16 +92,10 @@
   height: 150px;
 }
 
-.lb-stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(58, 36, 16, 0.5), transparent 44%, rgba(58, 36, 16, 0.72));
-  pointer-events: none;
-}
-
+/* Task A1: the dark rgba(58,36,16,…) scrims are gone with the photos. */
+.lb-stage::before,
 .lb-stage--band::before {
-  background: linear-gradient(to bottom, rgba(58, 36, 16, 0.8), transparent 36%);
+  content: none;
 }
 
 .lb-stage[data-paused="true"] *,
@@ -172,13 +163,9 @@
   }
 }
 
+/* Task A1: highlight vignette removed with the photo band. */
 .lb-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.12), transparent 28%);
-  opacity: 0.45;
-  pointer-events: none;
+  content: none;
 }
 
 /* Flour dust overlay on top of photo */
