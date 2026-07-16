@@ -63,6 +63,16 @@ const orderItemSchema = new Schema(
   { _id: false }
 );
 
+const statusHistoryEntrySchema = new Schema(
+  {
+    status: { type: String, required: true, trim: true },
+    changedAt: { type: Date, required: true },
+    changedByUserId: { type: String, required: true },
+    changedByRole: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const orderSchema = new Schema(
   {
     userId: {
@@ -91,6 +101,14 @@ const orderSchema = new Schema(
       trim: true,
       maxlength: 500,
       default: undefined,
+    },
+    /**
+     * Audit trail of admin status changes (additive; empty on orders created
+     * before this field existed — render that gracefully, never fabricate).
+     */
+    statusHistory: {
+      type: [statusHistoryEntrySchema],
+      default: [],
     },
     /** Promotions that contributed gifts/discounts to this order. */
     appliedPromotionIds: {

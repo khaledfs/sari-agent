@@ -709,6 +709,98 @@ async function overviewSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- admin order details section (Issue 2) ----------
+
+async function adminOrderDetailSection(adminCookie) {
+  if (!adminCookie) {
+    console.log("WARN  admin order detail section skipped — needs admin login");
+    return;
+  }
+
+  // Pick an order with items from the list.
+  let orderId = null;
+  let listTotal = null;
+  try {
+    const { body } = await jsonFetch("/api/admin/orders", { headers: { Cookie: adminCookie } });
+    const withItems = (body?.data ?? []).find((o) => o.itemCount > 0);
+    orderId = withItems?.id ?? null;
+    listTotal = withItems?.total ?? null;
+  } catch {
+    // reported below
+  }
+  if (!orderId) {
+    report("order-detail: found an order with items", false, "no orders with items");
+    return;
+  }
+
+  // Detail returns non-empty snapshot items and a total matching the list row.
+  try {
+    const { res, body } = await jsonFetch(`/api/admin/orders/${orderId}`, { headers: { Cookie: adminCookie } });
+    const d = body?.data;
+    const ok =
+      res.status === 200 &&
+      Array.isArray(d?.items) &&
+      d.items.length > 0 &&
+      d.items.every((i) => typeof i.name === "string" && i.name.length > 0 && typeof i.unitPrice === "number") &&
+      typeof d?.subtotal === "number" &&
+      d?.total === listTotal &&
+      Array.isArray(d?.statusHistory);
+    report(
+      "order-detail: GET -> 200 + non-empty items + total matches list",
+      ok,
+      `status ${res.status}, items=${d?.items?.length}, total=${d?.total} vs ${listTotal}`
+    );
+  } catch (err) {
+    report("order-detail: GET -> 200 + non-empty items + total matches list", false, String(err));
+  }
+
+  // A status change appends a history entry with the admin actor; restore after.
+  try {
+    const { body: beforeBody } = await jsonFetch(`/api/admin/orders/${orderId}`, { headers: { Cookie: adminCookie } });
+    const before = beforeBody?.data;
+    const originalStatus = before?.status;
+    const historyBefore = before?.statusHistory?.length ?? 0;
+
+    const bounceStatus = originalStatus === "confirmed" ? "pending" : "confirmed";
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: bounceStatus }),
+    });
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: originalStatus }),
+    });
+
+    const { body: afterBody } = await jsonFetch(`/api/admin/orders/${orderId}`, { headers: { Cookie: adminCookie } });
+    const after = afterBody?.data;
+    const appended = (after?.statusHistory?.length ?? 0) - historyBefore;
+    const last = after?.statusHistory?.[after.statusHistory.length - 1];
+    const ok =
+      appended === 2 &&
+      after?.status === originalStatus &&
+      last?.status === originalStatus &&
+      last?.changedByRole === "admin" &&
+      typeof last?.changedAt === "string";
+    report(
+      "order-detail: two status changes -> two history entries w/ actor (status restored)",
+      ok,
+      `appended=${appended}, lastRole=${last?.changedByRole}`
+    );
+  } catch (err) {
+    report("order-detail: two status changes -> two history entries w/ actor (status restored)", false, String(err));
+  }
+
+  // Unauthenticated detail -> 401.
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/orders/${orderId}`);
+    report("order-detail: unauthenticated -> 401", res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report("order-detail: unauthenticated -> 401", false, String(err));
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -723,6 +815,7 @@ async function main() {
   await promotionsSection(cookie, adminCookie);
   await bannersSection(cookie, adminCookie);
   await overviewSection(cookie, adminCookie);
+  await adminOrderDetailSection(adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
