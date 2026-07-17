@@ -100,13 +100,21 @@ export default function OrderDetailPage() {
     void load();
   }, [load]);
 
-  // Live: the admin advancing this order's status moves the timeline (and,
-  // once dispatched, unlocks the receipt) without a refresh.
+  // Live: the admin advancing this order's status — OR adjusting supplied
+  // quantities (same reused event) — refreshes the whole order (totals, lines,
+  // supplied quantities, receipt unlock) without a refresh or polling.
   useRealtimeEvent(["order.status_changed"], (event) => {
     if (event.type !== "order.status_changed" || event.orderId !== id) return;
-    setOrder((current) => (current ? { ...current, status: event.status } : current));
     setReceiptError("");
+    void load();
   });
+
+  // Acknowledge a supply adjustment the customer is now viewing (clears the
+  // unseen marker on the orders list). Fire-and-forget, owner-only server-side.
+  useEffect(() => {
+    if (!id || !order?.adjusted || order.adjustmentSeenAt) return;
+    void fetch(`/api/orders/${id}/acknowledge-adjustment`, { method: "POST" }).catch(() => {});
+  }, [id, order?.adjusted, order?.adjustmentSeenAt]);
 
   /**
    * Server-verified receipt gating (Work Order Issue 1), moved OFF the click
@@ -257,6 +265,12 @@ export default function OrderDetailPage() {
           <div className="ds-card ds-stack ds-stack--tight">
             <h2 className="ds-section-title ds-m-0">{t("trackingTitle")}</h2>
             <OrderTimeline status={order.status} />
+            {order.adjusted ? (
+              <p className="ds-order-adjust-note" role="note">
+                📦 {t("adjustedBySupplier")}
+                {order.adjustedAt ? ` · ${formatDate(order.adjustedAt)}` : ""}
+              </p>
+            ) : null}
           </div>
 
           {order.notes ? (

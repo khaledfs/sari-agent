@@ -2,7 +2,17 @@ import mongoose, { isValidObjectId } from "mongoose";
 
 import { assertCanActOnCustomer, resolveActorScope, scopedCustomerObjectIds } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
+import {
+  ADJUSTMENT_NOT_ALLOWED_MESSAGE,
+  adjustmentDelta,
+  assertValidSupplied,
+  isOrderAdjustable,
+  recomputeOrderTotal,
+  suppliedQty,
+  type AdjustableLine,
+} from "@/lib/order-adjustment";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
+import { LedgerEntryModel } from "@/models/ledger-entry.model";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { postLedgerEntry, toMinorUnits } from "@/services/ledger.service";
 import { OrderModel } from "@/models/order.model";
@@ -24,6 +34,8 @@ export type AdminOrderRow = {
   createdAt: string;
   /** Customer delivery notes from checkout ("" when none). */
   notes: string;
+  /** True once any line was supply-adjusted (list badge). */
+  adjusted: boolean;
 };
 
 export type OrderStatusHistoryEntry = {
@@ -41,6 +53,15 @@ type PriceBreakdownLean = {
   final: number;
 };
 
+type LineAdjustmentLean = {
+  fromQuantity: number;
+  toQuantity: number;
+  note?: string;
+  changedAt: Date;
+  changedByUserId: string;
+  changedByRole: string;
+};
+
 type OrderItemLean = {
   productId?: mongoose.Types.ObjectId;
   name?: string;
@@ -49,6 +70,9 @@ type OrderItemLean = {
   priceBreakdown?: PriceBreakdownLean;
   isGift?: boolean;
   promotionId?: string;
+  suppliedQuantity?: number;
+  adjustmentNote?: string;
+  adjustmentHistory?: LineAdjustmentLean[];
 };
 
 type OrderLean = {
@@ -63,6 +87,9 @@ type OrderLean = {
   appliedPromotionIds?: string[];
   promotionDiscount?: { promotionId: string; discountType: string; value: number; amountOff: number };
   statusHistory?: Array<{ status: string; changedAt: Date; changedByUserId: string; changedByRole: string }>;
+  adjusted?: boolean;
+  adjustedAt?: Date;
+  adjustmentRevision?: number;
 };
 
 export type AdminOrderDetailItem = {
@@ -71,8 +98,13 @@ export type AdminOrderDetailItem = {
   name: string;
   /** Unit price at order time (stored snapshot). */
   unitPrice: number;
+  /** Ordered quantity (immutable evidence). */
   quantity: number;
+  /** Actually-supplied quantity (defaults to ordered until adjusted). */
+  suppliedQuantity: number;
+  /** Line total from the SUPPLIED quantity at the snapshot price. */
   lineTotal: number;
+  adjustmentNote: string | null;
   isGift: boolean;
   promotionId: string | null;
   priceBreakdown: PriceBreakdownLean | null;
@@ -95,6 +127,11 @@ export type AdminOrderDetail = {
   promotionDiscount: { promotionId: string; discountType: string; value: number; amountOff: number } | null;
   appliedPromotionIds: string[];
   total: number;
+  /** True once any line's supplied quantity was adjusted. */
+  adjusted: boolean;
+  adjustedAt: string | null;
+  /** Sum of ORDERED-quantity line totals (what the customer originally owed). */
+  orderedTotal: number;
   customer: {
     id: string;
     businessName: string;
@@ -140,13 +177,16 @@ export function toAdminOrderDetail(
   const items: AdminOrderDetailItem[] = (order.items ?? []).map((it) => {
     const unitPrice = Number.isFinite(it.price) ? (it.price as number) : 0;
     const quantity = Number.isFinite(it.quantity) ? it.quantity : 0;
+    const supplied = suppliedQty({ quantity, suppliedQuantity: it.suppliedQuantity });
     const meta = it.productId ? productsById.get(String(it.productId)) : undefined;
     return {
       productId: it.productId ? String(it.productId) : "",
       name: it.name ?? "",
       unitPrice,
       quantity,
-      lineTotal: round2(unitPrice * quantity),
+      suppliedQuantity: supplied,
+      lineTotal: round2(unitPrice * supplied),
+      adjustmentNote: it.adjustmentNote ?? null,
       isGift: it.isGift === true,
       promotionId: it.promotionId ?? null,
       priceBreakdown: it.priceBreakdown ?? null,
@@ -156,6 +196,12 @@ export function toAdminOrderDetail(
       packageSize: meta?.packageSize || null,
     };
   });
+
+  const orderedTotal = round2((order.items ?? []).reduce((n, it) => {
+    const price = Number.isFinite(it.price) ? (it.price as number) : 0;
+    const qty = Number.isFinite(it.quantity) ? it.quantity : 0;
+    return n + price * qty;
+  }, 0));
 
   return {
     id: String(order._id),
@@ -168,6 +214,9 @@ export function toAdminOrderDetail(
     promotionDiscount: order.promotionDiscount ?? null,
     appliedPromotionIds: order.appliedPromotionIds ?? [],
     total: order.total,
+    adjusted: order.adjusted === true,
+    adjustedAt: order.adjustedAt instanceof Date ? order.adjustedAt.toISOString() : null,
+    orderedTotal,
     customer: user
       ? {
           id: String(user._id),
@@ -218,6 +267,7 @@ function toRow(o: OrderLean, user: UserLite | undefined): AdminOrderRow {
     status: o.status,
     createdAt: o.createdAt instanceof Date ? o.createdAt.toISOString() : String(o.createdAt ?? ""),
     notes: o.notes ?? "",
+    adjusted: o.adjusted === true,
   };
 }
 
@@ -368,4 +418,199 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
     .lean()
     .exec()) as unknown as UserLite | null;
   return toRow(o, user ?? undefined);
+}
+
+export type SupplyAdjustmentInput = {
+  /** Zero-based index into order.items — unambiguous even for repeated products. */
+  index: number;
+  suppliedQuantity: number;
+  note?: string;
+};
+
+/**
+ * Adjusts supplied quantities on an order's lines (warehouse shortage handling).
+ *
+ * Rules enforced here (see docs): decrease-only (0 ≤ supplied ≤ ordered, >ordered
+ * → 400); gift lines are never adjustable (promotions aren't revoked); allowed
+ * only pre-dispatch (pending/confirmed/packed), otherwise 403
+ * ADJUSTMENT_NOT_ALLOWED; agent scope → 404 on another agent's customer. The
+ * ordered quantity is never overwritten; the unit price is never recomputed.
+ *
+ * The order total (recomputed from SUPPLIED quantities, promotion discount kept)
+ * and a compensating ledger credit for the exact delta commit in ONE
+ * transaction — an order total and a ledger balance that disagree is the worst
+ * outcome, so if the ledger write fails the whole adjustment fails.
+ */
+export async function adjustOrderSupply(
+  orderId: string,
+  adjustments: SupplyAdjustmentInput[]
+): Promise<AdminOrderDetail> {
+  const scope = await resolveActorScope();
+  const actor = { userId: scope.userId, role: scope.role } as const;
+  if (!isValidObjectId(orderId)) {
+    throw new Error("Order not found.");
+  }
+  if (!Array.isArray(adjustments) || adjustments.length === 0) {
+    throw new Error("No adjustments provided.");
+  }
+
+  await connectDB();
+  const order = (await OrderModel.findById(orderId).lean().exec()) as unknown as OrderLean | null;
+  if (!order) {
+    throw new Error("Order not found.");
+  }
+  try {
+    assertCanActOnCustomer(scope, String(order.userId));
+  } catch {
+    throw new Error("Order not found."); // scope violation reads as not-found (no leak)
+  }
+  if (!isOrderAdjustable(order.status)) {
+    throw new Error(ADJUSTMENT_NOT_ALLOWED_MESSAGE);
+  }
+
+  const now = new Date();
+  const items = (order.items ?? []).map((it) => ({ ...it }));
+  let changed = false;
+
+  for (const adj of adjustments) {
+    const line = items[adj.index];
+    if (!line) {
+      throw new Error("Adjustment refers to a line that does not exist.");
+    }
+    if (line.isGift === true) {
+      throw new Error("Gift lines cannot be adjusted."); // promotions are never revoked
+    }
+    const ordered = Number.isFinite(line.quantity) ? line.quantity : 0;
+    const supplied = Math.trunc(Number(adj.suppliedQuantity));
+    assertValidSupplied(ordered, supplied); // decrease-only; >ordered → thrown (400)
+
+    const currentSupplied = suppliedQty({ quantity: ordered, suppliedQuantity: line.suppliedQuantity });
+    // A short line must never lose its explanation: when the caller omits the
+    // note, keep the existing one (only an explicitly-provided string replaces it).
+    const noteProvided = adj.note !== undefined && adj.note !== null;
+    const note = noteProvided ? String(adj.note).trim().slice(0, 500) : (line.adjustmentNote ?? "");
+    if (supplied === currentSupplied && note === (line.adjustmentNote ?? "")) {
+      continue; // no-op for this line
+    }
+    changed = true;
+    line.suppliedQuantity = supplied;
+    line.adjustmentNote = note || undefined;
+    line.adjustmentHistory = [
+      ...(line.adjustmentHistory ?? []),
+      {
+        fromQuantity: currentSupplied,
+        toQuantity: supplied,
+        note,
+        changedAt: now,
+        changedByUserId: actor.userId,
+        changedByRole: actor.role,
+      },
+    ];
+  }
+
+  // Idempotent on repeat: re-applying the same supplied values changes nothing.
+  if (!changed) {
+    return getAdminOrderDetail(orderId);
+  }
+
+  const asLines: AdjustableLine[] = items.map((it) => ({
+    price: Number.isFinite(it.price) ? (it.price as number) : 0,
+    quantity: Number.isFinite(it.quantity) ? it.quantity : 0,
+    suppliedQuantity: it.suppliedQuantity,
+    isGift: it.isGift,
+  }));
+  const promoOff = order.promotionDiscount?.amountOff ?? 0;
+  const previousTotal = order.total;
+  const newTotal = recomputeOrderTotal(asLines, promoOff);
+  const deltaMajor = adjustmentDelta(previousTotal, newTotal);
+  const deltaMinor = toMinorUnits(deltaMajor);
+  const revision = (order.adjustmentRevision ?? 0) + 1;
+  const idempotencyKey = `order_adjustment:${orderId}:rev${revision}`;
+
+  const orderUpdate = {
+    $set: {
+      items,
+      total: newTotal,
+      adjusted: true,
+      adjustedAt: now,
+      adjustedByUserId: actor.userId,
+      adjustedByRole: actor.role,
+      adjustmentRevision: revision,
+    },
+  };
+
+  const session = await mongoose.startSession();
+  let ledgerEntryId = "";
+  try {
+    await session.withTransaction(async () => {
+      await OrderModel.updateOne({ _id: new mongoose.Types.ObjectId(orderId) }, orderUpdate, { session });
+      if (deltaMinor > 0) {
+        const res = await postLedgerEntry({
+          userId: String(order.userId),
+          type: "refund",
+          amountMinor: deltaMinor,
+          description: `Supply adjustment #${orderId.slice(-8).toUpperCase()} — credit for shortfall`,
+          orderId,
+          idempotencyKey,
+          actor: { userId: actor.userId, role: actor.role },
+          onDuplicate: "ignore",
+          session,
+          deferPublish: true,
+        });
+        ledgerEntryId = res.entryId;
+      }
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "";
+    const transactionsUnsupported =
+      message.includes("Transaction numbers are only allowed") ||
+      message.includes("does not support transactions") ||
+      message.includes("Transactions are not supported");
+    if (!transactionsUnsupported) {
+      throw e instanceof Error ? e : new Error("Failed to adjust order.");
+    }
+    // Standalone-Mongo fallback: order first, then ledger; roll back the order
+    // total marker if the ledger post fails so the two never disagree.
+    await OrderModel.updateOne({ _id: new mongoose.Types.ObjectId(orderId) }, orderUpdate);
+    if (deltaMinor > 0) {
+      try {
+        const res = await postLedgerEntry({
+          userId: String(order.userId),
+          type: "refund",
+          amountMinor: deltaMinor,
+          description: `Supply adjustment #${orderId.slice(-8).toUpperCase()} — credit for shortfall`,
+          orderId,
+          idempotencyKey,
+          actor: { userId: actor.userId, role: actor.role },
+          onDuplicate: "ignore",
+          deferPublish: true,
+        });
+        ledgerEntryId = res.entryId;
+      } catch (ledgerErr) {
+        await LedgerEntryModel.deleteOne({ idempotencyKey }).exec();
+        await OrderModel.updateOne(
+          { _id: new mongoose.Types.ObjectId(orderId) },
+          { $set: { items: order.items ?? [], total: previousTotal, adjustmentRevision: order.adjustmentRevision } }
+        ).exec();
+        throw ledgerErr instanceof Error ? ledgerErr : new Error("Failed to correct the ledger.");
+      }
+    }
+  } finally {
+    await session.endSession();
+  }
+
+  // Realtime AFTER commit: reuse order.status_changed (owner + admin channels) —
+  // status is unchanged, but it carries the orderId so both sides refetch.
+  publishRealtimeEvent({
+    type: "order.status_changed",
+    orderId,
+    userId: String(order.userId),
+    status: order.status,
+    previousStatus: order.status,
+  });
+  if (ledgerEntryId) {
+    publishRealtimeEvent({ type: "ledger.entry_created", userId: String(order.userId), entryId: ledgerEntryId });
+  }
+
+  return getAdminOrderDetail(orderId);
 }

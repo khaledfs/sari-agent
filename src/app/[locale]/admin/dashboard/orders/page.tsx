@@ -7,8 +7,19 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
+import {
+  isOrderAdjustable,
+  recomputeOrderTotal,
+  round2,
+  suppliedSubtotal,
+  thresholdWarnings,
+} from "@/lib/order-adjustment";
 
 const STATUSES = ["pending", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled"] as const;
+
+function money(locale: string, n: number) {
+  return `₪${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+}
 
 type AdminOrderRow = {
   id: string;
@@ -18,6 +29,7 @@ type AdminOrderRow = {
   status: string;
   createdAt: string;
   notes: string;
+  adjusted: boolean;
 };
 
 type AdminOrderDetailItem = {
@@ -25,7 +37,9 @@ type AdminOrderDetailItem = {
   name: string;
   unitPrice: number;
   quantity: number;
+  suppliedQuantity: number;
   lineTotal: number;
+  adjustmentNote: string | null;
   isGift: boolean;
   promotionId: string | null;
   priceBreakdown: { base: number; final: number } | null;
@@ -46,6 +60,9 @@ type AdminOrderDetail = {
   promotionDiscount: { promotionId: string; discountType: string; value: number; amountOff: number } | null;
   appliedPromotionIds: string[];
   total: number;
+  adjusted: boolean;
+  adjustedAt: string | null;
+  orderedTotal: number;
   customer: {
     id: string;
     businessName: string;
@@ -72,6 +89,25 @@ export default function AdminOrdersPage() {
   const [detail, setDetail] = useState<AdminOrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
+
+  // Supply-adjustment editor (per-line supplied qty + note drafts).
+  const [drafts, setDrafts] = useState<Record<number, { supplied: string; note: string }>>({});
+  const [adjustSaving, setAdjustSaving] = useState(false);
+  const [adjustError, setAdjustError] = useState("");
+
+  useEffect(() => {
+    if (!detail) {
+      setDrafts({});
+      setAdjustError("");
+      return;
+    }
+    const seed: Record<number, { supplied: string; note: string }> = {};
+    detail.items.forEach((it, i) => {
+      seed[i] = { supplied: String(it.suppliedQuantity), note: it.adjustmentNote ?? "" };
+    });
+    setDrafts(seed);
+    setAdjustError("");
+  }, [detail]);
 
   const openDetail = useCallback(
     async (id: string) => {
@@ -105,6 +141,47 @@ export default function AdminOrdersPage() {
     setDetail(null);
     setDetailError("");
   }, []);
+
+  /** Persist the supplied-quantity drafts (only the changed lines). */
+  async function saveAdjustment() {
+    if (!detail) return;
+    const lines = detail.items
+      .map((it, i) => ({
+        index: i,
+        suppliedQuantity: Math.trunc(Number(drafts[i]?.supplied ?? it.suppliedQuantity)),
+        note: (drafts[i]?.note ?? "").trim(),
+        changed:
+          Math.trunc(Number(drafts[i]?.supplied)) !== it.suppliedQuantity ||
+          (drafts[i]?.note ?? "").trim() !== (it.adjustmentNote ?? ""),
+      }))
+      .filter((l) => l.changed)
+      .map(({ index, suppliedQuantity, note }) => ({ index, suppliedQuantity, note }));
+    if (lines.length === 0) return;
+
+    setAdjustSaving(true);
+    setAdjustError("");
+    const previousDetail = detail;
+    try {
+      const res = await fetch(`/api/admin/orders/${detail.id}/adjust`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lines }),
+      });
+      const json = (await res.json()) as { success?: boolean; data?: AdminOrderDetail; message?: string };
+      if (res.status === 200 && json.success && json.data) {
+        setDetail(json.data); // optimistic → authoritative
+        setOrders((list) => list.map((o) => (o.id === json.data!.id ? { ...o, total: json.data!.total, adjusted: true } : o)));
+        return;
+      }
+      setAdjustError(json.message ?? t("orders.adjust.error"));
+      setDetail(previousDetail); // rollback
+    } catch {
+      setAdjustError(t("orders.adjust.error"));
+      setDetail(previousDetail);
+    } finally {
+      setAdjustSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (!detailId) return;
@@ -240,6 +317,19 @@ export default function AdminOrdersPage() {
                   <tr key={o.id}>
                     <td style={{ fontWeight: 600, maxWidth: "240px" }}>
                       {o.customer?.businessName ?? t("orders.unknownCustomer")}
+                      {o.adjusted ? (
+                        <span
+                          style={{
+                            marginInlineStart: "0.4rem",
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                            color: "#b8860b",
+                          }}
+                          title={t("orders.adjust.badgeTitle")}
+                        >
+                          📦 {t("orders.adjust.badge")}
+                        </span>
+                      ) : null}
                       {o.notes ? (
                         <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>
                           📝 {o.notes}
@@ -404,9 +494,75 @@ export default function AdminOrdersPage() {
                               </span>
                             </td>
                             <td dir="ltr">{it.sku ?? "—"}</td>
-                            <td>{it.quantity}</td>
-                            <td>₪ {it.unitPrice}</td>
-                            <td>₪ {it.lineTotal}</td>
+                            <td>
+                              {(() => {
+                                const editable = isOrderAdjustable(detail.status) && !it.isGift;
+                                const suppliedVal = drafts[i]?.supplied ?? String(it.suppliedQuantity);
+                                const n = Math.trunc(Number(suppliedVal));
+                                const invalid = !Number.isInteger(n) || n < 0 || n > it.quantity;
+                                return (
+                                  <div style={{ display: "grid", gap: "0.25rem", minWidth: "8rem" }}>
+                                    <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                      {t("orders.adjust.ordered")}: {it.quantity}
+                                    </span>
+                                    {editable ? (
+                                      <>
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          max={it.quantity}
+                                          step={1}
+                                          className="admin-input"
+                                          value={suppliedVal}
+                                          aria-label={t("orders.adjust.suppliedLabel")}
+                                          aria-invalid={invalid}
+                                          onChange={(e) =>
+                                            setDrafts((d) => ({
+                                              ...d,
+                                              [i]: { supplied: e.target.value, note: d[i]?.note ?? "" },
+                                            }))
+                                          }
+                                          style={{ maxWidth: "5.5rem", ...(invalid ? { borderColor: "#c0392b" } : {}) }}
+                                        />
+                                        <input
+                                          type="text"
+                                          maxLength={500}
+                                          className="admin-input"
+                                          placeholder={t("orders.adjust.notePlaceholder")}
+                                          value={drafts[i]?.note ?? ""}
+                                          aria-label={t("orders.adjust.noteLabel")}
+                                          onChange={(e) =>
+                                            setDrafts((d) => ({
+                                              ...d,
+                                              [i]: {
+                                                supplied: d[i]?.supplied ?? String(it.suppliedQuantity),
+                                                note: e.target.value,
+                                              },
+                                            }))
+                                          }
+                                        />
+                                      </>
+                                    ) : (
+                                      <span style={{ fontWeight: 600 }}>
+                                        {t("orders.adjust.supplied")}: {it.suppliedQuantity}
+                                        {it.adjustmentNote ? (
+                                          <span style={{ display: "block", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                            {it.adjustmentNote}
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </td>
+                            <td>{money(locale, it.unitPrice)}</td>
+                            <td>
+                              {money(
+                                locale,
+                                round2(it.unitPrice * Math.trunc(Number(drafts[i]?.supplied ?? it.suppliedQuantity)))
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -414,22 +570,88 @@ export default function AdminOrdersPage() {
                   </div>
                 </section>
 
-                <section style={{ marginBottom: "1.25rem", fontSize: "0.875rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>{t("orders.detail.subtotal")}</span>
-                    <span>₪ {detail.subtotal}</span>
-                  </div>
-                  {detail.promotionDiscount ? (
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "var(--sari-gold-deep, #a07d2a)" }}>
-                      <span>{t("orders.detail.promotionDiscount")}</span>
-                      <span>-₪ {detail.promotionDiscount.amountOff}</span>
-                    </div>
-                  ) : null}
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, marginTop: "0.3rem" }}>
-                    <span>{t("orders.detail.total")}</span>
-                    <span>₪ {detail.total}</span>
-                  </div>
-                </section>
+                {(() => {
+                  const editable = isOrderAdjustable(detail.status);
+                  const previewLines = detail.items.map((it, i) => ({
+                    price: it.unitPrice,
+                    quantity: it.quantity,
+                    suppliedQuantity: Math.trunc(Number(drafts[i]?.supplied ?? it.suppliedQuantity)),
+                    isGift: it.isGift,
+                  }));
+                  const anyInvalid = detail.items.some((it, i) => {
+                    const n = Math.trunc(Number(drafts[i]?.supplied ?? it.suppliedQuantity));
+                    return !Number.isInteger(n) || n < 0 || n > it.quantity;
+                  });
+                  const dirty = detail.items.some(
+                    (it, i) =>
+                      Math.trunc(Number(drafts[i]?.supplied)) !== it.suppliedQuantity ||
+                      (drafts[i]?.note ?? "") !== (it.adjustmentNote ?? "")
+                  );
+                  const newSubtotal = suppliedSubtotal(previewLines);
+                  const newTotal = recomputeOrderTotal(previewLines, detail.promotionDiscount?.amountOff ?? 0);
+                  const delta = round2(detail.total - newTotal);
+                  const warn = thresholdWarnings(
+                    detail.subtotal,
+                    newSubtotal,
+                    Boolean(detail.promotionDiscount) || detail.appliedPromotionIds.length > 0
+                  );
+                  return (
+                    <section style={{ marginBottom: "1.25rem", fontSize: "0.875rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>{t("orders.detail.subtotal")}</span>
+                        <span>{money(locale, newSubtotal)}</span>
+                      </div>
+                      {detail.promotionDiscount ? (
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "var(--sari-gold-deep, #a07d2a)" }}>
+                          <span>{t("orders.detail.promotionDiscount")}</span>
+                          <span>-{money(locale, detail.promotionDiscount.amountOff)}</span>
+                        </div>
+                      ) : null}
+                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, marginTop: "0.3rem" }}>
+                        <span>{t("orders.detail.total")}</span>
+                        <span>{money(locale, newTotal)}</span>
+                      </div>
+
+                      {editable && dirty ? (
+                        <div
+                          style={{
+                            marginTop: "0.75rem",
+                            padding: "0.6rem 0.75rem",
+                            borderRadius: "8px",
+                            background: "var(--surface-2, #f6f1e6)",
+                            display: "grid",
+                            gap: "0.4rem",
+                          }}
+                        >
+                          <span>
+                            {money(locale, detail.total)} → <strong>{money(locale, newTotal)}</strong>
+                            {delta > 0 ? `, ${t("orders.adjust.credit")} ${money(locale, delta)}` : ""}
+                          </span>
+                          {warn.belowFreeDelivery ? (
+                            <span style={{ color: "#b8860b" }}>⚠️ {t("orders.adjust.belowFreeDelivery")}</span>
+                          ) : null}
+                          {warn.promotionAtRisk ? (
+                            <span style={{ color: "#b8860b" }}>⚠️ {t("orders.adjust.promotionAtRisk")}</span>
+                          ) : null}
+                          {adjustError ? <span style={{ color: "#c0392b" }} role="alert">{adjustError}</span> : null}
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-primary"
+                            disabled={adjustSaving || anyInvalid}
+                            onClick={() => void saveAdjustment()}
+                          >
+                            {adjustSaving ? t("orders.adjust.saving") : t("orders.adjust.save")}
+                          </button>
+                        </div>
+                      ) : null}
+                      {!editable && detail.adjusted ? (
+                        <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          {t("orders.adjust.orderedTotalWas")}: {money(locale, detail.orderedTotal)}
+                        </p>
+                      ) : null}
+                    </section>
+                  );
+                })()}
 
                 <section>
                   <h3 style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>{t("orders.detail.history")}</h3>

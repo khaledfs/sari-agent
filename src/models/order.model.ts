@@ -59,6 +59,41 @@ const orderItemSchema = new Schema(
       type: String,
       default: undefined,
     },
+    /**
+     * Warehouse shortage handling: `quantity` above stays the ORDERED quantity
+     * forever (customer evidence, never overwritten). `suppliedQuantity` is what
+     * was actually supplied — absent ⇒ treat as equal to `quantity`
+     * (0 ≤ supplied ≤ ordered; decrease-only). Totals/receipts use supplied.
+     */
+    suppliedQuantity: {
+      type: Number,
+      default: undefined,
+      min: 0,
+    },
+    /** Admin/agent note explaining a supply shortfall on this line. */
+    adjustmentNote: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: undefined,
+    },
+    /** Per-line audit trail of supply adjustments (same shape as statusHistory). */
+    adjustmentHistory: {
+      type: [
+        new Schema(
+          {
+            fromQuantity: { type: Number, required: true },
+            toQuantity: { type: Number, required: true },
+            note: { type: String, trim: true, default: "" },
+            changedAt: { type: Date, required: true },
+            changedByUserId: { type: String, required: true },
+            changedByRole: { type: String, required: true },
+          },
+          { _id: false }
+        ),
+      ],
+      default: undefined,
+    },
   },
   { _id: false }
 );
@@ -126,6 +161,37 @@ const orderSchema = new Schema(
         },
         { _id: false }
       ),
+      default: undefined,
+    },
+    /**
+     * Supply-adjustment markers (warehouse shortage). `adjusted` lets lists
+     * badge the order without scanning items; `adjustmentSeenAt` is when the
+     * customer acknowledged it (drives the unseen marker). Additive — legacy
+     * orders have neither.
+     */
+    adjusted: {
+      type: Boolean,
+      default: undefined,
+    },
+    adjustedAt: {
+      type: Date,
+      default: undefined,
+    },
+    adjustedByUserId: {
+      type: String,
+      default: undefined,
+    },
+    adjustedByRole: {
+      type: String,
+      default: undefined,
+    },
+    adjustmentSeenAt: {
+      type: Date,
+      default: undefined,
+    },
+    /** Monotonic adjustment count — the ledger correction's idempotency key. */
+    adjustmentRevision: {
+      type: Number,
       default: undefined,
     },
   },

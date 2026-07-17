@@ -28,6 +28,8 @@ type OrderSummary = {
   total: number;
   status: string;
   createdAt: string;
+  adjusted?: boolean;
+  adjustmentUnseen?: boolean;
 };
 
 type OrderDetail = OrderSummary & {
@@ -241,6 +243,13 @@ export default function OrdersPage() {
                         <strong>{t("total")}:</strong> {o.total}
                       </div>
                     </div>
+                    {o.adjustmentUnseen ? (
+                      <span className="ds-order-adjust-flag" title={t("adjustedBySupplier")}>
+                        ● {t("adjustedNew")}
+                      </span>
+                    ) : o.adjusted ? (
+                      <span className="ds-order-adjust-flag ds-order-adjust-flag--seen">{t("adjustedTag")}</span>
+                    ) : null}
                     <StatusBadge status={orderStatusState(o.status)}>{o.status}</StatusBadge>
                     <span className={`ds-order-chevron${expanded ? " ds-order-chevron--open" : ""}`} aria-hidden="true">
                       ▾

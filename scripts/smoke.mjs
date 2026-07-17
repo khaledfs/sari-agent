@@ -1625,6 +1625,171 @@ async function agentSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- supplied-quantity adjustment section (warehouse shortage) ----------
+
+async function adjustmentSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  adjustment section skipped — needs both customer and admin logins");
+    return;
+  }
+
+  async function ledgerBalance() {
+    const { body } = await jsonFetch("/api/account/ledger", { headers: { Cookie: customerCookie } });
+    return body?.data?.summary?.currentBalanceMinor ?? 0;
+  }
+
+  // Create a fresh pre-dispatch order of 10 units so the flow is deterministic.
+  let orderId = null;
+  try {
+    const { body: productsBody } = await jsonFetch("/api/products", { headers: { Cookie: customerCookie } });
+    const product = (productsBody?.data ?? []).find((p) => p.price > 1 && !p.priceBreakdown?.discountApplied);
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product._id, quantity: 10 }),
+    });
+    const { body: orderBody } = await jsonFetch("/api/orders", { method: "POST", headers: { Cookie: customerCookie } });
+    orderId = orderBody?.data?.id ?? null;
+    report("adjust: created a 10-unit pre-dispatch order", Boolean(orderId), `orderId=${orderId}`);
+  } catch (err) {
+    report("adjust: created a 10-unit pre-dispatch order", false, String(err));
+  }
+  if (!orderId) return;
+
+  try {
+    // Read admin detail: find a non-gift line, its ordered qty + unit price.
+    const { body: d0 } = await jsonFetch(`/api/admin/orders/${orderId}`, { headers: { Cookie: adminCookie } });
+    const detail0 = d0?.data;
+    const idx = (detail0?.items ?? []).findIndex((it) => !it.isGift);
+    const line = detail0.items[idx];
+    const unit = line.unitPrice;
+    const total0 = detail0.total;
+    const balance0 = await ledgerBalance();
+    report(
+      "adjust: line starts supplied === ordered",
+      line.suppliedQuantity === line.quantity && line.quantity === 10,
+      `ordered=${line.quantity}, supplied=${line.suppliedQuantity}`
+    );
+
+    // Adjust 10 → 9 with a note.
+    const { res: a1, body: b1 } = await jsonFetch(`/api/admin/orders/${orderId}/adjust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ lines: [{ index: idx, suppliedQuantity: 9, note: "SMOKE: חוסר במלאי" }] }),
+    });
+    const total1 = b1?.data?.total;
+    const balance1 = await ledgerBalance();
+    const expectedDelta = Math.round(unit * 100); // one unit, in agorot
+    report(
+      "adjust: 10→9 drops order total by exactly one unit + ledger by the same",
+      a1.status === 200 &&
+        Math.round((total0 - total1) * 100) === expectedDelta &&
+        balance0 - balance1 === expectedDelta &&
+        b1?.data?.items?.[idx]?.suppliedQuantity === 9 &&
+        b1?.data?.adjusted === true,
+      `Δtotal=${Math.round((total0 - total1) * 100)}, Δbalance=${balance0 - balance1}, expected=${expectedDelta}`
+    );
+
+    // Idempotent: re-applying supplied=9 changes nothing.
+    const { body: bDup } = await jsonFetch(`/api/admin/orders/${orderId}/adjust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ lines: [{ index: idx, suppliedQuantity: 9, note: "SMOKE: חוסר במלאי" }] }),
+    });
+    const balanceDup = await ledgerBalance();
+    report(
+      "adjust: re-applying the same supplied value is a no-op (idempotent)",
+      bDup?.data?.total === total1 && balanceDup === balance1,
+      `total=${bDup?.data?.total}, balance=${balanceDup}`
+    );
+
+    // Second adjustment 9 → 8: balance still exact.
+    const { body: b2 } = await jsonFetch(`/api/admin/orders/${orderId}/adjust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ lines: [{ index: idx, suppliedQuantity: 8 }] }),
+    });
+    const balance2 = await ledgerBalance();
+    report(
+      "adjust: 9→8 credits one more unit; balance exact after two adjustments",
+      balance1 - balance2 === expectedDelta && balance0 - balance2 === expectedDelta * 2,
+      `Δbalance=${balance1 - balance2}, total0-total2=${balance0 - balance2}`
+    );
+
+    // supplied > ordered → 400 ADJUSTMENT_INVALID.
+    const { res: rInvalid, body: bInvalid } = await jsonFetch(`/api/admin/orders/${orderId}/adjust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ lines: [{ index: idx, suppliedQuantity: 999 }] }),
+    });
+    report(
+      "adjust: supplied > ordered → 400 ADJUSTMENT_INVALID",
+      rInvalid.status === 400 && bInvalid?.code === "ADJUSTMENT_INVALID",
+      `status ${rInvalid.status}, code=${bInvalid?.code}`
+    );
+
+    // Customer sees supplied qty + the note.
+    const { body: cust } = await jsonFetch(`/api/orders/${orderId}`, { headers: { Cookie: customerCookie } });
+    const custLine = (cust?.data?.items ?? [])[idx];
+    report(
+      "adjust: customer sees supplied quantity + supplier note + adjusted flag",
+      custLine?.suppliedQuantity === 8 && custLine?.quantity === 10 && Boolean(custLine?.adjustmentNote) && cust?.data?.adjusted === true,
+      `supplied=${custLine?.suppliedQuantity}, ordered=${custLine?.quantity}`
+    );
+
+    // Cross-scope agent (SMOKE agent has no customers now) → 404.
+    const agentLogin = await fetch(`${BASE_URL}/api/auth/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: "+972-50-7199999", password: "Agent1234A" }),
+    });
+    const agentCookie = extractCookie(agentLogin, "authToken");
+    if (agentCookie) {
+      const { res: rCross } = await jsonFetch(`/api/admin/orders/${orderId}/adjust`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: agentCookie },
+        body: JSON.stringify({ lines: [{ index: idx, suppliedQuantity: 7 }] }),
+      });
+      report("adjust: cross-scope agent adjust → 404", rCross.status === 404, `got ${rCross.status}`);
+    } else {
+      report("adjust: cross-scope agent adjust → 404", false, "agent login failed");
+    }
+
+    // After dispatch → 403 ADJUSTMENT_NOT_ALLOWED; receipt shows supplied qty.
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: "out_for_delivery" }),
+    });
+    const { res: rLate, body: bLate } = await jsonFetch(`/api/admin/orders/${orderId}/adjust`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ lines: [{ index: idx, suppliedQuantity: 7 }] }),
+    });
+    report(
+      "adjust: after dispatch → 403 ADJUSTMENT_NOT_ALLOWED",
+      rLate.status === 403 && bLate?.code === "ADJUSTMENT_NOT_ALLOWED",
+      `status ${rLate.status}, code=${bLate?.code}`
+    );
+    const { body: rc } = await jsonFetch(`/api/orders/${orderId}/receipt`, { headers: { Cookie: customerCookie } });
+    const rcLine = (rc?.data?.order?.items ?? [])[idx];
+    report(
+      "adjust: dispatched receipt shows the SUPPLIED quantity",
+      rcLine?.suppliedQuantity === 8 && rcLine?.quantity === 10,
+      `supplied=${rcLine?.suppliedQuantity}, ordered=${rcLine?.quantity}`
+    );
+  } finally {
+    // Restore: cancel the test order (posts a balancing reversal, no dangling debt).
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -1647,6 +1812,7 @@ async function main() {
   await receiptSection(cookie, adminCookie);
   await ledgerSection(cookie, adminCookie);
   await agentSection(cookie, adminCookie);
+  await adjustmentSection(cookie, adminCookie);
   await aiAssistantSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);

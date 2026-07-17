@@ -53,6 +53,70 @@ const EMPTY_FORM = {
   sku: "",
 };
 
+type ShortageRow = {
+  productId: string;
+  name: string;
+  sku: string;
+  stock: number;
+  committed: number;
+  shortage: number;
+  openOrderIds: string[];
+};
+
+/**
+ * Warehouse shortage alert: products whose committed quantity across open
+ * pre-dispatch orders exceeds current stock — so the manager can spread the
+ * shortage in the morning, not at the truck. Read-only.
+ */
+function ShortageAlert({ locale, t }: { locale: string; t: ReturnType<typeof useTranslations> }) {
+  const [rows, setRows] = useState<ShortageRow[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/products/shortages");
+        const json = (await res.json()) as { success?: boolean; data?: ShortageRow[] };
+        if (!cancelled && res.status === 200 && json.success && Array.isArray(json.data)) {
+          setRows(json.data);
+        }
+      } catch {
+        // agents get 403 / transient errors → simply no alert
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (rows.length === 0) return null;
+  return (
+    <section
+      role="alert"
+      style={{
+        marginBottom: "1.25rem",
+        padding: "0.85rem 1rem",
+        borderRadius: "10px",
+        border: "1px solid #e0b64d",
+        background: "#fdf6e3",
+      }}
+    >
+      <h2 style={{ fontSize: "1rem", margin: "0 0 0.5rem" }}>⚠️ {t("products.shortage.title")}</h2>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.35rem", fontSize: "0.875rem" }}>
+        {rows.map((s) => (
+          <li key={s.productId} style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "baseline" }}>
+            <span>
+              <strong>{s.name}</strong>: {t("products.shortage.line", { committed: s.committed, stock: s.stock, shortage: s.shortage })}
+            </span>
+            <Link href={`/${locale}/admin/dashboard/orders`} className="admin-link">
+              {t("products.shortage.openOrders", { count: s.openOrderIds.length })}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default function AdminProductsPage() {
   const t = useTranslations("adminDashboard");
   const locale = useLocale();
@@ -379,6 +443,8 @@ export default function AdminProductsPage() {
       </Link>
       <h1 style={{ fontSize: "1.5rem", marginBottom: "0.35rem" }}>{t("products.title")}</h1>
       <p style={{ color: "var(--text-muted)", marginBottom: "1.25rem" }}>{t("products.subtitle")}</p>
+
+      <ShortageAlert locale={locale} t={t} />
 
       <div className="admin-toolbar">
         <input

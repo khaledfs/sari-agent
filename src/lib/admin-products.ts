@@ -3,7 +3,9 @@ import { revalidateTag } from "next/cache";
 
 import { requireAdmin, requireConsoleUser } from "@/lib/auth-user";
 import { connectDB } from "@/lib/db";
+import { ADJUSTABLE_STATUSES, stockShortage } from "@/lib/order-adjustment";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
+import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
 import { PRODUCTS_CACHE_TAG } from "@/services/product.service";
 
@@ -85,6 +87,81 @@ type ProductLean = {
   stock?: number | null;
   lowStockThreshold?: number;
 };
+
+export type StockShortageRow = {
+  productId: string;
+  name: string;
+  sku: string;
+  stock: number;
+  /** Total supplied quantity committed across open pre-dispatch orders. */
+  committed: number;
+  /** committed − stock (> 0 by construction). */
+  shortage: number;
+  /** Open orders holding this product, for the "spread the shortage" links. */
+  openOrderIds: string[];
+};
+
+/**
+ * Warehouse shortage alert (read-only): for every product with tracked stock,
+ * the total quantity COMMITTED across all open pre-dispatch orders (using the
+ * supplied quantity, which defaults to ordered) vs current stock — surfaced
+ * only where committed > stock. ONE aggregation over open orders (no N+1),
+ * admin-only. This is what lets the manager spread a shortage in the morning
+ * instead of at the truck.
+ */
+export async function getStockShortages(): Promise<StockShortageRow[]> {
+  await requireAdmin();
+  await connectDB();
+
+  const committedByProduct = await OrderModel.aggregate<{
+    _id: mongoose.Types.ObjectId;
+    committed: number;
+    orderIds: mongoose.Types.ObjectId[];
+  }>([
+    { $match: { status: { $in: [...ADJUSTABLE_STATUSES] } } },
+    { $unwind: "$items" },
+    {
+      $group: {
+        _id: "$items.productId",
+        committed: { $sum: { $ifNull: ["$items.suppliedQuantity", "$items.quantity"] } },
+        orderIds: { $addToSet: "$_id" },
+      },
+    },
+    { $match: { committed: { $gt: 0 } } },
+  ]).exec();
+
+  if (committedByProduct.length === 0) return [];
+
+  const productIds = committedByProduct.map((c) => c._id).filter(Boolean);
+  const products = (await ProductModel.find(
+    { _id: { $in: productIds }, stock: { $ne: null } },
+    { name: 1, sku: 1, stock: 1 }
+  )
+    .lean()
+    .exec()) as unknown as Array<{ _id: mongoose.Types.ObjectId; name: string; sku: string; stock: number | null }>;
+
+  const stockById = new Map(products.map((p) => [String(p._id), p]));
+  const rows: StockShortageRow[] = [];
+  for (const c of committedByProduct) {
+    const product = stockById.get(String(c._id));
+    if (!product || typeof product.stock !== "number") continue; // untracked stock → not a shortage
+    const shortage = stockShortage(c.committed, product.stock);
+    if (shortage > 0) {
+      rows.push({
+        productId: String(c._id),
+        name: product.name,
+        sku: product.sku,
+        stock: product.stock,
+        committed: c.committed,
+        shortage,
+        openOrderIds: c.orderIds.map((id) => String(id)),
+      });
+    }
+  }
+  // Worst shortage first.
+  rows.sort((a, b) => b.shortage - a.shortage);
+  return rows;
+}
 
 function toRow(p: ProductLean): AdminProductRow {
   return {

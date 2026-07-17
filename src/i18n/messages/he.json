@@ -323,6 +323,10 @@
     "receiptPageHint": "להדפסה או שמירה כ‑PDF מהטלפון",
     "backToDetail": "חזרה לפרטי ההזמנה",
     "receiptShareHint": "בטלפון: פתחו את תפריט השיתוף ובחרו הדפסה או שמירה לקבצים.",
+    "suppliedShort": "הוזמן {ordered} · סופק {supplied}",
+    "adjustedBySupplier": "הכמות עודכנה על ידי הספק",
+    "adjustedNew": "עודכן",
+    "adjustedTag": "עודכן על ידי הספק",
     "confirmedTitle": "ההזמנה התקבלה!",
     "confirmedBody": "קיבלנו את ההזמנה שלך ונתחיל לטפל בה בקרוב.",
     "continueShopping": "המשך קנייה",
@@ -587,6 +591,22 @@
       "error": "טעינת ההזמנות נכשלה.",
       "updateError": "עדכון הסטטוס נכשל.",
       "unknownCustomer": "לקוח לא ידוע",
+      "adjust": {
+        "ordered": "הוזמן",
+        "supplied": "סופק",
+        "suppliedLabel": "כמות שסופקה",
+        "noteLabel": "הערת אספקה",
+        "notePlaceholder": "סיבה (למשל: חוסר במלאי)",
+        "credit": "זיכוי",
+        "save": "עדכן כמות שסופקה",
+        "saving": "מעדכן…",
+        "error": "עדכון הכמות נכשל.",
+        "belowFreeDelivery": "השינוי מוריד את ההזמנה מתחת לסף למשלוח חינם.",
+        "promotionAtRisk": "השינוי עלול להשפיע על מבצע שההזמנה זכתה בו — המתנה נשמרת.",
+        "orderedTotalWas": "סה״כ שהוזמן במקור",
+        "badge": "עודכן",
+        "badgeTitle": "הכמות שסופקה עודכנה"
+      },
       "detail": {
         "open": "פרטים",
         "close": "סגירה",
@@ -637,6 +657,11 @@
     "products": {
       "title": "מוצרים",
       "subtitle": "ניהול הקטלוג: מחירים, מלאי וזמינות.",
+      "shortage": {
+        "title": "חוסר במלאי מול הזמנות פתוחות",
+        "line": "{committed} מוזמנים · {stock} במלאי · חוסר {shortage}",
+        "openOrders": "{count} הזמנות פתוחות ←"
+      },
       "loading": "טוען מוצרים…",
       "empty": "אין מוצרים שתואמים את הסינון הנוכחי.",
       "error": "טעינת המוצרים נכשלה.",

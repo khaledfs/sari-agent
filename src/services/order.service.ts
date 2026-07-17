@@ -2,6 +2,7 @@ import mongoose, { isValidObjectId } from "mongoose";
 
 import { connectDB } from "@/lib/db";
 import { isReceiptAvailable } from "@/lib/order-status";
+import { suppliedQty } from "@/lib/order-adjustment";
 import { CartModel } from "@/models/cart.model";
 import { UserModel } from "@/models/user.model";
 import { requireOrderingEnabled } from "@/services/account-status.service";
@@ -21,8 +22,14 @@ export type OrderItemSnapshot = {
   productId: string;
   name: string;
   price: number;
+  /** Ordered quantity (immutable evidence — what the customer asked for). */
   quantity: number;
+  /** Actually-supplied quantity (defaults to ordered until adjusted). */
+  suppliedQuantity: number;
+  /** Line total from the SUPPLIED quantity at the snapshot price. */
   lineTotal: number;
+  /** Admin/agent note when this line was short-supplied. */
+  adjustmentNote?: string;
   /** Pricing-engine audit snapshot (absent on legacy orders). */
   priceBreakdown?: PriceBreakdown;
   /** Promotion gift line (price 0). */
@@ -36,6 +43,9 @@ export type OrderSummary = {
   total: number;
   status: string;
   createdAt: string;
+  /** True once a line was supply-adjusted; unseen = customer hasn't opened it. */
+  adjusted?: boolean;
+  adjustmentUnseen?: boolean;
 };
 
 export type OrderDetail = {
@@ -54,6 +64,11 @@ export type OrderDetail = {
     value: number;
     amountOff: number;
   };
+  /** Supply-adjustment markers (warehouse shortage). */
+  adjusted?: boolean;
+  adjustedAt?: string;
+  /** When the customer acknowledged the adjustment (drives the unseen marker). */
+  adjustmentSeenAt?: string;
 };
 
 /** Max length for customer delivery notes (mirrors the schema maxlength). */
@@ -71,6 +86,8 @@ type OrderItemRow = {
   name: string;
   price: number;
   quantity: number;
+  suppliedQuantity?: number;
+  adjustmentNote?: string;
   priceBreakdown?: PriceBreakdown;
   isGift?: boolean;
   promotionId?: string;
@@ -86,15 +103,21 @@ function serializeOrder(doc: {
   notes?: string;
   appliedPromotionIds?: string[];
   promotionDiscount?: OrderDetail["promotionDiscount"];
+  adjusted?: boolean;
+  adjustedAt?: Date;
+  adjustmentSeenAt?: Date;
 }): OrderDetail {
   const items: OrderItemSnapshot[] = (doc.items ?? []).map((row) => {
-    const lineTotal = Math.round(row.price * row.quantity * 100) / 100;
+    const supplied = suppliedQty({ quantity: row.quantity, suppliedQuantity: row.suppliedQuantity });
+    const lineTotal = Math.round(row.price * supplied * 100) / 100;
     return {
       productId: String(row.productId),
       name: row.name,
       price: row.price,
       quantity: row.quantity,
+      suppliedQuantity: supplied,
       lineTotal,
+      ...(row.adjustmentNote ? { adjustmentNote: row.adjustmentNote } : {}),
       ...(row.priceBreakdown ? { priceBreakdown: row.priceBreakdown } : {}),
       ...(row.isGift ? { isGift: true } : {}),
       ...(row.promotionId ? { promotionId: row.promotionId } : {}),
@@ -110,6 +133,9 @@ function serializeOrder(doc: {
     ...(doc.notes ? { notes: doc.notes } : {}),
     ...(doc.appliedPromotionIds?.length ? { appliedPromotionIds: doc.appliedPromotionIds } : {}),
     ...(doc.promotionDiscount ? { promotionDiscount: doc.promotionDiscount } : {}),
+    ...(doc.adjusted ? { adjusted: true } : {}),
+    ...(doc.adjustedAt ? { adjustedAt: new Date(doc.adjustedAt).toISOString() } : {}),
+    ...(doc.adjustmentSeenAt ? { adjustmentSeenAt: new Date(doc.adjustmentSeenAt).toISOString() } : {}),
   };
 }
 
@@ -120,6 +146,7 @@ function toSummary(detail: OrderDetail): OrderSummary {
     total: detail.total,
     status: detail.status,
     createdAt: detail.createdAt,
+    ...(detail.adjusted ? { adjusted: true, adjustmentUnseen: !detail.adjustmentSeenAt } : {}),
   };
 }
 
@@ -349,6 +376,9 @@ export async function getOrdersByUser(userId: string): Promise<OrderSummary[]> {
         total: r.total,
         status: r.status,
         createdAt: r.createdAt as Date,
+        adjusted: (r as { adjusted?: boolean }).adjusted,
+        adjustedAt: (r as { adjustedAt?: Date }).adjustedAt,
+        adjustmentSeenAt: (r as { adjustmentSeenAt?: Date }).adjustmentSeenAt,
       })
     )
   );
@@ -438,5 +468,27 @@ export async function getOrderById(userId: string, orderId: string): Promise<Ord
     notes: (doc as { notes?: string }).notes,
     appliedPromotionIds: (doc as { appliedPromotionIds?: string[] }).appliedPromotionIds,
     promotionDiscount: (doc as { promotionDiscount?: OrderDetail["promotionDiscount"] }).promotionDiscount,
+    adjusted: (doc as { adjusted?: boolean }).adjusted,
+    adjustedAt: (doc as { adjustedAt?: Date }).adjustedAt,
+    adjustmentSeenAt: (doc as { adjustmentSeenAt?: Date }).adjustmentSeenAt,
   });
+}
+
+/**
+ * Marks a customer's adjusted order as acknowledged (clears the "unseen"
+ * marker). Only the owner can acknowledge; no-op if already seen or not
+ * adjusted. Fail-soft — never throws for the fire-and-forget UI call.
+ */
+export async function acknowledgeAdjustment(userId: string, orderId: string): Promise<void> {
+  if (!isValidObjectId(userId) || !isValidObjectId(orderId)) return;
+  await connectDB();
+  await OrderModel.updateOne(
+    {
+      _id: new mongoose.Types.ObjectId(orderId),
+      userId: toUserObjectId(userId),
+      adjusted: true,
+      adjustmentSeenAt: { $exists: false },
+    },
+    { $set: { adjustmentSeenAt: new Date() } }
+  ).exec();
 }

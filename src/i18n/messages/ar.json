@@ -323,6 +323,10 @@
     "receiptPageHint": "للطباعة أو الحفظ كـ PDF من هاتفك",
     "backToDetail": "العودة إلى الطلب",
     "receiptShareHint": "من هاتفك: افتح قائمة المشاركة واختر طباعة أو حفظ في الملفات.",
+    "suppliedShort": "المطلوب {ordered} · المورَّد {supplied}",
+    "adjustedBySupplier": "تم تحديث الكميات من قبل المورّد",
+    "adjustedNew": "محدّث",
+    "adjustedTag": "محدّث من المورّد",
     "confirmedTitle": "تم استلام الطلب!",
     "confirmedBody": "استلمنا طلبك وسنبدأ بمعالجته قريباً.",
     "continueShopping": "متابعة التسوق",
@@ -587,6 +591,22 @@
       "error": "فشل تحميل الطلبات.",
       "updateError": "فشل تحديث الحالة.",
       "unknownCustomer": "عميل غير معروف",
+      "adjust": {
+        "ordered": "المطلوب",
+        "supplied": "المورَّد",
+        "suppliedLabel": "الكمية المورَّدة",
+        "noteLabel": "ملاحظة التوريد",
+        "notePlaceholder": "السبب (مثلاً: نفاد المخزون)",
+        "credit": "رصيد دائن",
+        "save": "تحديث الكميات المورَّدة",
+        "saving": "جارٍ التحديث…",
+        "error": "فشل تحديث الكمية.",
+        "belowFreeDelivery": "هذا يُنزل الطلب تحت حد التوصيل المجاني.",
+        "promotionAtRisk": "قد يؤثر هذا على عرض حصل عليه الطلب — تبقى الهدية.",
+        "orderedTotalWas": "الإجمالي المطلوب أصلاً",
+        "badge": "معدّل",
+        "badgeTitle": "تم تعديل الكمية المورَّدة"
+      },
       "detail": {
         "open": "التفاصيل",
         "close": "إغلاق",
@@ -637,6 +657,11 @@
     "products": {
       "title": "المنتجات",
       "subtitle": "إدارة الكتالوج: الأسعار والمخزون والتوفر.",
+      "shortage": {
+        "title": "نقص مقابل الطلبات المفتوحة",
+        "line": "{committed} مطلوب · {stock} في المخزون · نقص {shortage}",
+        "openOrders": "{count} طلبات مفتوحة ←"
+      },
       "loading": "جارٍ تحميل المنتجات…",
       "empty": "لا توجد منتجات مطابقة للتصفية الحالية.",
       "error": "فشل تحميل المنتجات.",

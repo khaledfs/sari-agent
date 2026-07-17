@@ -2,13 +2,20 @@
 
 import type { useTranslations } from "next-intl";
 
+import { suppliedQty } from "@/lib/order-adjustment";
+
 type T = ReturnType<typeof useTranslations>;
 
 export type OrderViewItem = {
   productId: string;
   name: string;
   price: number;
+  /** Ordered quantity (immutable evidence). */
   quantity: number;
+  /** Actually-supplied quantity; absent ⇒ equals ordered. */
+  suppliedQuantity?: number;
+  /** Note when this line was short-supplied. */
+  adjustmentNote?: string;
   lineTotal: number;
   isGift?: boolean;
   priceBreakdown?: { base: number; final: number };
@@ -22,7 +29,15 @@ export type OrderViewData = {
   createdAt: string;
   notes?: string;
   promotionDiscount?: { amountOff: number };
+  adjusted?: boolean;
+  adjustedAt?: string;
+  adjustmentSeenAt?: string;
 };
+
+/** True when a line's supplied quantity differs from what was ordered. */
+export function lineIsAdjusted(item: OrderViewItem): boolean {
+  return suppliedQty(item) !== item.quantity;
+}
 
 export function formatMoney(locale: string, n: number) {
   // Currency is always two decimals (₪8,709.40, never ₪8,709.4). Locale-aware
@@ -50,12 +65,29 @@ export function OrderItemsList({ items, locale, t }: { items: OrderViewItem[]; l
       {items.map((item, i) => {
         const discounted =
           !item.isGift && item.priceBreakdown && item.priceBreakdown.final < item.priceBreakdown.base;
+        const supplied = suppliedQty(item);
+        const adjusted = supplied !== item.quantity;
         return (
           <li key={`${item.productId}-${i}`} className="ds-order-line">
             <span className="ds-order-line__name">
               {item.isGift ? <span className="ds-gift-badge">{t("giftLine")} 🎁</span> : null} {item.name}
+              {adjusted ? (
+                <span className="ds-order-line__adjust-note">
+                  {t("suppliedShort", { ordered: item.quantity, supplied })}
+                  {item.adjustmentNote ? ` — ${item.adjustmentNote}` : ""}
+                </span>
+              ) : null}
             </span>
-            <span className="ds-order-line__qty">×{item.quantity}</span>
+            <span className="ds-order-line__qty">
+              {adjusted ? (
+                <>
+                  <s className="ds-order-line__qty-ordered" aria-hidden="true">×{item.quantity}</s>{" "}
+                  <span className="ds-order-line__qty-supplied">×{supplied}</span>
+                </>
+              ) : (
+                <>×{item.quantity}</>
+              )}
+            </span>
             <span className="ds-order-line__price">
               {discounted ? (
                 <s className="ds-order-line__base" aria-hidden="true">
@@ -177,17 +209,27 @@ export function OrderReceipt({
           </tr>
         </thead>
         <tbody>
-          {order.items.map((item, i) => (
-            <tr key={`${item.productId}-${i}`}>
-              <td>
-                {item.isGift ? "🎁 " : null}
-                {item.name}
-              </td>
-              <td>{item.quantity}</td>
-              <td>{formatMoney(locale, item.price)}</td>
-              <td>{formatMoney(locale, item.lineTotal)}</td>
-            </tr>
-          ))}
+          {order.items.map((item, i) => {
+            const supplied = suppliedQty(item);
+            const adjusted = supplied !== item.quantity;
+            return (
+              <tr key={`${item.productId}-${i}`}>
+                <td>
+                  {item.isGift ? "🎁 " : null}
+                  {item.name}
+                  {adjusted ? (
+                    <span className="ds-receipt__line-note">
+                      {t("suppliedShort", { ordered: item.quantity, supplied })}
+                      {item.adjustmentNote ? ` — ${item.adjustmentNote}` : ""}
+                    </span>
+                  ) : null}
+                </td>
+                <td>{supplied}</td>
+                <td>{formatMoney(locale, item.price)}</td>
+                <td>{formatMoney(locale, item.lineTotal)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

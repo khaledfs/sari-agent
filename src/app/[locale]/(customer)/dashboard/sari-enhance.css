@@ -2106,3 +2106,43 @@
   outline: 2px solid var(--brand, #a67c00);
   outline-offset: 2px;
 }
+
+/* ——— Supply adjustment (warehouse shortage) — customer-facing ——— */
+.ds-order-line__adjust-note {
+  display: block;
+  margin-block-start: 2px;
+  font-size: 0.72rem;
+  color: var(--text-muted, #6b6350);
+}
+.ds-order-line__qty-ordered {
+  color: var(--text-muted, #6b6350);
+  opacity: 0.75;
+}
+.ds-order-line__qty-supplied {
+  font-weight: 700;
+}
+.ds-order-adjust-note {
+  margin: 0;
+  padding-block: 6px;
+  font-size: 0.85rem;
+  color: var(--text-primary, #2a2620);
+}
+.ds-order-adjust-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-inline-end: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #7a5c00;
+  background: #fdf1cf;
+  border: 1px solid #e4c667;
+}
+.ds-order-adjust-flag--seen {
+  color: var(--text-muted, #6b6350);
+  background: transparent;
+  border-color: var(--border, #e6e0d3);
+  font-weight: 600;
+}

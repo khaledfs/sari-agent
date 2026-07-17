@@ -826,6 +826,13 @@ button:disabled,
     page-break-inside: avoid;
   }
 
+  /* Ordered-vs-supplied secondary line on an adjusted receipt row. */
+  .ds-receipt__line-note {
+    display: block;
+    font-size: 8.5pt;
+    color: #6b6350;
+  }
+
   .ds-receipt__summary {
     margin-block-start: 10pt;
     margin-inline-start: auto;

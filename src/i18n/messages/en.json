@@ -323,6 +323,10 @@
     "receiptPageHint": "to print or save as PDF from your phone",
     "backToDetail": "Back to order",
     "receiptShareHint": "On your phone: open the Share menu and choose Print or Save to Files.",
+    "suppliedShort": "Ordered {ordered} · supplied {supplied}",
+    "adjustedBySupplier": "Quantities were updated by the supplier",
+    "adjustedNew": "Updated",
+    "adjustedTag": "Updated by supplier",
     "confirmedTitle": "Order received!",
     "confirmedBody": "We got your order and will start processing it shortly.",
     "continueShopping": "Continue shopping",
@@ -587,6 +591,22 @@
       "error": "Failed to load orders.",
       "updateError": "Failed to update status.",
       "unknownCustomer": "Unknown customer",
+      "adjust": {
+        "ordered": "Ordered",
+        "supplied": "Supplied",
+        "suppliedLabel": "Supplied quantity",
+        "noteLabel": "Supply note",
+        "notePlaceholder": "Reason (e.g. out of stock)",
+        "credit": "credit",
+        "save": "Update supplied quantities",
+        "saving": "Updating…",
+        "error": "Failed to update the quantity.",
+        "belowFreeDelivery": "This drops the order below the free-delivery threshold.",
+        "promotionAtRisk": "This may affect a promotion the order earned — the gift is kept.",
+        "orderedTotalWas": "Originally ordered total",
+        "badge": "Adjusted",
+        "badgeTitle": "Supplied quantity was adjusted"
+      },
       "detail": {
         "open": "Details",
         "close": "Close",
@@ -637,6 +657,11 @@
     "products": {
       "title": "Products",
       "subtitle": "Manage the catalog: prices, stock, and availability.",
+      "shortage": {
+        "title": "Shortages vs open orders",
+        "line": "{committed} committed · {stock} in stock · short {shortage}",
+        "openOrders": "{count} open orders →"
+      },
       "loading": "Loading products…",
       "empty": "No products match the current filters.",
       "error": "Failed to load products.",
