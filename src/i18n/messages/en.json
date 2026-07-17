@@ -295,6 +295,16 @@
     "empty": "Your cart is empty — nothing to review.",
     "notesLabel": "Delivery notes (optional)",
     "notesPlaceholder": "e.g. deliver after 8AM, call before arrival…",
+    "paymentTitle": "Payment",
+    "payViaAgent": "Pay via your agent",
+    "payViaAgentNamed": "Pay via {name}",
+    "payViaAgentHint": "Cash or cheque, collected in person after your order is approved.",
+    "payCard": "Pay by card",
+    "payCardHint": "Secure card payment — you'll complete it on the next step.",
+    "mockPayTitle": "Complete payment",
+    "mockPayHint": "Developer sandbox — simulate the payment provider's response.",
+    "mockPaySuccess": "Simulate successful payment",
+    "mockPayFail": "Simulate failed payment",
     "confirm": "Confirm order",
     "confirming": "Placing your order…",
     "delivery": "Delivery",
@@ -351,6 +361,14 @@
       "outForDelivery": "Out for delivery",
       "delivered": "Delivered",
       "cancelled": "Cancelled"
+    },
+    "payment": {
+      "methodCard": "Card payment",
+      "methodAgent": "Pay via agent",
+      "statusPaid": "Paid",
+      "statusFailed": "Payment failed",
+      "statusCollect": "To be collected by your agent",
+      "statusPending": "Awaiting payment"
     }
   },
   "account": {
@@ -485,6 +503,8 @@
         "customersDesc": "Manage accounts & profiles",
         "orders": "Orders",
         "ordersDesc": "Track & process orders",
+        "collections": "Collections",
+        "collectionsDesc": "Cash & cheque to collect",
         "products": "Products",
         "productsDesc": "Catalog & inventory",
         "discounts": "Discounts",
@@ -504,6 +524,22 @@
       },
       "backToDashboard": "Back to dashboard",
       "comingSoon": "This section is under construction."
+    },
+    "collections": {
+      "title": "Collections",
+      "subtitle": "Agent-paid orders awaiting in-person collection.",
+      "loading": "Loading collections…",
+      "empty": "No open collections.",
+      "error": "Failed to load collections.",
+      "markCollected": "Mark collected",
+      "collecting": "Recording…",
+      "columns": {
+        "customer": "Customer",
+        "order": "Order",
+        "amount": "Amount",
+        "delivery": "Delivery status",
+        "created": "Created"
+      }
     },
     "customers": {
       "title": "Customers",

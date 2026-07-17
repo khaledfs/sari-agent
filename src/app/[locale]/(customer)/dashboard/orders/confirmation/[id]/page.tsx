@@ -10,6 +10,7 @@ import {
   OrderItemsList,
   OrderReceipt,
   OrderTotals,
+  PaymentStateBadge,
   shortOrderNumber,
   type OrderViewData,
 } from "@/components/orders/order-view";
@@ -163,6 +164,11 @@ export default function OrderConfirmationPage() {
               {" · "}
               {formatDate(order.createdAt)}
             </p>
+            {order.paymentMethod ? (
+              <p className="ds-confirmation-hero__meta">
+                <PaymentStateBadge order={order} t={t} />
+              </p>
+            ) : null}
           </section>
 
           <div className="ds-card ds-stack ds-stack--tight">

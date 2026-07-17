@@ -295,6 +295,16 @@
     "empty": "העגלה ריקה — אין מה לסקור.",
     "notesLabel": "הערות למשלוח (אופציונלי)",
     "notesPlaceholder": "למשל: לספק אחרי 8 בבוקר, להתקשר לפני הגעה…",
+    "paymentTitle": "תשלום",
+    "payViaAgent": "תשלום דרך הסוכן שלך",
+    "payViaAgentNamed": "תשלום דרך {name}",
+    "payViaAgentHint": "מזומן או צ׳ק, נאסף באופן אישי לאחר אישור ההזמנה.",
+    "payCard": "תשלום בכרטיס",
+    "payCardHint": "תשלום מאובטח בכרטיס — תשלימו אותו בשלב הבא.",
+    "mockPayTitle": "השלמת תשלום",
+    "mockPayHint": "סביבת פיתוח — הדמיית תגובת ספק התשלומים.",
+    "mockPaySuccess": "הדמיית תשלום מוצלח",
+    "mockPayFail": "הדמיית תשלום שנכשל",
     "confirm": "אישור הזמנה",
     "confirming": "שולח את ההזמנה…",
     "delivery": "משלוח",
@@ -351,6 +361,14 @@
       "outForDelivery": "יצאה למשלוח",
       "delivered": "נמסרה",
       "cancelled": "בוטלה"
+    },
+    "payment": {
+      "methodCard": "תשלום בכרטיס",
+      "methodAgent": "תשלום לסוכן",
+      "statusPaid": "שולם",
+      "statusFailed": "התשלום נכשל",
+      "statusCollect": "ייגבה על ידי הסוכן",
+      "statusPending": "ממתין לתשלום"
     }
   },
   "account": {
@@ -485,6 +503,8 @@
         "customersDesc": "ניהול חשבונות ופרופילים",
         "orders": "הזמנות",
         "ordersDesc": "מעקב ועיבוד הזמנות",
+        "collections": "גבייה",
+        "collectionsDesc": "גבייה במזומן/צ'ק מהלקוחות",
         "products": "מוצרים",
         "productsDesc": "קטלוג ומלאי",
         "discounts": "הנחות",
@@ -504,6 +524,23 @@
       },
       "backToDashboard": "חזרה ללוח הבקרה",
       "comingSoon": "חלק זה בבנייה."
+    },
+    "collections": {
+      "title": "גבייה",
+      "subtitle": "מזומן וצ׳קים לגבייה על הזמנות מאושרות — סמנו כל אחת כנגבתה עם קבלת התשלום.",
+      "loading": "טוען גבייה…",
+      "empty": "אין גבייה פתוחה.",
+      "error": "טעינת הגבייה נכשלה.",
+      "unknownCustomer": "לקוח לא ידוע",
+      "columns": {
+        "customer": "לקוח",
+        "order": "הזמנה",
+        "amount": "סכום",
+        "delivery": "משלוח",
+        "created": "נוצר"
+      },
+      "markCollected": "סמן כנגבה",
+      "collecting": "רושם…"
     },
     "customers": {
       "title": "לקוחות",
@@ -970,6 +1007,22 @@
         "route": "קו / אזור",
         "creating": "יוצר…",
         "submit": "יצירת סוכן"
+      }
+    },
+    "collections": {
+      "title": "גבייה",
+      "subtitle": "הזמנות בתשלום דרך הסוכן שממתינות לגבייה.",
+      "loading": "טוען משימות גבייה…",
+      "empty": "אין משימות גבייה פתוחות.",
+      "error": "טעינת הגבייה נכשלה.",
+      "markCollected": "סמן כנגבה",
+      "collecting": "רושם…",
+      "columns": {
+        "customer": "לקוח",
+        "order": "הזמנה",
+        "amount": "סכום",
+        "delivery": "סטטוס משלוח",
+        "created": "נוצר"
       }
     }
   },

@@ -295,6 +295,16 @@
     "empty": "السلة فارغة — لا يوجد ما تتم مراجعته.",
     "notesLabel": "ملاحظات التوصيل (اختياري)",
     "notesPlaceholder": "مثلاً: التوصيل بعد الساعة 8 صباحاً، الاتصال قبل الوصول…",
+    "paymentTitle": "الدفع",
+    "payViaAgent": "الدفع عبر وكيلك",
+    "payViaAgentNamed": "الدفع عبر {name}",
+    "payViaAgentHint": "نقداً أو بشيك، يُحصّل شخصياً بعد الموافقة على طلبك.",
+    "payCard": "الدفع بالبطاقة",
+    "payCardHint": "دفع آمن بالبطاقة — ستُكمله في الخطوة التالية.",
+    "mockPayTitle": "إكمال الدفع",
+    "mockPayHint": "بيئة تطوير — محاكاة استجابة مزوّد الدفع.",
+    "mockPaySuccess": "محاكاة دفع ناجح",
+    "mockPayFail": "محاكاة دفع فاشل",
     "confirm": "تأكيد الطلب",
     "confirming": "جارٍ إرسال الطلب…",
     "delivery": "التوصيل",
@@ -351,6 +361,14 @@
       "outForDelivery": "قيد التوصيل",
       "delivered": "تم التسليم",
       "cancelled": "ملغى"
+    },
+    "payment": {
+      "methodCard": "دفع بالبطاقة",
+      "methodAgent": "الدفع عبر الوكيل",
+      "statusPaid": "مدفوع",
+      "statusFailed": "فشل الدفع",
+      "statusCollect": "سيُحصَّل عبر وكيلك",
+      "statusPending": "بانتظار الدفع"
     }
   },
   "account": {
@@ -485,6 +503,8 @@
         "customersDesc": "إدارة الحسابات والملفات",
         "orders": "الطلبات",
         "ordersDesc": "تتبع ومعالجة الطلبات",
+        "collections": "التحصيل",
+        "collectionsDesc": "نقد وشيكات للتحصيل",
         "products": "المنتجات",
         "productsDesc": "الكتالوج والمخزون",
         "discounts": "الخصومات",
@@ -500,10 +520,29 @@
         "messages": "الرسائل",
         "messagesDesc": "محادثات العملاء",
         "agents": "الوكلاء",
-        "agentsDesc": "وكلاء الميدان والتعيينات"
+        "agentsDesc": "وكلاء الميدان والتعيينات",
+        "collections": "التحصيل",
+        "collectionsDesc": "تحصيل نقدي/شيكات من العملاء"
       },
       "backToDashboard": "العودة إلى لوحة الإدارة",
       "comingSoon": "هذا القسم قيد الإنشاء."
+    },
+    "collections": {
+      "title": "التحصيل",
+      "subtitle": "نقد وشيكات مستحقة على الطلبات المعتمدة — علّم كل واحدة كمُحصّلة عند الاستلام.",
+      "loading": "جارٍ تحميل التحصيلات…",
+      "empty": "لا توجد تحصيلات مفتوحة.",
+      "error": "تعذّر تحميل التحصيلات.",
+      "unknownCustomer": "عميل غير معروف",
+      "columns": {
+        "customer": "العميل",
+        "order": "الطلب",
+        "amount": "المبلغ",
+        "delivery": "التوصيل",
+        "created": "أُنشئ"
+      },
+      "markCollected": "تعليم كمُحصّل",
+      "collecting": "جارٍ التسجيل…"
     },
     "customers": {
       "title": "العملاء",
@@ -970,6 +1009,22 @@
         "route": "الخط / المنطقة",
         "creating": "جارٍ الإنشاء…",
         "submit": "إنشاء وكيل"
+      }
+    },
+    "collections": {
+      "title": "التحصيل",
+      "subtitle": "طلبات مدفوعة عبر الوكيل بانتظار التحصيل الشخصي.",
+      "loading": "جارٍ تحميل مهام التحصيل…",
+      "empty": "لا توجد مهام تحصيل مفتوحة.",
+      "error": "فشل تحميل التحصيل.",
+      "markCollected": "تسجيل كمُحصَّل",
+      "collecting": "جارٍ التسجيل…",
+      "columns": {
+        "customer": "العميل",
+        "order": "الطلب",
+        "amount": "المبلغ",
+        "delivery": "حالة التوصيل",
+        "created": "أُنشئت"
       }
     }
   },

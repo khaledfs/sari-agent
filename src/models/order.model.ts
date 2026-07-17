@@ -194,6 +194,43 @@ const orderSchema = new Schema(
       type: Number,
       default: undefined,
     },
+    /**
+     * Payment (additive). Card is confirmed ONLY by a signed provider webhook;
+     * agent is cash/cheque collected in person. Card numbers are NEVER stored —
+     * only the provider's opaque intent id. Amounts settle through the ledger.
+     */
+    paymentMethod: {
+      type: String,
+      enum: ["card", "agent"],
+      default: undefined,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed", "collect_via_agent"],
+      default: undefined,
+    },
+    /** Opaque provider payment-intent id (never card data). */
+    paymentIntentId: {
+      type: String,
+      default: undefined,
+    },
+    paidAt: {
+      type: Date,
+      default: undefined,
+    },
+    /**
+     * Stock commitment stamps (idempotency): stock is decremented exactly once
+     * per order (card → on paid webhook; agent → on dispatch) and returned once
+     * on cancel. Presence of the stamp makes a retry/replay a no-op.
+     */
+    stockCommittedAt: {
+      type: Date,
+      default: undefined,
+    },
+    stockReturnedAt: {
+      type: Date,
+      default: undefined,
+    },
   },
   { timestamps: true }
 );

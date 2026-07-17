@@ -66,6 +66,13 @@ location /api/assistant/message {
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional (tooling only) | Enable the admin sections of `npm run smoke`. |
 | `SMOKE_AI` | Optional (tooling only) | `1` enables the OpenAI-dependent smoke checks (cost). |
 | `BASE_URL` / `SMOKE_CUSTOMER_PHONE` / `SMOKE_CUSTOMER_PASSWORD` | Optional (tooling only) | Smoke-runner overrides. |
+| `PAYMENTS_ENABLED` | Optional (default **false**) | Must be exactly `true` to show the card option and open the card endpoints. Agent payment always works. **Do NOT enable in production until a real payment adapter is wired** — the dev mock refuses to run there (loud crash by design). |
+| `MOCK_WEBHOOK_SECRET` | Optional (dev only) | HMAC secret for the mock provider's webhook signature (default dev value). Irrelevant once a real adapter exists. |
+
+**Payment webhook:** the provider must POST to `https://<public-host>/api/payments/webhook`.
+⚠ The current sslip.io hostname is derived from the server IP — if the server moves, the webhook URL
+changes and payment confirmations silently stop. Use a stable domain (or make updating the provider
+dashboard part of the migration runbook). Real-provider connection checklist: DEV_NOTES §32.
 
 ---
 

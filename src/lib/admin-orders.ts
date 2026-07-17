@@ -13,8 +13,13 @@ import {
 } from "@/lib/order-adjustment";
 import { CustomerMemoryModel } from "@/models/customer-memory.model";
 import { LedgerEntryModel } from "@/models/ledger-entry.model";
+import {
+  cancelCollectionTaskForOrder,
+  createCollectionTaskForOrder,
+} from "@/services/collection-tasks.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { postLedgerEntry, toMinorUnits } from "@/services/ledger.service";
+import { commitOrderStock, returnOrderStock } from "@/services/order.service";
 import { OrderModel } from "@/models/order.model";
 import { ProductModel } from "@/models/product.model";
 import { UserModel } from "@/models/user.model";
@@ -90,6 +95,8 @@ type OrderLean = {
   adjusted?: boolean;
   adjustedAt?: Date;
   adjustmentRevision?: number;
+  paymentMethod?: "card" | "agent";
+  paymentStatus?: string;
 };
 
 export type AdminOrderDetailItem = {
@@ -412,6 +419,26 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
     } catch {
       console.error(`ledger: failed to post order_reversal for order ${orderId}`);
     }
+  }
+
+  // Payment/stock lifecycle (fail-soft — a hiccup here must not block the status
+  // change; every step is idempotent so a later retry/replay converges):
+  try {
+    if (next === "out_for_delivery") {
+      // Dispatch commits stock for AGENT orders; a card order is already
+      // committed at payment, so this is a no-op there (idempotent stamp).
+      await commitOrderStock(orderId);
+    }
+    if (next === "confirmed" && o.paymentMethod === "agent") {
+      // Approved agent order → the assigned agent (or admin) collects in person.
+      await createCollectionTaskForOrder({ _id: o._id, userId: o.userId, total: o.total, status: o.status });
+    }
+    if (next === "cancelled" && previous.status.toLowerCase() !== "cancelled") {
+      await returnOrderStock(orderId); // idempotent; returns committed units
+      await cancelCollectionTaskForOrder(orderId);
+    }
+  } catch (err) {
+    console.error(`order lifecycle hook failed for ${orderId}:`, err);
   }
 
   const user = (await UserModel.findById(o.userId, { businessName: 1, phoneNumber: 1 })

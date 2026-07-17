@@ -92,6 +92,38 @@ async function checkAdminOrdersUnauthenticated() {
   }
 }
 
+// ---------- payment feature (checkout options + collections scope) ----------
+
+async function checkPaymentOptions(cookie) {
+  const name = "GET /api/payments/options (authed) -> { cardEnabled, agentName }";
+  if (!cookie) {
+    report(name, false, "skipped: no auth cookie from login");
+    return;
+  }
+  try {
+    const res = await fetch(`${BASE_URL}/api/payments/options`, { headers: { Cookie: cookie } });
+    const body = await res.json().catch(() => ({}));
+    const ok =
+      res.status === 200 &&
+      body.success === true &&
+      typeof body.data?.cardEnabled === "boolean" &&
+      (body.data?.agentName === null || typeof body.data?.agentName === "string");
+    report(name, ok, `status ${res.status}, cardEnabled=${body.data?.cardEnabled}`);
+  } catch (err) {
+    report(name, false, String(err));
+  }
+}
+
+async function checkCollectionsUnauthenticated() {
+  const name = "GET /api/admin/collections (unauthenticated) -> 401";
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/collections`);
+    report(name, res.status === 401, `got ${res.status}`);
+  } catch (err) {
+    report(name, false, String(err));
+  }
+}
+
 // ---------- admin section (Phase 1) ----------
 
 /** Reads ADMIN_EMAIL / ADMIN_PASSWORD from env, falling back to .env.local. */
@@ -1790,6 +1822,297 @@ async function adjustmentSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- payment methods + stock commitment + collections section ----------
+
+async function paymentSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  payment section skipped — needs both customer and admin logins");
+    return;
+  }
+
+  async function ledgerBalance() {
+    const { body } = await jsonFetch("/api/account/ledger", { headers: { Cookie: customerCookie } });
+    return body?.data?.summary?.currentBalanceMinor ?? 0;
+  }
+  async function productStock(productId) {
+    const { body } = await jsonFetch(`/api/admin/products?search=`, { headers: { Cookie: adminCookie } });
+    const row = (body?.data?.items ?? []).find((p) => p.id === productId);
+    return row ? row.stock : undefined;
+  }
+  async function setStock(productId, stock) {
+    await jsonFetch(`/api/admin/products/${productId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ stock }),
+    });
+  }
+  async function setOrderStatus(orderId, status) {
+    await jsonFetch(`/api/admin/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status }),
+    });
+  }
+  async function offsetCredit(customerId, amountMinor, label) {
+    // Restores the seed ledger after a cancel reversal (adjustment posts a debit).
+    await jsonFetch(`/api/admin/customers/${customerId}/ledger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ type: "adjustment", amount: amountMinor / 100, description: label }),
+    });
+  }
+
+  // Resolve seed customer id (for ledger restore).
+  let customerId = null;
+  try {
+    const { body } = await jsonFetch(`/api/admin/customers?search=${encodeURIComponent(SMOKE_CUSTOMER_PHONE)}`, {
+      headers: { Cookie: adminCookie },
+    });
+    customerId = body?.data?.items?.[0]?.id ?? null;
+  } catch {
+    /* reported below */
+  }
+
+  // Pick a product and give it tracked stock 50 (restored at the end).
+  let product = null;
+  let originalStock;
+  try {
+    const { body } = await jsonFetch("/api/admin/products?page=1", { headers: { Cookie: adminCookie } });
+    product = (body?.data?.items ?? []).find((p) => p.isActive && p.price > 1) ?? null;
+    originalStock = product?.stock ?? null;
+    if (product) await setStock(product.id, 50);
+    report("pay: staged a tracked-stock product (50 units)", Boolean(product), `product=${product?.id}`);
+  } catch (err) {
+    report("pay: staged a tracked-stock product (50 units)", false, String(err));
+  }
+  if (!product || !customerId) return;
+
+  const QTY = 3;
+
+  try {
+    // ---- AGENT PATH ----
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product.id, quantity: QTY }),
+    });
+    const balance0 = await ledgerBalance();
+    const { res: oRes, body: oBody } = await jsonFetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ paymentMethod: "agent" }),
+    });
+    const agentOrder = oBody?.data;
+    const totalMinor = Math.round((agentOrder?.total ?? 0) * 100);
+    report(
+      "pay(agent): order created as collect_via_agent",
+      oRes.status === 200 && agentOrder?.paymentMethod === "agent" && agentOrder?.paymentStatus === "collect_via_agent",
+      `method=${agentOrder?.paymentMethod}, status=${agentOrder?.paymentStatus}`
+    );
+
+    let stockNow = await productStock(product.id);
+    report("pay(agent): stock UNCHANGED at order creation", stockNow === 50, `stock=${stockNow}`);
+
+    // Confirm → collection task exists; stock still unchanged (commit is at dispatch).
+    await setOrderStatus(agentOrder.id, "confirmed");
+    const { body: collBody } = await jsonFetch("/api/admin/collections", { headers: { Cookie: adminCookie } });
+    const task = (collBody?.data ?? []).find((r) => r.orderId === agentOrder.id);
+    report(
+      "pay(agent): confirmed -> open collection task with the SERVER amount",
+      Boolean(task) && task.amountMinor === totalMinor,
+      `task=${Boolean(task)}, amount=${task?.amountMinor} vs ${totalMinor}`
+    );
+    stockNow = await productStock(product.id);
+    report("pay(agent): stock still unchanged after confirm", stockNow === 50, `stock=${stockNow}`);
+
+    // Cross-scope agent (SMOKE agent has no customers) -> 404 on collect.
+    const agentLogin = await fetch(`${BASE_URL}/api/auth/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: "+972-50-7199999", password: "Agent1234A" }),
+    });
+    const smokeAgentCookie = extractCookie(agentLogin, "authToken");
+    if (task && smokeAgentCookie) {
+      const { res: crossRes } = await jsonFetch(`/api/admin/collections/${task.taskId}/collect`, {
+        method: "POST",
+        headers: { Cookie: smokeAgentCookie },
+      });
+      report("pay(agent): cross-agent collect -> 404", crossRes.status === 404, `got ${crossRes.status}`);
+    } else {
+      report("pay(agent): cross-agent collect -> 404", false, "no task or agent login failed");
+    }
+
+    // Dispatch -> stock committed EXACTLY once (double dispatch = no-op).
+    await setOrderStatus(agentOrder.id, "out_for_delivery");
+    stockNow = await productStock(product.id);
+    report("pay(agent): dispatch commits stock once (50 -> 47)", stockNow === 50 - QTY, `stock=${stockNow}`);
+    await setOrderStatus(agentOrder.id, "packed");
+    await setOrderStatus(agentOrder.id, "out_for_delivery"); // double dispatch
+    stockNow = await productStock(product.id);
+    report("pay(agent): double dispatch does NOT decrement again", stockNow === 50 - QTY, `stock=${stockNow}`);
+
+    // Collect -> ledger payment by the actor; balance returns to pre-order level.
+    if (task) {
+      await jsonFetch(`/api/admin/collections/${task.taskId}/collect`, {
+        method: "POST",
+        headers: { Cookie: adminCookie },
+      });
+      const balanceAfterCollect = await ledgerBalance();
+      report(
+        "pay(agent): collected -> payment posted, balance back to baseline",
+        balanceAfterCollect === balance0,
+        `balance=${balanceAfterCollect}, baseline=${balance0}`
+      );
+      // Idempotent: collect again -> no second payment.
+      await jsonFetch(`/api/admin/collections/${task.taskId}/collect`, {
+        method: "POST",
+        headers: { Cookie: adminCookie },
+      });
+      const balanceAfterTwice = await ledgerBalance();
+      report("pay(agent): double collect posts NO second payment", balanceAfterTwice === balance0, `balance=${balanceAfterTwice}`);
+    }
+
+    // Cancel -> stock returned once + reversal; offset the credit to restore the seed ledger.
+    await setOrderStatus(agentOrder.id, "cancelled");
+    stockNow = await productStock(product.id);
+    report("pay(agent): cancel returns the stock (back to 50)", stockNow === 50, `stock=${stockNow}`);
+    await offsetCredit(customerId, totalMinor, "SMOKE payment restore (auto)");
+
+    // ---- OVERSELL (accepted risk): stock 2, order 3 -> commit 2, flag, credit ----
+    await setStock(product.id, 2);
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product.id, quantity: QTY }),
+    });
+    const overBalance0 = await ledgerBalance();
+    const { body: ovBody } = await jsonFetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ paymentMethod: "agent" }),
+    });
+    const overOrder = ovBody?.data;
+    await setOrderStatus(overOrder.id, "confirmed");
+    await setOrderStatus(overOrder.id, "out_for_delivery"); // commit: only 2 available
+    const overStock = await productStock(product.id);
+    const { body: ovAfter } = await jsonFetch(`/api/orders/${overOrder.id}`, { headers: { Cookie: customerCookie } });
+    const ovLine = (ovAfter?.data?.items ?? []).find((i) => i.productId === product.id && !i.isGift);
+    const overBalance = await ledgerBalance();
+    const newTotalMinor = Math.round((ovAfter?.data?.total ?? 0) * 100);
+    report(
+      "pay(oversell): payment kept, committed down to stock, order flagged adjusted",
+      overStock === 0 && ovAfter?.data?.adjusted === true && ovLine?.suppliedQuantity === 2 && ovLine?.quantity === QTY,
+      `stock=${overStock}, adjusted=${ovAfter?.data?.adjusted}, supplied=${ovLine?.suppliedQuantity}`
+    );
+    report(
+      "pay(oversell): ledger nets to the ADJUSTED total (charge - shortage credit)",
+      overBalance - overBalance0 === newTotalMinor,
+      `delta=${overBalance - overBalance0}, adjustedTotal=${newTotalMinor}`
+    );
+    // Cleanup: cancel -> returns the 2 committed units + reversal of the adjusted total.
+    await setOrderStatus(overOrder.id, "cancelled");
+    const overStockEnd = await productStock(product.id);
+    const overBalanceEnd = await ledgerBalance();
+    report(
+      "pay(oversell): cancel returns committed units + balance restored",
+      overStockEnd === 2 && overBalanceEnd === overBalance0,
+      `stock=${overStockEnd}, balance=${overBalanceEnd} vs ${overBalance0}`
+    );
+    await setStock(product.id, 50);
+
+    // ---- CARD PATH (mock) — only when the SERVER has PAYMENTS_ENABLED ----
+    const { body: optBody } = await jsonFetch("/api/payments/options", { headers: { Cookie: customerCookie } });
+    const cardEnabled = Boolean(optBody?.data?.cardEnabled);
+    if (!cardEnabled) {
+      // Disabled: endpoints answer 503 with the stable code; card path skipped.
+      const whRes = await fetch(`${BASE_URL}/api/payments/webhook`, { method: "POST", body: "{}" });
+      const whBody = await whRes.json().catch(() => ({}));
+      report(
+        "pay(card): disabled -> webhook 503 PAYMENTS_DISABLED (flow skipped)",
+        whRes.status === 503 && whBody?.code === "PAYMENTS_DISABLED",
+        `got ${whRes.status}/${whBody?.code}`
+      );
+      console.log("WARN  card flow skipped — start the server with PAYMENTS_ENABLED=true to run it");
+    } else {
+      // Bad webhook signature -> 400 (never applied).
+      const badRes = await fetch(`${BASE_URL}/api/payments/webhook`, {
+        method: "POST",
+        headers: { "x-payment-signature": "deadbeef" },
+        body: JSON.stringify({ intentId: "x", status: "paid", amountMinor: 1 }),
+      });
+      report("pay(card): invalid webhook signature -> 400", badRes.status === 400, `got ${badRes.status}`);
+
+      await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+      await jsonFetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: customerCookie },
+        body: JSON.stringify({ productId: product.id, quantity: QTY }),
+      });
+      const cardBalance0 = await ledgerBalance();
+      const { res: cRes, body: cBody } = await jsonFetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: customerCookie },
+        body: JSON.stringify({ paymentMethod: "card" }),
+      });
+      const cardOrder = cBody?.data;
+      const cardTotalMinor = Math.round((cardOrder?.total ?? 0) * 100);
+      report(
+        "pay(card): order created pending with a client token (no card data)",
+        cRes.status === 200 && cardOrder?.paymentStatus === "pending" && Boolean(cBody?.clientToken),
+        `status=${cardOrder?.paymentStatus}, token=${Boolean(cBody?.clientToken)}`
+      );
+      let cardStock = await productStock(product.id);
+      report("pay(card): stock unchanged before payment", cardStock === 50, `stock=${cardStock}`);
+
+      // Simulate the provider's SIGNED webhook (mock) -> paid + stock committed once.
+      await jsonFetch("/api/payments/mock/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: customerCookie },
+        body: JSON.stringify({ orderId: cardOrder.id, outcome: "paid" }),
+      });
+      const { body: paidBody } = await jsonFetch(`/api/orders/${cardOrder.id}`, { headers: { Cookie: customerCookie } });
+      cardStock = await productStock(product.id);
+      report(
+        "pay(card): signed webhook -> paid + stock committed once",
+        paidBody?.data?.paymentStatus === "paid" && cardStock === 50 - QTY,
+        `status=${paidBody?.data?.paymentStatus}, stock=${cardStock}`
+      );
+      const balancePaid = await ledgerBalance();
+      report(
+        "pay(card): ledger shows charge + payment netting to baseline",
+        balancePaid === cardBalance0,
+        `balance=${balancePaid}, baseline=${cardBalance0}`
+      );
+
+      // Webhook REPLAY -> no second decrement, no second payment.
+      await jsonFetch("/api/payments/mock/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: customerCookie },
+        body: JSON.stringify({ orderId: cardOrder.id, outcome: "paid" }),
+      });
+      const stockReplay = await productStock(product.id);
+      const balanceReplay = await ledgerBalance();
+      report(
+        "pay(card): webhook replay is a no-op (stock + ledger unchanged)",
+        stockReplay === 50 - QTY && balanceReplay === cardBalance0,
+        `stock=${stockReplay}, balance=${balanceReplay}`
+      );
+
+      // Cleanup: cancel (stock returns, reversal posts) + offset the credit.
+      await setOrderStatus(cardOrder.id, "cancelled");
+      const stockEnd = await productStock(product.id);
+      report("pay(card): cancel returns stock", stockEnd === 50, `stock=${stockEnd}`);
+      await offsetCredit(customerId, cardTotalMinor, "SMOKE card restore (auto)");
+    }
+  } finally {
+    // Restore the product's original stock value.
+    await setStock(product.id, originalStock);
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -1801,6 +2124,8 @@ async function main() {
   const cookie = await loginSeededCustomer();
   await checkCartWithCookie(cookie);
   await checkAdminOrdersUnauthenticated();
+  await checkPaymentOptions(cookie);
+  await checkCollectionsUnauthenticated();
   const adminCookie = await adminProductsSection();
   await pricingEngineSection(cookie, adminCookie);
   await promotionsSection(cookie, adminCookie);
@@ -1813,6 +2138,7 @@ async function main() {
   await ledgerSection(cookie, adminCookie);
   await agentSection(cookie, adminCookie);
   await adjustmentSection(cookie, adminCookie);
+  await paymentSection(cookie, adminCookie);
   await aiAssistantSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);

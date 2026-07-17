@@ -9,6 +9,7 @@ import {
   OrderItemsList,
   OrderReceipt,
   OrderTotals,
+  PaymentStateBadge,
   shortOrderNumber,
   type OrderViewData,
 } from "@/components/orders/order-view";
@@ -260,6 +261,11 @@ export default function OrderDetailPage() {
             <p className="ds-text-small">
               <strong>{t("createdAt")}:</strong> {formatDate(order.createdAt)}
             </p>
+            {order.paymentMethod ? (
+              <p className="ds-text-small">
+                <PaymentStateBadge order={order} t={t} />
+              </p>
+            ) : null}
           </div>
 
           <div className="ds-card ds-stack ds-stack--tight">

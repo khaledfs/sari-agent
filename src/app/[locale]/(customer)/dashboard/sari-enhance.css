@@ -2146,3 +2146,74 @@
   border-color: var(--border, #e6e0d3);
   font-weight: 600;
 }
+
+/* ——— Checkout payment method (card / pay-via-agent) ——— */
+.ds-pay-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ds-pay-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  border: 1.5px solid var(--border-strong, #d4cfc4);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ds-pay-option--active {
+  border-color: var(--brand, #a67c00);
+  box-shadow: 0 0 0 1px var(--brand, #a67c00);
+  background: var(--brand-bg, #fdf8ec);
+}
+.ds-pay-option input[type="radio"] {
+  margin-block-start: 4px;
+  inline-size: 18px;
+  block-size: 18px;
+  accent-color: var(--brand, #a67c00);
+  flex: 0 0 auto;
+}
+.ds-pay-option:focus-within {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 1px;
+}
+.ds-pay-option__body {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+.ds-pay-option__title {
+  font-weight: 700;
+  color: var(--text-primary, #1a1814);
+}
+.ds-pay-option__sub {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #4a4639);
+}
+
+/* Payment state line on confirmation / order detail. */
+.ds-pay-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border-strong, #d4cfc4);
+  color: var(--text-secondary, #4a4639);
+  background: var(--surface-2, #f7f6f3);
+}
+.ds-pay-state--paid {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.ds-pay-state--failed {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border-color: #fca5a5;
+}

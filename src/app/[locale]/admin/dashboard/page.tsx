@@ -14,6 +14,7 @@ const CARDS = [
   { key: "overview", icon: "📊", href: "/admin/dashboard/overview", adminOnly: false },
   { key: "customers", icon: "👥", href: "/admin/dashboard/customers", adminOnly: false },
   { key: "orders", icon: "📦", href: "/admin/dashboard/orders", adminOnly: false },
+  { key: "collections", icon: "💵", href: "/admin/dashboard/collections", adminOnly: false },
   { key: "messages", icon: "💬", href: "/admin/dashboard/messages", adminOnly: false },
   { key: "products", icon: "🏷️", href: "/admin/dashboard/products", adminOnly: true },
   { key: "discounts", icon: "💰", href: "/admin/dashboard/discounts", adminOnly: false },

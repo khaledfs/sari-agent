@@ -32,11 +32,45 @@ export type OrderViewData = {
   adjusted?: boolean;
   adjustedAt?: string;
   adjustmentSeenAt?: string;
+  paymentMethod?: "card" | "agent";
+  paymentStatus?: string;
+  paidAt?: string;
 };
 
 /** True when a line's supplied quantity differs from what was ordered. */
 export function lineIsAdjusted(item: OrderViewItem): boolean {
   return suppliedQty(item) !== item.quantity;
+}
+
+/**
+ * Payment method + state pill (confirmation + order detail). Never shows card
+ * data — only the method and its settlement state.
+ */
+export function PaymentStateBadge({
+  order,
+  t,
+}: {
+  order: { paymentMethod?: "card" | "agent"; paymentStatus?: string };
+  t: T;
+}) {
+  if (!order.paymentMethod) return null;
+  const status = order.paymentStatus ?? "";
+  const cls =
+    status === "paid" ? "ds-pay-state ds-pay-state--paid" : status === "failed" ? "ds-pay-state ds-pay-state--failed" : "ds-pay-state";
+  const methodLabel = order.paymentMethod === "card" ? t("payment.methodCard") : t("payment.methodAgent");
+  const statusLabel =
+    status === "paid"
+      ? t("payment.statusPaid")
+      : status === "failed"
+        ? t("payment.statusFailed")
+        : status === "collect_via_agent"
+          ? t("payment.statusCollect")
+          : t("payment.statusPending");
+  return (
+    <span className={cls}>
+      {order.paymentMethod === "card" ? "💳" : "🤝"} {methodLabel} · {statusLabel}
+    </span>
+  );
 }
 
 export function formatMoney(locale: string, n: number) {

@@ -54,15 +54,32 @@ export default function CheckoutReviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const submittedRef = useRef(false); // hard duplicate-submit guard
 
+  const [cardEnabled, setCardEnabled] = useState(false);
+  const [agentName, setAgentName] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "agent">("agent");
+  // Card mock step: when PAYMENTS_ENABLED with the dev mock, the order is created
+  // pending and we simulate the provider's signed webhook before confirming.
+  const [mockOrderId, setMockOrderId] = useState<string | null>(null);
+  const [mockPaying, setMockPaying] = useState(false);
+
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/cart");
-      const json = (await res.json()) as { success?: boolean; data?: CartData; message?: string };
-      if (res.status === 200 && json.success && json.data) {
+      const [cartRes, optRes] = await Promise.all([fetch("/api/cart"), fetch("/api/payments/options")]);
+      const json = (await cartRes.json()) as { success?: boolean; data?: CartData; message?: string };
+      if (cartRes.status === 200 && json.success && json.data) {
         setCart(json.data);
-        return;
+      } else {
+        setError(json.message ?? tCart("error"));
       }
-      setError(json.message ?? tCart("error"));
+      try {
+        const opt = (await optRes.json()) as { success?: boolean; data?: { cardEnabled?: boolean; agentName?: string | null } };
+        if (opt.success && opt.data) {
+          setCardEnabled(Boolean(opt.data.cardEnabled));
+          setAgentName(opt.data.agentName ?? null);
+        }
+      } catch {
+        // options are non-critical — agent payment stays available
+      }
     } catch {
       setError(tCart("error"));
     } finally {
@@ -80,13 +97,28 @@ export default function CheckoutReviewPage() {
     setSubmitting(true);
     setError("");
     try {
+      const method = paymentMethod === "card" && cardEnabled ? "card" : "agent";
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: notes.trim() }),
+        body: JSON.stringify({ notes: notes.trim(), paymentMethod: method }),
       });
-      const json = (await res.json()) as { success?: boolean; data?: { id: string }; message?: string; code?: string };
+      const json = (await res.json()) as {
+        success?: boolean;
+        data?: { id: string };
+        clientToken?: string;
+        message?: string;
+        code?: string;
+      };
       if (res.status === 200 && json.success && json.data?.id) {
+        // Card: the order is created pending; complete payment (mock) before the
+        // confirmation page. Agent: the order is placed as a collection.
+        if (method === "card" && json.clientToken) {
+          setMockOrderId(json.data.id);
+          submittedRef.current = false;
+          setSubmitting(false);
+          return;
+        }
         router.push(`/${locale}/dashboard/orders/confirmation/${json.data.id}`);
         return;
       }
@@ -102,6 +134,29 @@ export default function CheckoutReviewPage() {
       submittedRef.current = false;
       setError(tOrders("error"));
       setSubmitting(false);
+    }
+  }
+
+  // DEV mock: simulate the provider's signed webhook, then go to confirmation.
+  async function completeMockPayment(outcome: "paid" | "failed") {
+    if (!mockOrderId || mockPaying) return;
+    setMockPaying(true);
+    setError("");
+    try {
+      const res = await fetch("/api/payments/mock/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: mockOrderId, outcome }),
+      });
+      if (res.status === 200) {
+        router.push(`/${locale}/dashboard/orders/confirmation/${mockOrderId}`);
+        return;
+      }
+      setError(tOrders("error"));
+    } catch {
+      setError(tOrders("error"));
+    } finally {
+      setMockPaying(false);
     }
   }
 
@@ -225,6 +280,60 @@ export default function CheckoutReviewPage() {
               {notes.length}/{NOTES_MAX}
             </p>
           </section>
+
+          <section aria-labelledby="review-payment-heading" className="ds-mt-sm">
+            <h2 id="review-payment-heading" className="ds-section-title">
+              {t("paymentTitle")}
+            </h2>
+            <div className="ds-pay-options" role="radiogroup" aria-label={t("paymentTitle")}>
+              <label className={`ds-pay-option${paymentMethod === "agent" ? " ds-pay-option--active" : ""}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="agent"
+                  checked={paymentMethod === "agent"}
+                  onChange={() => setPaymentMethod("agent")}
+                />
+                <span className="ds-pay-option__body">
+                  <span className="ds-pay-option__title">
+                    {agentName ? t("payViaAgentNamed", { name: agentName }) : t("payViaAgent")}
+                  </span>
+                  <span className="ds-pay-option__sub">{t("payViaAgentHint")}</span>
+                </span>
+              </label>
+
+              {cardEnabled ? (
+                <label className={`ds-pay-option${paymentMethod === "card" ? " ds-pay-option--active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="card"
+                    checked={paymentMethod === "card"}
+                    onChange={() => setPaymentMethod("card")}
+                  />
+                  <span className="ds-pay-option__body">
+                    <span className="ds-pay-option__title">💳 {t("payCard")}</span>
+                    <span className="ds-pay-option__sub">{t("payCardHint")}</span>
+                  </span>
+                </label>
+              ) : null}
+            </div>
+          </section>
+
+          {mockOrderId ? (
+            <section className="ds-card ds-stack ds-stack--tight ds-mt-sm" aria-label={t("mockPayTitle")}>
+              <h2 className="ds-section-title ds-m-0">{t("mockPayTitle")}</h2>
+              <p className="ds-text-small">{t("mockPayHint")}</p>
+              <div className="ds-actions-row">
+                <Button variant="primary" block disabled={mockPaying} onClick={() => void completeMockPayment("paid")}>
+                  {mockPaying ? t("confirming") : t("mockPaySuccess")}
+                </Button>
+                <Button variant="secondary" block disabled={mockPaying} onClick={() => void completeMockPayment("failed")}>
+                  {t("mockPayFail")}
+                </Button>
+              </div>
+            </section>
+          ) : null}
 
           <section className="ds-checkout-summary" aria-labelledby="review-total-heading">
             <h2 id="review-total-heading" className="ds-visually-hidden">
