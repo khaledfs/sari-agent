@@ -19,17 +19,19 @@
  * Never deletes anything.
  *
  * Usage:
- *   node scripts/seed-agents.js --dry   # report only, NO writes
- *   node scripts/seed-agents.js         # real write (requires approval)
+ *   node scripts/seed-agents.js           # DRY RUN (default) — report only, NO writes
+ *   node scripts/seed-agents.js --apply   # perform the real write
+ *   node scripts/seed-agents.js --dry     # explicit no-op alias for the default
  */
 
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { resolveMode, printModeBanner } = require("./_script-mode");
 
 const args = process.argv.slice(2);
-const DRY = args.includes("--dry");
+const { apply: APPLY, dry: DRY } = resolveMode(args);
 
 const AGENT_PASSWORD = "Agent1234";
 
@@ -74,6 +76,7 @@ async function main() {
   }
 
   await mongoose.connect(uri, { bufferCommands: false });
+  printModeBanner("seed-agents.js", APPLY, uri, mongoose.connection);
   const users = mongoose.connection.collection("users");
 
   // 1. Demo agents (upsert by phone — never duplicated, never overwritten).

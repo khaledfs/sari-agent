@@ -15,10 +15,11 @@
  * instead mark them isActive:false — off by default).
  *
  * Usage:
- *   node scripts/sync-products.js            # full sync, writes to Mongo
- *   node scripts/sync-products.js --dry      # parse only, no DB writes
- *   node scripts/sync-products.js --category=flours
- *   node scripts/sync-products.js --deactivate-missing
+ *   node scripts/sync-products.js            # DRY RUN (default) — parse only, NO DB writes
+ *   node scripts/sync-products.js --apply    # full sync, writes to Mongo
+ *   node scripts/sync-products.js --dry      # explicit no-op alias for the default
+ *   node scripts/sync-products.js --apply --category=flours
+ *   node scripts/sync-products.js --apply --deactivate-missing
  */
 
 const fs = require("fs");
@@ -51,8 +52,9 @@ const CATEGORIES = [
 ];
 
 // ---------- args ----------
+const { resolveMode, printModeBanner } = require("./_script-mode");
 const args = process.argv.slice(2);
-const DRY = args.includes("--dry");
+const { apply: APPLY, dry: DRY } = resolveMode(args);
 const DEACTIVATE_MISSING = args.includes("--deactivate-missing");
 const categoryArg = (args.find((a) => a.startsWith("--category=")) || "").split("=")[1];
 
@@ -226,7 +228,7 @@ async function main() {
     throw new Error(`Unknown category slug: ${categoryArg}`);
   }
 
-  console.log(`\nSARI product sync — ${DRY ? "DRY RUN (no writes)" : "writing to Mongo"}`);
+  printModeBanner("sync-products.js", APPLY, uri, null);
   console.log(`Categories: ${targets.length}  |  source: ${SITE_ORIGIN}\n`);
 
   if (!DRY) {

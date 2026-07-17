@@ -19,16 +19,18 @@
  *   - safe to re-run (already-migrated users are excluded by the filter)
  *
  * Usage:
- *   node scripts/migrate-account-status.js --dry   # report only, NO writes
- *   node scripts/migrate-account-status.js         # real write (requires approval)
+ *   node scripts/migrate-account-status.js           # DRY RUN (default) — report only, NO writes
+ *   node scripts/migrate-account-status.js --apply   # perform the real write
+ *   node scripts/migrate-account-status.js --dry     # explicit no-op alias for the default
  */
 
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const { resolveMode, printModeBanner } = require("./_script-mode");
 
 const args = process.argv.slice(2);
-const DRY = args.includes("--dry");
+const { apply: APPLY, dry: DRY } = resolveMode(args);
 
 function loadEnvLocal() {
   const envPath = path.join(process.cwd(), ".env.local");
@@ -55,6 +57,7 @@ async function main() {
   }
 
   await mongoose.connect(uri, { bufferCommands: false });
+  printModeBanner("migrate-account-status.js", APPLY, uri, mongoose.connection);
   const users = mongoose.connection.collection("users");
 
   const unmigrated = { accountStatus: { $exists: false } };

@@ -603,12 +603,17 @@ async function bannersSection(customerCookie, adminCookie) {
   }
 
   // Image field round-trips to the customer feed (Task B: hero-sized banner).
+  // The customer feed is capped at max-3-by-priority, so this probe MUST sort
+  // above every other banner (the global/bakery/cafe ones above, and any
+  // pre-existing seeded banners) to be deterministically present regardless of
+  // what else is active. Use a sentinel priority far higher than any real one.
+  const IMAGE_PROBE_PRIORITY = 1_000_000;
   let imageBannerId = null;
   try {
     imageBannerId = await createBanner({
       title: `${SMOKE_LABEL} image`,
       scope: "global",
-      priority: 96,
+      priority: IMAGE_PROBE_PRIORITY,
       imageUrl: "https://sarihassan.com/wp-content/uploads/banner-test.jpg",
     });
     const { body } = await jsonFetch("/api/banners", { headers: { Cookie: customerCookie } });
