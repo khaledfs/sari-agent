@@ -319,6 +319,10 @@
     "notesTitle": "הערות למשלוח",
     "printReceipt": "הדפס קבלה",
     "receiptLockedTooltip": "הקבלה תהיה זמינה לאחר יציאת ההזמנה מהמחסן",
+    "openReceiptPage": "פתח את דף הקבלה",
+    "receiptPageHint": "להדפסה או שמירה כ‑PDF מהטלפון",
+    "backToDetail": "חזרה לפרטי ההזמנה",
+    "receiptShareHint": "בטלפון: פתחו את תפריט השיתוף ובחרו הדפסה או שמירה לקבצים.",
     "confirmedTitle": "ההזמנה התקבלה!",
     "confirmedBody": "קיבלנו את ההזמנה שלך ונתחיל לטפל בה בקרוב.",
     "continueShopping": "המשך קנייה",
@@ -394,7 +398,7 @@
       "payment": "תשלום",
       "credit": "זיכוי",
       "refund": "החזר",
-      "adjustment": "התאמה",
+      "adjustment": "חיוב",
       "opening_balance": "יתרת פתיחה"
     },
     "status": {
@@ -547,7 +551,7 @@
         "payment": "תשלום",
         "credit": "זיכוי",
         "refund": "החזר",
-        "adjustment": "התאמה",
+        "adjustment": "חיוב",
         "opening_balance": "יתרת פתיחה"
       },
       "ledgerColumns": {

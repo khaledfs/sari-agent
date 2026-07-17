@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -38,7 +38,11 @@ export default function OrderDetailPage() {
   const [reordering, setReordering] = useState(false);
   const [reorderBanner, setReorderBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [receiptError, setReceiptError] = useState("");
-  const [printing, setPrinting] = useState(false);
+  // Server-verified once the order is dispatched, so the click handler can call
+  // window.print() SYNCHRONOUSLY (iOS Safari drops print() if a gesture is lost
+  // to an await). Button stays disabled until this is true.
+  const [receiptReady, setReceiptReady] = useState(false);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     if (!id) {
@@ -105,32 +109,52 @@ export default function OrderDetailPage() {
   });
 
   /**
-   * Server-verified print (Work Order Issue 1): the receipt endpoint re-checks
-   * the CURRENT status server-side, so a stale-looking-unlocked button gets a
-   * graceful 403 message instead of printing a receipt it shouldn't.
+   * Server-verified receipt gating (Work Order Issue 1), moved OFF the click
+   * path: the receipt endpoint re-checks the CURRENT status + ownership when
+   * the order loads / changes. Only a 200 flips receiptReady, so the click
+   * handler itself does zero async work and keeps the iOS user-gesture.
    */
-  async function printReceipt() {
-    if (printing) return;
-    setPrinting(true);
+  useEffect(() => {
+    if (!id || !order || !isReceiptAvailable(order.status)) {
+      setReceiptReady(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/orders/${id}/receipt`);
+        const json = (await res.json()) as { success?: boolean; code?: string };
+        if (cancelled) return;
+        if (res.status === 200 && json.success) {
+          setReceiptReady(true);
+          setReceiptError("");
+        } else {
+          setReceiptReady(false);
+          if (res.status === 403 && json.code === "RECEIPT_NOT_AVAILABLE") {
+            setReceiptError(t("receiptLockedTooltip"));
+          }
+        }
+      } catch {
+        if (!cancelled) setReceiptReady(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, order, t]);
+
+  /**
+   * SYNCHRONOUS print — no await before window.print(), or iOS Safari silently
+   * ignores it. Data is already fetched + verified above. Where print() is
+   * unavailable (some iOS in-app webviews), fall back to the standalone
+   * print-styled receipt route the user can drive via the iOS Share sheet.
+   */
+  function printReceipt() {
     setReceiptError("");
-    try {
-      const res = await fetch(`/api/orders/${id}/receipt`);
-      const json = (await res.json()) as { success?: boolean; code?: string; message?: string };
-      if (res.status === 200 && json.success) {
-        window.print();
-        return;
-      }
-      if (res.status === 403 && json.code === "RECEIPT_NOT_AVAILABLE") {
-        setReceiptError(t("receiptLockedTooltip"));
-        // Stale local state — pull the authoritative status back.
-        void load();
-        return;
-      }
-      setReceiptError(json.message ?? t("error"));
-    } catch {
-      setReceiptError(t("error"));
-    } finally {
-      setPrinting(false);
+    if (typeof window !== "undefined" && typeof window.print === "function") {
+      window.print();
+    } else {
+      router.push(`/${locale}/dashboard/orders/${id}/receipt`);
     }
   }
 
@@ -267,13 +291,21 @@ export default function OrderDetailPage() {
             <button
               type="button"
               className="ds-btn ds-btn--secondary ds-btn--block ds-flex-1"
-              disabled={!isReceiptAvailable(order.status) || printing}
+              disabled={!isReceiptAvailable(order.status) || !receiptReady}
               title={!isReceiptAvailable(order.status) ? t("receiptLockedTooltip") : undefined}
-              onClick={() => void printReceipt()}
+              onClick={printReceipt}
             >
               {t("printReceipt")}
             </button>
           </div>
+          {isReceiptAvailable(order.status) ? (
+            <p className="ds-text-caption">
+              <Link href={`/${locale}/dashboard/orders/${id}/receipt`} className="ds-link">
+                {t("openReceiptPage")}
+              </Link>{" "}
+              — {t("receiptPageHint")}
+            </p>
+          ) : null}
           {!isReceiptAvailable(order.status) ? (
             <p className="ds-text-caption" role="note">
               🔒 {t("receiptLockedTooltip")}

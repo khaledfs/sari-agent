@@ -319,6 +319,10 @@
     "notesTitle": "ملاحظات التوصيل",
     "printReceipt": "طباعة الإيصال",
     "receiptLockedTooltip": "سيصبح الإيصال متاحًا بعد خروج الطلب من المستودع",
+    "openReceiptPage": "افتح صفحة الإيصال",
+    "receiptPageHint": "للطباعة أو الحفظ كـ PDF من هاتفك",
+    "backToDetail": "العودة إلى الطلب",
+    "receiptShareHint": "من هاتفك: افتح قائمة المشاركة واختر طباعة أو حفظ في الملفات.",
     "confirmedTitle": "تم استلام الطلب!",
     "confirmedBody": "استلمنا طلبك وسنبدأ بمعالجته قريباً.",
     "continueShopping": "متابعة التسوق",
@@ -394,7 +398,7 @@
       "payment": "دفعة",
       "credit": "رصيد دائن",
       "refund": "استرداد",
-      "adjustment": "تسوية",
+      "adjustment": "تسجيل",
       "opening_balance": "رصيد افتتاحي"
     },
     "status": {
@@ -547,7 +551,7 @@
         "payment": "دفعة",
         "credit": "رصيد دائن",
         "refund": "استرداد",
-        "adjustment": "تسوية",
+        "adjustment": "تسجيل",
         "opening_balance": "رصيد افتتاحي"
       },
       "ledgerColumns": {

@@ -705,10 +705,35 @@ button:disabled,
   display: none;
 }
 
+/* Standalone receipt route (/dashboard/orders/[id]/receipt): the same receipt
+   markup, shown on screen inside a plain page so iOS in-app browsers that can't
+   print() can still use the Share sheet → Print / Save to Files. */
+.ds-receipt-standalone .ds-receipt {
+  display: block;
+  max-inline-size: 720px;
+  margin-inline: auto;
+  padding: 24px;
+  background: #ffffff;
+  color: #2a2620;
+  border: 1px solid var(--border, #e6e0d3);
+  border-radius: 12px;
+}
+
 @media print {
   @page {
     size: A4;
-    margin: 14mm;
+    margin: 12mm;
+  }
+
+  /* Remove app chrome entirely — display:none (not just visibility) so no
+     hidden layout box can push a blank page on iOS Safari. */
+  .ds-nav-tabs,
+  .ds-bottom-nav,
+  .ds-ai-launch,
+  .ds-banner-strip,
+  .ds-restricted-banner,
+  .ds-receipt-standalone__actions {
+    display: none !important;
   }
 
   body * {
@@ -724,6 +749,10 @@ button:disabled,
     display: block;
     position: absolute;
     inset-block-start: 0;
+    /* Preserve gold branding when "Background graphics" is off (off by
+       default in the browser print dialog). */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
     inset-inline-start: 0;
     inline-size: 100%;
     background: #fff;
@@ -791,11 +820,20 @@ button:disabled,
     font-weight: 700;
   }
 
+  /* A single line item must not split across a page break. */
+  .ds-receipt__table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .ds-receipt__summary {
     margin-block-start: 10pt;
     margin-inline-start: auto;
     inline-size: 55%;
     font-size: 11pt;
+    /* Keep the totals block together — never orphan the grand total alone. */
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .ds-receipt__summary > div {

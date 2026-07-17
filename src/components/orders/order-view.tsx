@@ -25,7 +25,9 @@ export type OrderViewData = {
 };
 
 export function formatMoney(locale: string, n: number) {
-  return `₪${new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n)}`;
+  // Currency is always two decimals (₪8,709.40, never ₪8,709.4). Locale-aware
+  // grouping; the value is already in major units rounded to agorot upstream.
+  return `₪${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 }
 
 export function shortOrderNumber(id: string) {
@@ -118,11 +120,18 @@ export function OrderReceipt({
   customer,
   locale,
   t,
+  standalone = false,
 }: {
   order: OrderViewData;
   customer: { businessName: string; phoneNumber: string } | null;
   locale: string;
   t: T;
+  /**
+   * When embedded in an order page the receipt is print-only and hidden from
+   * the a11y tree (aria-hidden). On the dedicated /receipt route it IS the page
+   * content, so it must be screen-reader visible.
+   */
+  standalone?: boolean;
 }) {
   const subtotal = orderSubtotal(order.items);
   const date = (() => {
@@ -136,7 +145,7 @@ export function OrderReceipt({
   })();
 
   return (
-    <div className="ds-receipt" aria-hidden="true">
+    <div className="ds-receipt" aria-hidden={standalone ? undefined : true}>
       <header className="ds-receipt__head">
         <div className="ds-receipt__brand">SARI</div>
         <div className="ds-receipt__brand-sub">Sari Ahmad Hassan 2001 Ltd.</div>
