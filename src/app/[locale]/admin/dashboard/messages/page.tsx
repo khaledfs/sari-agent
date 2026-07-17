@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
+import { ChatConversation, useChatViewportHeight, type ChatMessage } from "@/components/messaging/chat-conversation";
 
 type ThreadRow = {
   threadId: string;
@@ -17,19 +18,15 @@ type ThreadRow = {
   unreadCount: number;
 };
 
-type MessageRow = {
-  id: string;
-  senderRole: "customer" | "agent" | "admin";
-  mine: boolean;
-  body: string;
-  createdAt: string;
-};
-
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string };
 
 /**
- * Console inbox (Task D): agents see their customers' threads, admin sees all.
- * This is HUMAN messaging — a separate surface from the AI assistant.
+ * Console inbox (Task D): agents see their customers' threads, admin sees all
+ * (the difference is only what the scope resolver returns — ONE component).
+ * Master/detail: desktop = thread list + conversation side by side; mobile =
+ * one pane at a time. Conversation uses the SHARED <ChatConversation> so it is
+ * identical to the customer chat. HUMAN messaging — separate from the AI
+ * assistant. LAYOUT ONLY — services/endpoints/scope untouched.
  */
 export default function ConsoleMessagesPage() {
   const t = useTranslations("adminDashboard");
@@ -40,10 +37,13 @@ export default function ConsoleMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<{ thread: ThreadRow; messages: MessageRow[] } | null>(null);
+  const [conversation, setConversation] = useState<{ thread: ThreadRow; messages: ChatMessage[] } | null>(null);
   const [conversationLoading, setConversationLoading] = useState(false);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+
+  const fillRef = useRef<HTMLDivElement>(null);
+  useChatViewportHeight(fillRef, !loading && threads.length > 0);
 
   const loadThreads = useCallback(async () => {
     setError("");
@@ -71,7 +71,7 @@ export default function ConsoleMessagesPage() {
       setConversationLoading(true);
       try {
         const res = await fetch(`/api/admin/messages/${threadId}`);
-        const json = (await res.json()) as ApiEnvelope<{ thread: ThreadRow; messages: MessageRow[] }>;
+        const json = (await res.json()) as ApiEnvelope<{ thread: ThreadRow; messages: ChatMessage[] }>;
         if (res.status === 200 && json.success && json.data) {
           setConversation(json.data);
           // Opening marks as read — clear the unread badge locally too.
@@ -100,7 +100,13 @@ export default function ConsoleMessagesPage() {
 
   function openThread(threadId: string) {
     setActiveId(threadId);
+    setConversation(null);
     void loadConversation(threadId);
+  }
+
+  function closeThread() {
+    setActiveId(null);
+    setConversation(null);
   }
 
   async function send() {
@@ -113,7 +119,7 @@ export default function ConsoleMessagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: text }),
       });
-      const json = (await res.json()) as ApiEnvelope<MessageRow>;
+      const json = (await res.json()) as ApiEnvelope<ChatMessage>;
       if (res.status === 200 && json.success) {
         setReply("");
         await loadConversation(activeId);
@@ -136,6 +142,22 @@ export default function ConsoleMessagesPage() {
     }
   }
 
+  const activeThread = threads.find((th) => th.threadId === activeId) ?? conversation?.thread ?? null;
+
+  const conversationHeader = (
+    <div className="ds-chat__head">
+      <button type="button" className="ds-chat__back" onClick={closeThread} aria-label={t("messages.back")}>
+        ←
+      </button>
+      <div className="ds-chat__head-main">
+        <h2 className="ds-chat__head-title">{activeThread?.customerName || t("messages.title")}</h2>
+        {activeThread?.agentName ? (
+          <p className="ds-chat__head-sub">{t("messages.threadAgent", { name: activeThread.agentName })}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <Link href={`/${locale}/admin/dashboard`} className="admin-back-link">
@@ -151,35 +173,23 @@ export default function ConsoleMessagesPage() {
       ) : threads.length === 0 ? (
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("messages.empty")}</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) 2fr", gap: "1rem", alignItems: "start" }}>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.4rem" }}>
+        <div className="ds-console-msgs" ref={fillRef} data-view={activeId ? "conversation" : "list"}>
+          <ul className="ds-console-msgs__threads" style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {threads.map((thread) => (
               <li key={thread.threadId}>
                 <button
                   type="button"
-                  className="admin-btn"
-                  style={{
-                    inlineSize: "100%",
-                    justifyContent: "space-between",
-                    ...(activeId === thread.threadId ? { borderColor: "var(--brand)" } : {}),
-                  }}
+                  className={`ds-console-thread${activeId === thread.threadId ? " ds-console-thread--active" : ""}`}
                   onClick={() => openThread(thread.threadId)}
                 >
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {thread.customerName}
-                    <span style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}> · {thread.agentName}</span>
+                  <span className="ds-console-thread__main">
+                    <span className="ds-console-thread__name">{thread.customerName}</span>
+                    <span className="ds-console-thread__sub">
+                      {thread.agentName ? t("messages.threadAgent", { name: thread.agentName }) : ""}
+                    </span>
                   </span>
                   {thread.unreadCount > 0 ? (
-                    <span
-                      style={{
-                        background: "var(--brand)",
-                        color: "var(--text-on-brand)",
-                        borderRadius: "999px",
-                        padding: "0 0.45rem",
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                      }}
-                    >
+                    <span className="ds-console-thread__unread" aria-label={t("messages.unread", { count: thread.unreadCount })}>
                       {thread.unreadCount}
                     </span>
                   ) : null}
@@ -188,56 +198,31 @@ export default function ConsoleMessagesPage() {
             ))}
           </ul>
 
-          <div className="admin-panel" style={{ display: "flex", flexDirection: "column", gap: "0.6rem", minBlockSize: "300px" }}>
+          <section className="ds-console-msgs__pane">
             {!activeId ? (
-              <p style={{ color: "var(--text-muted)", margin: "auto" }}>{t("messages.pick")}</p>
+              <p className="ds-console-msgs__pane-empty">{t("messages.pick")}</p>
             ) : conversationLoading && !conversation ? (
-              <p style={{ color: "var(--text-muted)", margin: "auto" }}>{t("messages.loading")}</p>
+              <p className="ds-console-msgs__pane-empty">{t("messages.loading")}</p>
             ) : conversation ? (
-              <>
-                <div style={{ display: "grid", gap: "0.45rem", maxBlockSize: "50vh", overflowY: "auto" }}>
-                  {conversation.messages.length === 0 ? (
-                    <p style={{ color: "var(--text-muted)" }}>{t("messages.emptyThread")}</p>
-                  ) : (
-                    conversation.messages.map((message) => (
-                      <div
-                        key={message.id}
-                        style={{
-                          justifySelf: message.senderRole === "customer" ? "start" : "end",
-                          maxInlineSize: "80%",
-                          padding: "0.45rem 0.7rem",
-                          borderRadius: "12px",
-                          background: message.senderRole === "customer" ? "var(--surface-2)" : "var(--brand-bg)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                          {t(`messages.role.${message.senderRole}`)} · {formatTime(message.createdAt)}
-                        </div>
-                        <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.body}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <input
-                    className="admin-input"
-                    style={{ flex: 1 }}
-                    value={reply}
-                    maxLength={2000}
-                    placeholder={t("messages.replyPlaceholder")}
-                    onChange={(e) => setReply(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void send();
-                    }}
-                  />
-                  <button type="button" className="admin-btn-primary" disabled={sending || !reply.trim()} onClick={() => void send()}>
-                    {sending ? t("messages.sending") : t("messages.send")}
-                  </button>
-                </div>
-              </>
+              <ChatConversation
+                header={conversationHeader}
+                messages={conversation.messages}
+                draft={reply}
+                onDraftChange={setReply}
+                onSend={() => void send()}
+                sending={sending}
+                formatTime={formatTime}
+                labels={{
+                  placeholder: t("messages.replyPlaceholder"),
+                  send: t("messages.send"),
+                  sending: t("messages.sending"),
+                  emptyThread: t("messages.emptyThread"),
+                  you: t("messages.you"),
+                  role: (role) => t(`messages.role.${role}`),
+                }}
+              />
             ) : null}
-          </div>
+          </section>
         </div>
       )}
     </div>

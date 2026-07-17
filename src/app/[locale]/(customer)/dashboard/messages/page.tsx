@@ -5,14 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
-
-type MessageRow = {
-  id: string;
-  senderRole: "customer" | "agent" | "admin";
-  mine: boolean;
-  body: string;
-  createdAt: string;
-};
+import { ChatConversation, useChatViewportHeight, type ChatMessage } from "@/components/messaging/chat-conversation";
 
 type ThreadInfo = {
   threadId: string;
@@ -22,12 +15,10 @@ type ThreadInfo = {
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string; code?: string };
 
 /**
- * Customer ↔ field-agent messaging (Task D), WhatsApp-style: full-height chat
- * with the composer pinned to the bottom. This talks to a HUMAN — the page says
- * so explicitly, so it is never confused with the AI assistant (whose floating
- * button is hidden on this route). Restricted (read-only) customers can message.
- *
- * LAYOUT ONLY — the messaging service/endpoints/scope rules are untouched.
+ * Customer ↔ field-agent messaging (Task D): full-height WhatsApp-style chat via
+ * the SHARED <ChatConversation> (same component the console inbox uses — no
+ * variant drift). Talks to a HUMAN (the AI robot button is hidden on this
+ * route). Restricted customers can message. LAYOUT ONLY — services untouched.
  */
 export default function CustomerMessagesPage() {
   const t = useTranslations("agentMessages");
@@ -36,15 +27,14 @@ export default function CustomerMessagesPage() {
 
   const [thread, setThread] = useState<ThreadInfo>(null);
   const [hasAgent, setHasAgent] = useState(true);
-  const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
 
-  const chatRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
+  useChatViewportHeight(fillRef, !loading && hasAgent);
 
   const load = useCallback(async () => {
     setError("");
@@ -52,7 +42,7 @@ export default function CustomerMessagesPage() {
       const res = await fetch("/api/messages");
       const json = (await res.json()) as ApiEnvelope<{
         thread: { threadId: string; agentName: string } | null;
-        messages: MessageRow[];
+        messages: ChatMessage[];
       }>;
       if (res.status === 200 && json.success && json.data) {
         if (!json.data.thread) {
@@ -81,58 +71,6 @@ export default function CustomerMessagesPage() {
   // Live: the agent's reply appears without a refresh.
   useRealtimeRefetch(["message.created"], load);
 
-  const scrollToBottom = useCallback(() => {
-    const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight; // no focus change — never steals focus
-  }, []);
-
-  // Scroll to newest on open and whenever messages change.
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, hasAgent, loading, scrollToBottom]);
-
-  /**
-   * Fill the available height (header → scrollable list → composer) and keep it
-   * correct when the iOS keyboard opens. visualViewport shrinks on keyboard
-   * open; we resize the chat to match and re-pin to the newest message so the
-   * composer never hides behind the keyboard. Verified against visualViewport,
-   * not assumed. (Real-device iOS confirmation is owner-run — see PROGRESS.)
-   */
-  useEffect(() => {
-    const el = chatRef.current;
-    if (!el) return;
-    const vv = window.visualViewport;
-    const update = () => {
-      const top = el.getBoundingClientRect().top;
-      const viewportH = vv?.height ?? window.innerHeight;
-      const isMobile = window.matchMedia("(max-width: 768px)").matches;
-      const bottomChrome = isMobile ? 64 : 8; // fixed tab bar on mobile; small gap on desktop
-      el.style.height = `${Math.max(320, Math.round(viewportH - top - bottomChrome))}px`;
-      scrollToBottom();
-    };
-    update();
-    window.addEventListener("resize", update);
-    vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
-    };
-  }, [hasAgent, loading, scrollToBottom]);
-
-  /** Auto-grow the textarea: 1 line → ~5 lines, then scroll internally. */
-  const autoGrow = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`; // CSS max-block-size caps it at ~5 lines
-  }, []);
-
-  useEffect(() => {
-    autoGrow();
-  }, [draft, autoGrow]);
-
   async function send() {
     const text = draft.trim();
     if (!text || sending) return;
@@ -144,13 +82,9 @@ export default function CustomerMessagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: text }),
       });
-      const json = (await res.json()) as ApiEnvelope<MessageRow>;
+      const json = (await res.json()) as ApiEnvelope<ChatMessage>;
       if (res.status === 200 && json.success) {
         setDraft("");
-        requestAnimationFrame(() => {
-          autoGrow();
-          scrollToBottom();
-        });
         await load();
         return;
       }
@@ -166,16 +100,6 @@ export default function CustomerMessagesPage() {
     }
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key !== "Enter") return;
-    // Mobile: Enter is a newline; sending is the button. Desktop: Enter sends,
-    // Shift+Enter is a newline.
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    if (isMobile || e.shiftKey) return;
-    e.preventDefault();
-    void send();
-  }
-
   function formatTime(iso: string) {
     try {
       return new Date(iso).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" });
@@ -184,11 +108,11 @@ export default function CustomerMessagesPage() {
     }
   }
 
-  const headerLine = (
+  const header = (
     <div className="ds-chat__head">
-      <div>
-        <h1 className="ds-page-title ds-m-0">{t("title")}</h1>
-        <p className="ds-text-caption ds-m-0">
+      <div className="ds-chat__head-main">
+        <h1 className="ds-chat__head-title">{t("title")}</h1>
+        <p className="ds-chat__head-sub">
           {thread?.agentName ? t("subtitleWithAgent", { name: thread.agentName }) : t("subtitle")}
         </p>
       </div>
@@ -213,7 +137,7 @@ export default function CustomerMessagesPage() {
 
       {!loading && !hasAgent ? (
         <>
-          {headerLine}
+          {header}
           <div className="ds-empty-state">
             <span className="ds-empty-state__icon" aria-hidden="true">
               💬
@@ -224,58 +148,25 @@ export default function CustomerMessagesPage() {
       ) : null}
 
       {!loading && hasAgent ? (
-        <div className="ds-chat" ref={chatRef}>
-          {headerLine}
-
-          <div className="ds-chat__list" ref={listRef} role="log" aria-live="polite">
-            {messages.length === 0 ? (
-              <div className="ds-chat__empty">
-                <span aria-hidden="true">💬</span>
-                <p className="ds-m-0">{t("emptyThread")}</p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`ds-chat__bubble ${message.mine ? "ds-chat__bubble--mine" : "ds-chat__bubble--theirs"}`}
-                >
-                  <div className="ds-chat__body">{message.body}</div>
-                  <span className="ds-chat__meta">
-                    {message.mine ? t("you") : t(`role.${message.senderRole}`)} · {formatTime(message.createdAt)}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-
-          {error ? (
-            <p className="ds-error ds-chat__error" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="ds-chat__composer">
-            <textarea
-              ref={textareaRef}
-              className="ds-chat__textarea"
-              rows={1}
-              value={draft}
-              maxLength={2000}
-              placeholder={t("placeholder")}
-              aria-label={t("placeholder")}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-            />
-            <button
-              type="button"
-              className="ds-chat__send"
-              disabled={sending || !draft.trim()}
-              onClick={() => void send()}
-              aria-label={t("send")}
-            >
-              {sending ? t("sending") : t("send")}
-            </button>
-          </div>
+        <div className="ds-chat-fill ds-chat-fill--bleed" ref={fillRef}>
+          <ChatConversation
+            header={header}
+            messages={messages}
+            draft={draft}
+            onDraftChange={setDraft}
+            onSend={() => void send()}
+            sending={sending}
+            error={error}
+            formatTime={formatTime}
+            labels={{
+              placeholder: t("placeholder"),
+              send: t("send"),
+              sending: t("sending"),
+              emptyThread: t("emptyThread"),
+              you: t("you"),
+              role: (role) => t(`role.${role}`),
+            }}
+          />
         </div>
       ) : null}
     </main>
