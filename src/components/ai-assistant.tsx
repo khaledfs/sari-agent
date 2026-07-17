@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 
 import {
   appendChatEntries,
@@ -73,6 +73,7 @@ export function AIAssistant() {
   const t = useTranslations("dashboard.assistant");
   const locale = useLocale();
   const params = useParams();
+  const pathname = usePathname();
   const isRtl = locale === "he" || locale === "ar";
   const localeParam = typeof params.locale === "string" ? params.locale : "en";
   const cartHref = `/${localeParam}/dashboard/cart`;
@@ -426,6 +427,12 @@ export function AIAssistant() {
         </div>
       );
     }
+    return null;
+  }
+
+  // The customer↔agent messages screen is a conversation with a HUMAN — never
+  // float the AI robot button over its composer.
+  if (pathname?.endsWith("/dashboard/messages")) {
     return null;
   }
 

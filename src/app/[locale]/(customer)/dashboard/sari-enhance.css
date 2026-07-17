@@ -2146,3 +2146,168 @@
   border-color: var(--border, #e6e0d3);
   font-weight: 600;
 }
+
+/* ——— Customer↔agent messages: WhatsApp-style full-height chat ——— */
+.ds-page--chat {
+  padding-block-end: 0; /* the composer owns the bottom; no page padding below it */
+}
+
+.ds-chat {
+  display: flex;
+  flex-direction: column;
+  /* Fallback only; JS sets an explicit inline height (visualViewport-aware) that
+     overrides this. Must NOT be a min-* — a min would fight the keyboard shrink
+     and push the composer under the iOS keyboard. */
+  block-size: 70dvh;
+  overflow: hidden;
+}
+
+.ds-chat__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-block: 0.4rem 0.6rem;
+  border-block-end: 1px solid var(--border, #e8e4dc);
+}
+
+.ds-chat__list {
+  flex: 1 1 auto;
+  min-block-size: 0; /* let it actually shrink so overflow scrolls, not the page */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-block: 0.75rem;
+  padding-inline: 0.25rem;
+  scroll-behavior: smooth;
+}
+
+.ds-chat__empty {
+  margin: auto;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted, #6b6350);
+  font-size: 1.4rem;
+  text-align: center;
+}
+.ds-chat__empty p {
+  font-size: 0.9rem;
+}
+
+.ds-chat__bubble {
+  max-inline-size: 82%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid var(--border, #e8e4dc);
+  background: var(--surface-2, #f7f6f3);
+  color: var(--text-primary, #1a1814); /* ≥ 12:1 on the light bubble */
+}
+.ds-chat__bubble--mine {
+  align-self: flex-end;
+  background: #fbe7bf; /* warm gold, dark text — high contrast */
+  border-color: #e4c667;
+}
+.ds-chat__bubble--theirs {
+  align-self: flex-start;
+}
+.ds-chat__body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ds-chat__meta {
+  display: block;
+  margin-block-start: 3px;
+  font-size: 0.68rem;
+  color: var(--text-secondary, #4a4639); /* quiet but ≥ 4.5:1 */
+}
+
+.ds-chat__error {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-block: 0.25rem;
+}
+
+.ds-chat__composer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+  padding-inline: 0.25rem;
+  padding-block-end: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  border-block-start: 1px solid var(--border, #e8e4dc);
+  background: var(--surface, #fff);
+}
+
+.ds-chat__textarea {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  resize: none;
+  font: inherit;
+  font-size: 16px; /* < 16px triggers iOS zoom on focus */
+  line-height: 1.35;
+  min-block-size: 44px;
+  max-block-size: calc(1.35em * 5 + 1.2rem); /* ~5 lines, then scrolls internally */
+  overflow-y: auto;
+  padding: 0.6rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong, #d4cfc4);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #1a1814);
+}
+.ds-chat__textarea::placeholder {
+  color: var(--text-muted, #8a8477);
+}
+.ds-chat__textarea:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 1px;
+  border-color: var(--brand, #a67c00);
+}
+
+.ds-chat__send {
+  flex: 0 0 auto;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding-inline: 1rem;
+  border: 1px solid var(--brand-hover, #b48a2f);
+  border-radius: 14px;
+  background: var(--brand, #c9a54c);
+  color: #241f17; /* dark on gold ≈ 8:1 — clearly legible */
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ds-chat__send:hover:not(:disabled) {
+  background: var(--brand-hover, #b48a2f);
+}
+.ds-chat__send:focus-visible {
+  outline: 2px solid var(--text-primary, #1a1814);
+  outline-offset: 2px;
+}
+.ds-chat__send:disabled {
+  background: var(--surface-3, #eeece6);
+  border-color: var(--border-strong, #d4cfc4);
+  color: var(--text-muted, #8a8477);
+  cursor: not-allowed;
+}
+
+/* Full-bleed composer to the screen edges on mobile (shell has 1rem padding). */
+@media (max-width: 768px) {
+  .ds-chat__composer {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+  .ds-chat__head {
+    margin-inline: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chat__list {
+    scroll-behavior: auto;
+  }
+}

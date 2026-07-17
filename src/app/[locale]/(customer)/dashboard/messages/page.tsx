@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
-import { Button } from "@/components/ui/Button";
 
 type MessageRow = {
   id: string;
@@ -23,9 +22,12 @@ type ThreadInfo = {
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string; code?: string };
 
 /**
- * Customer ↔ field-agent messaging (Task D). This talks to a HUMAN — the
- * page says so explicitly, so it is never confused with the AI assistant.
- * Restricted (read-only) customers can message: it's how a hold is resolved.
+ * Customer ↔ field-agent messaging (Task D), WhatsApp-style: full-height chat
+ * with the composer pinned to the bottom. This talks to a HUMAN — the page says
+ * so explicitly, so it is never confused with the AI assistant (whose floating
+ * button is hidden on this route). Restricted (read-only) customers can message.
+ *
+ * LAYOUT ONLY — the messaging service/endpoints/scope rules are untouched.
  */
 export default function CustomerMessagesPage() {
   const t = useTranslations("agentMessages");
@@ -39,7 +41,10 @@ export default function CustomerMessagesPage() {
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
+
+  const chatRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -76,9 +81,57 @@ export default function CustomerMessagesPage() {
   // Live: the agent's reply appears without a refresh.
   useRealtimeRefetch(["message.created"], load);
 
+  const scrollToBottom = useCallback(() => {
+    const list = listRef.current;
+    if (list) list.scrollTop = list.scrollHeight; // no focus change — never steals focus
+  }, []);
+
+  // Scroll to newest on open and whenever messages change.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, hasAgent, loading, scrollToBottom]);
+
+  /**
+   * Fill the available height (header → scrollable list → composer) and keep it
+   * correct when the iOS keyboard opens. visualViewport shrinks on keyboard
+   * open; we resize the chat to match and re-pin to the newest message so the
+   * composer never hides behind the keyboard. Verified against visualViewport,
+   * not assumed. (Real-device iOS confirmation is owner-run — see PROGRESS.)
+   */
+  useEffect(() => {
+    const el = chatRef.current;
+    if (!el) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      const top = el.getBoundingClientRect().top;
+      const viewportH = vv?.height ?? window.innerHeight;
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      const bottomChrome = isMobile ? 64 : 8; // fixed tab bar on mobile; small gap on desktop
+      el.style.height = `${Math.max(320, Math.round(viewportH - top - bottomChrome))}px`;
+      scrollToBottom();
+    };
+    update();
+    window.addEventListener("resize", update);
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+    };
+  }, [hasAgent, loading, scrollToBottom]);
+
+  /** Auto-grow the textarea: 1 line → ~5 lines, then scroll internally. */
+  const autoGrow = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`; // CSS max-block-size caps it at ~5 lines
+  }, []);
+
+  useEffect(() => {
+    autoGrow();
+  }, [draft, autoGrow]);
 
   async function send() {
     const text = draft.trim();
@@ -94,6 +147,10 @@ export default function CustomerMessagesPage() {
       const json = (await res.json()) as ApiEnvelope<MessageRow>;
       if (res.status === 200 && json.success) {
         setDraft("");
+        requestAnimationFrame(() => {
+          autoGrow();
+          scrollToBottom();
+        });
         await load();
         return;
       }
@@ -109,6 +166,16 @@ export default function CustomerMessagesPage() {
     }
   }
 
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter") return;
+    // Mobile: Enter is a newline; sending is the button. Desktop: Enter sends,
+    // Shift+Enter is a newline.
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    if (isMobile || e.shiftKey) return;
+    e.preventDefault();
+    void send();
+  }
+
   function formatTime(iso: string) {
     try {
       return new Date(iso).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" });
@@ -117,20 +184,22 @@ export default function CustomerMessagesPage() {
     }
   }
 
-  return (
-    <main className="ds-page">
-      <div className="ds-header-row">
-        <div>
-          <h1 className="ds-page-title">{t("title")}</h1>
-          <p className="ds-page-subtitle">
-            {thread?.agentName ? t("subtitleWithAgent", { name: thread.agentName }) : t("subtitle")}
-          </p>
-        </div>
-        <Link href={`/${locale}/dashboard`} className="ds-link">
-          ← {tNav("home")}
-        </Link>
+  const headerLine = (
+    <div className="ds-chat__head">
+      <div>
+        <h1 className="ds-page-title ds-m-0">{t("title")}</h1>
+        <p className="ds-text-caption ds-m-0">
+          {thread?.agentName ? t("subtitleWithAgent", { name: thread.agentName }) : t("subtitle")}
+        </p>
       </div>
+      <Link href={`/${locale}/dashboard`} className="ds-link">
+        ← {tNav("home")}
+      </Link>
+    </div>
+  );
 
+  return (
+    <main className="ds-page ds-page--chat">
       {loading ? (
         <ul className="ds-skeleton-list" aria-hidden="true">
           {[0, 1].map((i) => (
@@ -141,68 +210,71 @@ export default function CustomerMessagesPage() {
           ))}
         </ul>
       ) : null}
-      {error ? (
-        <div>
-          <p className="ds-error">{error}</p>
-          <Button variant="secondary" onClick={() => void load()}>
-            {t("retry")}
-          </Button>
-        </div>
-      ) : null}
 
       {!loading && !hasAgent ? (
-        <div className="ds-empty-state">
-          <span className="ds-empty-state__icon" aria-hidden="true">
-            💬
-          </span>
-          <p className="ds-empty-state__text">{t("noAgent")}</p>
-        </div>
+        <>
+          {headerLine}
+          <div className="ds-empty-state">
+            <span className="ds-empty-state__icon" aria-hidden="true">
+              💬
+            </span>
+            <p className="ds-empty-state__text">{t("noAgent")}</p>
+          </div>
+        </>
       ) : null}
 
       {!loading && hasAgent ? (
-        <div className="ds-card ds-stack" style={{ gap: "0.6rem" }}>
-          <div style={{ display: "grid", gap: "0.45rem", maxBlockSize: "55vh", overflowY: "auto" }} role="log" aria-live="polite">
+        <div className="ds-chat" ref={chatRef}>
+          {headerLine}
+
+          <div className="ds-chat__list" ref={listRef} role="log" aria-live="polite">
             {messages.length === 0 ? (
-              <p className="ds-text-muted">{t("emptyThread")}</p>
+              <div className="ds-chat__empty">
+                <span aria-hidden="true">💬</span>
+                <p className="ds-m-0">{t("emptyThread")}</p>
+              </div>
             ) : (
               messages.map((message) => (
                 <div
                   key={message.id}
-                  style={{
-                    justifySelf: message.mine ? "end" : "start",
-                    maxInlineSize: "85%",
-                    padding: "0.5rem 0.75rem",
-                    borderRadius: "12px",
-                    background: message.mine ? "var(--brand-bg)" : "var(--surface-2)",
-                    border: "1px solid var(--border)",
-                  }}
+                  className={`ds-chat__bubble ${message.mine ? "ds-chat__bubble--mine" : "ds-chat__bubble--theirs"}`}
                 >
-                  <div className="ds-text-caption">
+                  <div className="ds-chat__body">{message.body}</div>
+                  <span className="ds-chat__meta">
                     {message.mine ? t("you") : t(`role.${message.senderRole}`)} · {formatTime(message.createdAt)}
-                  </div>
-                  <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.body}</div>
+                  </span>
                 </div>
               ))
             )}
-            <div ref={endRef} />
           </div>
 
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <input
-              className="ds-qty-input"
-              style={{ flex: 1, minBlockSize: "44px", textAlign: "start", fontSize: "16px" }}
+          {error ? (
+            <p className="ds-error ds-chat__error" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="ds-chat__composer">
+            <textarea
+              ref={textareaRef}
+              className="ds-chat__textarea"
+              rows={1}
               value={draft}
               maxLength={2000}
               placeholder={t("placeholder")}
               aria-label={t("placeholder")}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void send();
-              }}
+              onKeyDown={onKeyDown}
             />
-            <Button variant="primary" disabled={sending || !draft.trim()} onClick={() => void send()}>
+            <button
+              type="button"
+              className="ds-chat__send"
+              disabled={sending || !draft.trim()}
+              onClick={() => void send()}
+              aria-label={t("send")}
+            >
               {sending ? t("sending") : t("send")}
-            </Button>
+            </button>
           </div>
         </div>
       ) : null}
