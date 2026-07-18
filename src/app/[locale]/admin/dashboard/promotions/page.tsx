@@ -346,7 +346,7 @@ export default function AdminPromotionsPage() {
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("promotions.empty")}</p>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--cards">
             <thead>
               <tr>
                 <th>{t("promotions.columns.label")}</th>
@@ -360,16 +360,16 @@ export default function AdminPromotionsPage() {
             <tbody>
               {promotions.map((p) => (
                 <tr key={p.id} style={p.isActive ? undefined : { opacity: 0.55 }}>
-                  <td style={{ fontWeight: 600 }}>{p.label || "—"}</td>
-                  <td>{t(`promotions.kinds.${p.kind}`)}</td>
-                  <td style={{ maxWidth: "280px" }}>{ruleSummary(p)}</td>
-                  <td>{scopeLabel(p)}</td>
-                  <td>
+                  <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>{p.label || "—"}</td>
+                  <td data-label={t("promotions.columns.kind")}>{t(`promotions.kinds.${p.kind}`)}</td>
+                  <td data-label={t("promotions.columns.rule")} style={{ maxWidth: "280px" }}>{ruleSummary(p)}</td>
+                  <td data-label={t("discounts.columns.scope")}>{scopeLabel(p)}</td>
+                  <td data-label={t("discounts.columns.status")}>
                     <span className={`admin-stock-badge ${p.isActive ? "admin-stock-badge--low" : "admin-stock-badge--out"}`}>
                       {p.isActive ? t("discounts.active") : t("discounts.inactive")}
                     </span>
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td className="admin-card-cell--actions" style={{ whiteSpace: "nowrap" }}>
                     <button type="button" className="admin-btn" disabled={busyId === p.id} onClick={() => openEdit(p)}>
                       {t("discounts.edit")}
                     </button>{" "}

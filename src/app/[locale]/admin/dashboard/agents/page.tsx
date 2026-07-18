@@ -149,7 +149,7 @@ export default function AdminAgentsPage() {
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("agents.empty")}</p>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--cards">
             <thead>
               <tr>
                 <th>{t("agents.columns.name")}</th>
@@ -163,17 +163,17 @@ export default function AdminAgentsPage() {
             <tbody>
               {agents.map((agent) => (
                 <tr key={agent.id}>
-                  <td style={{ fontWeight: 600 }}>
+                  <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>
                     {agent.businessName}
                     <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }} dir="ltr">
                       {agent.phoneNumber} · {agent.email}
                     </div>
                   </td>
-                  <td>{agent.routeLabel || "—"}</td>
-                  <td>{agent.customerCount}</td>
-                  <td>{agent.orders30d}</td>
-                  <td>₪{agent.revenue30d.toLocaleString(locale)}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>{formatDate(agent.lastActivityAt)}</td>
+                  <td data-label={t("agents.columns.route")}>{agent.routeLabel || "—"}</td>
+                  <td data-label={t("agents.columns.customers")}>{agent.customerCount}</td>
+                  <td data-label={t("agents.columns.orders30d")}>{agent.orders30d}</td>
+                  <td data-label={t("agents.columns.revenue30d")}>₪{agent.revenue30d.toLocaleString(locale)}</td>
+                  <td data-label={t("agents.columns.lastActivity")} style={{ whiteSpace: "nowrap" }}>{formatDate(agent.lastActivityAt)}</td>
                 </tr>
               ))}
             </tbody>

@@ -124,7 +124,7 @@ export default function CollectionsPage() {
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("collections.empty")}</p>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--cards">
             <thead>
               <tr>
                 <th>{t("collections.columns.customer")}</th>
@@ -138,12 +138,12 @@ export default function CollectionsPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.orderId} style={r.state === "pending" ? { opacity: 0.7 } : undefined}>
-                  <td style={{ fontWeight: 600 }}>{r.customerName}</td>
-                  <td dir="ltr">#{r.orderNumber}</td>
-                  <td>{money(r.amountMinor)}</td>
-                  <td>{statusLabel(r.orderStatus)}</td>
-                  <td>{ageLabel(r.createdAt)}</td>
-                  <td>
+                  <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>{r.customerName}</td>
+                  <td data-label={t("collections.columns.order")} dir="ltr">#{r.orderNumber}</td>
+                  <td data-label={t("collections.columns.amount")}>{money(r.amountMinor)}</td>
+                  <td data-label={t("collections.columns.delivery")}>{statusLabel(r.orderStatus)}</td>
+                  <td data-label={t("collections.columns.age")}>{ageLabel(r.createdAt)}</td>
+                  <td className="admin-card-cell--actions">
                     {r.state === "collectible" && r.taskId ? (
                       <button
                         type="button"

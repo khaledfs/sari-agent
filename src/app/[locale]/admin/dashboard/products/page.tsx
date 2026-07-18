@@ -502,7 +502,7 @@ export default function AdminProductsPage() {
       ) : (
         <>
           <div className="admin-table-wrap">
-            <table className="admin-table">
+            <table className="admin-table admin-table--cards">
               <thead>
                 <tr>
                   <th aria-label={t("products.columns.image")} />
@@ -518,7 +518,7 @@ export default function AdminProductsPage() {
               <tbody>
                 {items.map((row) => (
                   <tr key={row.id} style={row.isActive ? undefined : { opacity: 0.55 }}>
-                    <td>
+                    <td data-label="">
                       {row.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -532,14 +532,14 @@ export default function AdminProductsPage() {
                         <span aria-hidden="true">🏷️</span>
                       )}
                     </td>
-                    <td style={{ fontWeight: 600, maxWidth: "260px" }}>
+                    <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>
                       {row.name}
                       <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }} dir="ltr">
                         {row.sku}
                       </div>
                     </td>
-                    <td>{categoryName(row.category)}</td>
-                    <td>
+                    <td data-label={t("products.columns.category")}>{categoryName(row.category)}</td>
+                    <td data-label={t("products.columns.price")}>
                       <input
                         key={`price-${row.id}-${row.price}`}
                         type="number"
@@ -555,7 +555,7 @@ export default function AdminProductsPage() {
                         aria-label={`${t("products.columns.price")} — ${row.name}`}
                       />
                     </td>
-                    <td>
+                    <td data-label={t("products.columns.stock")}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                         <input
                           key={`stock-${row.id}-${String(row.stock)}`}
@@ -575,8 +575,8 @@ export default function AdminProductsPage() {
                         {stockBadge(row)}
                       </div>
                     </td>
-                    <td>{row.unit || "—"}</td>
-                    <td>
+                    <td data-label={t("products.columns.unit")}>{row.unit || "—"}</td>
+                    <td data-label={t("products.columns.active")}>
                       <label className="admin-toggle">
                         <input
                           type="checkbox"
@@ -588,14 +588,14 @@ export default function AdminProductsPage() {
                         <span>{row.isActive ? t("products.active") : t("products.inactive")}</span>
                       </label>
                     </td>
-                    <td>
+                    <td className="admin-card-cell--actions" data-label={t("pricing.column")}>
                       <button
                         type="button"
                         className="admin-btn"
                         onClick={() => void openPricing(row.id)}
                         aria-label={`${t("pricing.column")} — ${row.name}`}
                       >
-                        ₪
+                        ₪ {t("pricing.column")}
                       </button>
                     </td>
                   </tr>

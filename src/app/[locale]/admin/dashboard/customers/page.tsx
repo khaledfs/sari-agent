@@ -134,6 +134,12 @@ export default function AdminCustomersPage() {
     }
   }
 
+  /** Whole-card tap opens the customer — but never when an inline control was tapped. */
+  function openRow(e: React.MouseEvent, id: string) {
+    if ((e.target as HTMLElement).closest("a, button, select, input, label")) return;
+    router.push(`/${locale}/admin/dashboard/customers/${id}`);
+  }
+
   const items = data?.items ?? [];
 
   return (
@@ -141,7 +147,10 @@ export default function AdminCustomersPage() {
       <Link href={`/${locale}/admin/dashboard`} className="admin-back-link">
         ← {t("hub.backToDashboard")}
       </Link>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.35rem" }}>{t("customers.title")}</h1>
+      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.35rem" }}>
+        {t("customers.title")}
+        {data ? <span style={{ color: "var(--text-muted)", fontWeight: 400, fontSize: "1rem" }}> · {t("customers.count", { count: data.total })}</span> : null}
+      </h1>
       <p style={{ color: "var(--text-muted)", marginBottom: "1.25rem" }}>{t("customers.subtitle")}</p>
 
       <div className="admin-toolbar">
@@ -197,7 +206,7 @@ export default function AdminCustomersPage() {
       ) : (
         <>
           <div className="admin-table-wrap">
-            <table className="admin-table">
+            <table className="admin-table admin-table--cards">
               <thead>
                 <tr>
                   <th>{t("customers.columns.businessName")}</th>
@@ -211,23 +220,31 @@ export default function AdminCustomersPage() {
               </thead>
               <tbody>
                 {items.map((c) => (
-                  <tr key={c.id} style={c.accountStatus === "restricted" ? { opacity: 0.7 } : undefined}>
-                    <td style={{ fontWeight: 600 }}>
-                      <Link
-                        href={`/${locale}/admin/dashboard/customers/${c.id}`}
-                        className="admin-back-link"
-                        style={{ marginBottom: 0 }}
-                      >
-                        {c.businessName}
-                      </Link>
+                  <tr
+                    key={c.id}
+                    className="admin-card-row"
+                    onClick={(e) => openRow(e, c.id)}
+                    style={c.accountStatus === "restricted" ? { opacity: 0.7 } : undefined}
+                  >
+                    <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>
+                      <span className="admin-card-titlerow">
+                        <Link
+                          href={`/${locale}/admin/dashboard/customers/${c.id}`}
+                          className="admin-back-link"
+                          style={{ marginBottom: 0 }}
+                        >
+                          {c.businessName}
+                        </Link>
+                        <span className="admin-card-go" aria-hidden="true">›</span>
+                      </span>
                       <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>{c.email}</div>
                     </td>
-                    <td dir="ltr">{c.phoneNumber}</td>
-                    <td>{c.businessType ? t(`pricing.businessTypes.${c.businessType}`) : "—"}</td>
-                    <td>{c.totalOrders}</td>
-                    <td>₪{c.lifetimeSpend.toLocaleString(locale)}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>{formatDate(c.lastOrderDate)}</td>
-                    <td>
+                    <td data-label={t("customers.columns.phone")} dir="ltr">{c.phoneNumber}</td>
+                    <td data-label={t("customers.columns.businessType")}>{c.businessType ? t(`pricing.businessTypes.${c.businessType}`) : "—"}</td>
+                    <td data-label={t("customers.columns.totalOrders")}>{c.totalOrders}</td>
+                    <td data-label={t("customers.columns.lifetimeSpend")}>₪{c.lifetimeSpend.toLocaleString(locale)}</td>
+                    <td data-label={t("customers.columns.lastOrder")} style={{ whiteSpace: "nowrap" }}>{formatDate(c.lastOrderDate)}</td>
+                    <td className="admin-card-cell--actions" data-label={t("customers.columns.status")}>
                       <span
                         className={`admin-stock-badge ${c.accountStatus === "restricted" ? "admin-stock-badge--out" : "admin-stock-badge--low"}`}
                         title={c.accountStatus === "restricted" && c.restrictedReason ? c.restrictedReason : undefined}
@@ -239,7 +256,10 @@ export default function AdminCustomersPage() {
                         className="admin-btn"
                         style={{ marginInlineStart: "0.5rem" }}
                         disabled={busyId === c.id}
-                        onClick={() => void toggleRestricted(c)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleRestricted(c);
+                        }}
                         aria-label={`${t("customers.columns.status")} — ${c.businessName}`}
                       >
                         {c.accountStatus === "restricted" ? t("customers.unrestrict") : t("customers.restrict")}

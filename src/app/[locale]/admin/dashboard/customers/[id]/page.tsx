@@ -472,7 +472,7 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
                 <p className="admin-panel__empty">{t("orders.empty")}</p>
               ) : (
                 <div className="admin-table-wrap">
-                  <table className="admin-table">
+                  <table className="admin-table admin-table--cards">
                     <thead>
                       <tr>
                         <th>{t("orders.columns.date")}</th>
@@ -484,15 +484,15 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
                     <tbody>
                       {profile.recentOrders.map((o) => (
                         <tr key={o.id}>
-                          <td style={{ whiteSpace: "nowrap" }}>
+                          <td className="admin-card-cell--title" style={{ whiteSpace: "nowrap" }}>
                             {formatDate(o.createdAt)}
                             {o.notes ? (
                               <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>📝 {o.notes}</div>
                             ) : null}
                           </td>
-                          <td>{o.itemCount}</td>
-                          <td>₪{o.total}</td>
-                          <td>{o.status}</td>
+                          <td data-label={t("orders.columns.items")}>{o.itemCount}</td>
+                          <td data-label={t("orders.columns.total")}>₪{o.total}</td>
+                          <td data-label={t("orders.columns.status")}>{o.status}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -560,7 +560,7 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
                     <p className="admin-panel__empty">{t("customers.ledgerEmpty")}</p>
                   ) : (
                     <div className="admin-table-wrap">
-                      <table className="admin-table">
+                      <table className="admin-table admin-table--cards">
                         <thead>
                           <tr>
                             <th>{t("customers.ledgerColumns.date")}</th>
@@ -575,13 +575,13 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
                         <tbody>
                           {ledger.entries.map((entry) => (
                             <tr key={entry.id}>
-                              <td style={{ whiteSpace: "nowrap" }}>{formatDate(entry.createdAt)}</td>
-                              <td>{t(`customers.ledgerTypes.${entry.type}`)}</td>
-                              <td dir="ltr">{entry.orderId ? `#${entry.orderId.slice(-8).toUpperCase()}` : "—"}</td>
-                              <td>{entry.description}</td>
-                              <td dir="ltr">{entry.debitMinor > 0 ? formatMinorUnits(locale, entry.debitMinor) : "—"}</td>
-                              <td dir="ltr">{entry.creditMinor > 0 ? formatMinorUnits(locale, entry.creditMinor) : "—"}</td>
-                              <td dir="ltr" style={{ fontWeight: 600 }}>
+                              <td className="admin-card-cell--title" style={{ whiteSpace: "nowrap" }}>{formatDate(entry.createdAt)}</td>
+                              <td data-label={t("customers.ledgerColumns.type")}>{t(`customers.ledgerTypes.${entry.type}`)}</td>
+                              <td data-label={t("customers.ledgerColumns.reference")} dir="ltr">{entry.orderId ? `#${entry.orderId.slice(-8).toUpperCase()}` : "—"}</td>
+                              <td data-label={t("customers.ledgerColumns.description")}>{entry.description}</td>
+                              <td data-label={t("customers.ledgerColumns.debit")} dir="ltr">{entry.debitMinor > 0 ? formatMinorUnits(locale, entry.debitMinor) : "—"}</td>
+                              <td data-label={t("customers.ledgerColumns.credit")} dir="ltr">{entry.creditMinor > 0 ? formatMinorUnits(locale, entry.creditMinor) : "—"}</td>
+                              <td data-label={t("customers.ledgerColumns.balance")} dir="ltr" style={{ fontWeight: 600 }}>
                                 {formatMinorUnits(locale, entry.balanceAfterMinor)}
                               </td>
                             </tr>

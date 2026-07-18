@@ -285,7 +285,12 @@ export default function AdminOrdersPage() {
       <Link href={`/${locale}/admin/dashboard`} className="admin-back-link">
         ← {t("hub.backToDashboard")}
       </Link>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.35rem" }}>{t("orders.title")}</h1>
+      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.35rem" }}>
+        {t("orders.title")}
+        {!loading && orders.length > 0 ? (
+          <span style={{ color: "var(--text-muted)", fontWeight: 400, fontSize: "1rem" }}> · {t("orders.count", { count: orders.length })}</span>
+        ) : null}
+      </h1>
       <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>{t("orders.subtitle")}</p>
 
       {error ? <p style={{ color: "var(--danger)", marginBottom: "1rem" }}>{error}</p> : null}
@@ -296,7 +301,7 @@ export default function AdminOrdersPage() {
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("orders.empty")}</p>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--cards">
             <thead>
               <tr>
                 <th>{t("orders.columns.customer")}</th>
@@ -314,38 +319,51 @@ export default function AdminOrdersPage() {
                   ? (STATUSES as readonly string[])
                   : [o.status, ...STATUSES];
                 return (
-                  <tr key={o.id}>
-                    <td style={{ fontWeight: 600, maxWidth: "240px" }}>
-                      {o.customer?.businessName ?? t("orders.unknownCustomer")}
-                      {o.adjusted ? (
-                        <span
-                          style={{
-                            marginInlineStart: "0.4rem",
-                            fontSize: "0.68rem",
-                            fontWeight: 700,
-                            color: "#b8860b",
-                          }}
-                          title={t("orders.adjust.badgeTitle")}
-                        >
-                          📦 {t("orders.adjust.badge")}
+                  <tr
+                    key={o.id}
+                    className="admin-card-row"
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest("a, button, select, input, label")) return;
+                      void openDetail(o.id);
+                    }}
+                  >
+                    <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>
+                      <span className="admin-card-titlerow">
+                        <span>
+                          {o.customer?.businessName ?? t("orders.unknownCustomer")}
+                          {o.adjusted ? (
+                            <span
+                              style={{
+                                marginInlineStart: "0.4rem",
+                                fontSize: "0.68rem",
+                                fontWeight: 700,
+                                color: "#b8860b",
+                              }}
+                              title={t("orders.adjust.badgeTitle")}
+                            >
+                              📦 {t("orders.adjust.badge")}
+                            </span>
+                          ) : null}
                         </span>
-                      ) : null}
+                        <span className="admin-card-go" aria-hidden="true">›</span>
+                      </span>
                       {o.notes ? (
                         <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }}>
                           📝 {o.notes}
                         </div>
                       ) : null}
                     </td>
-                    <td dir="ltr">{o.customer?.phoneNumber ?? "—"}</td>
-                    <td>{formatDate(o.createdAt)}</td>
-                    <td>{o.itemCount}</td>
-                    <td>₪ {o.total}</td>
-                    <td>
+                    <td data-label={t("orders.columns.phone")} dir="ltr">{o.customer?.phoneNumber ?? "—"}</td>
+                    <td data-label={t("orders.columns.date")}>{formatDate(o.createdAt)}</td>
+                    <td data-label={t("orders.columns.items")}>{o.itemCount}</td>
+                    <td data-label={t("orders.columns.total")}>₪ {o.total}</td>
+                    <td className="admin-card-cell--actions" data-label={t("orders.columns.status")}>
                       <select
                         className="admin-select"
                         value={o.status}
                         disabled={updatingId === o.id}
                         onChange={(e) => void changeStatus(o.id, e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
                         aria-label={t("orders.columns.status")}
                       >
                         {options.map((s) => (
@@ -355,8 +373,15 @@ export default function AdminOrdersPage() {
                         ))}
                       </select>
                     </td>
-                    <td>
-                      <button type="button" className="admin-btn" onClick={() => void openDetail(o.id)}>
+                    <td className="admin-card-cell--actions" data-label="">
+                      <button
+                        type="button"
+                        className="admin-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void openDetail(o.id);
+                        }}
+                      >
                         {t("orders.detail.open")}
                       </button>
                     </td>
@@ -370,7 +395,7 @@ export default function AdminOrdersPage() {
 
       {detailId ? (
         <div
-          className="admin-modal-backdrop"
+          className="admin-modal-backdrop admin-modal-backdrop--sheet"
           role="dialog"
           aria-modal="true"
           aria-label={t("orders.detail.title")}
@@ -379,10 +404,10 @@ export default function AdminOrdersPage() {
           }}
         >
           <div className="admin-modal" style={{ maxInlineSize: "720px", maxBlockSize: "85vh", overflowY: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", gap: "0.5rem" }}>
               <h2 style={{ fontSize: "1.15rem" }}>{t("orders.detail.title")}</h2>
               <button type="button" className="admin-btn" onClick={closeDetail}>
-                {t("orders.detail.close")}
+                ← {t("orders.detail.close")}
               </button>
             </div>
 
@@ -447,7 +472,7 @@ export default function AdminOrdersPage() {
                 <section style={{ marginBottom: "1.25rem" }}>
                   <h3 style={{ fontSize: "0.95rem", marginBottom: "0.4rem" }}>{t("orders.detail.items")}</h3>
                   <div className="admin-table-wrap">
-                    <table className="admin-table">
+                    <table className="admin-table admin-table--cards">
                       <thead>
                         <tr>
                           <th>{t("orders.detail.itemName")}</th>
@@ -460,7 +485,7 @@ export default function AdminOrdersPage() {
                       <tbody>
                         {detail.items.map((it, i) => (
                           <tr key={`${it.productId}-${i}`}>
-                            <td>
+                            <td className="admin-card-cell--title">
                               <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                 {it.imageUrl ? (
                                   <Image
@@ -493,8 +518,8 @@ export default function AdminOrdersPage() {
                                 </span>
                               </span>
                             </td>
-                            <td dir="ltr">{it.sku ?? "—"}</td>
-                            <td>
+                            <td data-label={t("orders.detail.itemSku")} dir="ltr">{it.sku ?? "—"}</td>
+                            <td className="admin-card-cell--actions" data-label={t("orders.detail.itemQty")}>
                               {(() => {
                                 const editable = isOrderAdjustable(detail.status) && !it.isGift;
                                 const suppliedVal = drafts[i]?.supplied ?? String(it.suppliedQuantity);
@@ -556,8 +581,8 @@ export default function AdminOrdersPage() {
                                 );
                               })()}
                             </td>
-                            <td>{money(locale, it.unitPrice)}</td>
-                            <td>
+                            <td data-label={t("orders.detail.itemUnitPrice")}>{money(locale, it.unitPrice)}</td>
+                            <td data-label={t("orders.detail.itemLineTotal")}>
                               {money(
                                 locale,
                                 round2(it.unitPrice * Math.trunc(Number(drafts[i]?.supplied ?? it.suppliedQuantity)))

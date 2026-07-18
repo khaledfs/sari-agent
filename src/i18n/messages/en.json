@@ -548,6 +548,7 @@
     },
     "customers": {
       "title": "Customers",
+      "count": "{count} customers",
       "subtitle": "Profiles, order analytics, notes, and account status.",
       "columns": {
         "businessName": "Business Name",
@@ -630,6 +631,7 @@
     },
     "orders": {
       "title": "Orders",
+      "count": "{count} orders",
       "subtitle": "Track customer orders and update their status.",
       "loading": "Loading orders…",
       "empty": "No customer orders yet.",

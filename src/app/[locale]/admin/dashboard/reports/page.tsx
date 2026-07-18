@@ -176,7 +176,7 @@ export default function AdminReportsPage() {
             {rows.length > 10 ? ` · ${t("reports.previewNote")}` : ""}
           </p>
           <div className="admin-table-wrap">
-            <table className="admin-table">
+            <table className="admin-table admin-table--cards">
               <thead>
                 <tr>
                   {columns.map((column) => (
@@ -187,8 +187,13 @@ export default function AdminReportsPage() {
               <tbody>
                 {preview.map((row, i) => (
                   <tr key={i}>
-                    {columns.map((column) => (
-                      <td key={column} style={{ whiteSpace: "nowrap", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {columns.map((column, ci) => (
+                      <td
+                        key={column}
+                        className={ci === 0 ? "admin-card-cell--title" : undefined}
+                        data-label={t(`reports.columns.${column}`)}
+                        style={{ whiteSpace: "nowrap", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis" }}
+                      >
                         {formatCell(column, row[column] ?? "")}
                       </td>
                     ))}
@@ -196,7 +201,7 @@ export default function AdminReportsPage() {
                 ))}
                 <tr style={{ fontWeight: 700, background: "var(--brand-bg)" }}>
                   {columns.map((column, i) => (
-                    <td key={column}>
+                    <td key={column} data-label={i === 0 ? "" : t(`reports.columns.${column}`)}>
                       {i === 0 ? t("reports.totalsRow") : totals.has(column) ? totals.get(column)?.toLocaleString(locale) : ""}
                     </td>
                   ))}

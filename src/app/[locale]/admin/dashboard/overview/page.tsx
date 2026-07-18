@@ -199,7 +199,7 @@ export default function AdminOverviewPage() {
                 <p className="admin-panel__empty">{t("overview.noLowStock")}</p>
               ) : (
                 <div className="admin-table-wrap">
-                  <table className="admin-table">
+                  <table className="admin-table admin-table--cards">
                     <thead>
                       <tr>
                         <th>{t("products.columns.name")}</th>
@@ -209,7 +209,7 @@ export default function AdminOverviewPage() {
                     <tbody>
                       {data.lowStock.map((p) => (
                         <tr key={p.id}>
-                          <td>
+                          <td className="admin-card-cell--title">
                             <Link href={`/${locale}/admin/dashboard/products`} className="admin-back-link" style={{ marginBottom: 0 }}>
                               {p.name}
                             </Link>
@@ -217,7 +217,7 @@ export default function AdminOverviewPage() {
                               {p.sku}
                             </div>
                           </td>
-                          <td>
+                          <td data-label={t("products.columns.stock")}>
                             <span
                               className={`admin-stock-badge ${p.stock === 0 ? "admin-stock-badge--out" : "admin-stock-badge--low"}`}
                             >
@@ -255,7 +255,7 @@ export default function AdminOverviewPage() {
             <section className="admin-panel" style={{ marginBlockStart: "1.25rem" }}>
               <h2 className="admin-panel__title">{t("overview.agents.title")}</h2>
               <div className="admin-table-wrap">
-                <table className="admin-table">
+                <table className="admin-table admin-table--cards">
                   <thead>
                     <tr>
                       <th>{t("overview.agents.columns.name")}</th>
@@ -269,16 +269,16 @@ export default function AdminOverviewPage() {
                   <tbody>
                     {data.agentPerformance.map((a) => (
                       <tr key={a.agentId}>
-                        <td>
+                        <td className="admin-card-cell--title">
                           <span style={{ fontWeight: 600 }}>{a.agentName}</span>
                           {a.routeLabel ? (
                             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{a.routeLabel}</div>
                           ) : null}
                         </td>
-                        <td>{a.customerCount}</td>
-                        <td>{a.orders}</td>
-                        <td>₪{a.revenue.toLocaleString(locale)}</td>
-                        <td>
+                        <td data-label={t("overview.agents.columns.customers")}>{a.customerCount}</td>
+                        <td data-label={t("overview.agents.columns.orders")}>{a.orders}</td>
+                        <td data-label={t("overview.agents.columns.revenue")}>₪{a.revenue.toLocaleString(locale)}</td>
+                        <td data-label={t("overview.agents.columns.outstanding")}>
                           {money(a.outstandingMinor)}
                           {a.openCollectionsCount > 0 ? (
                             <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
@@ -287,7 +287,7 @@ export default function AdminOverviewPage() {
                             </span>
                           ) : null}
                         </td>
-                        <td>{money(a.collectedMinor)}</td>
+                        <td data-label={t("overview.agents.columns.collected")}>{money(a.collectedMinor)}</td>
                       </tr>
                     ))}
                   </tbody>

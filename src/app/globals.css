@@ -512,6 +512,146 @@ button:disabled,
   background: var(--surface-2);
 }
 
+/* Clickable row (customers/orders): whole row opens the detail. The chevron is
+   a visible affordance on desktop AND mobile; RTL flips it via logical mirroring. */
+.admin-table tr.admin-card-row {
+  cursor: pointer;
+}
+.admin-table tr.admin-card-row:hover td {
+  background: var(--brand-bg, #fdf8ec);
+}
+.admin-card-go {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted, #8a8477);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.admin-card-titlerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+html[dir="rtl"] .admin-card-go {
+  transform: scaleX(-1);
+}
+
+/* ——— Admin table → cards below 768px (opt-in via .admin-table--cards) ——— */
+@media (max-width: 767px) {
+  /* the fixed scroll wrapper stops scrolling and drops its chrome — the cards
+     carry their own borders (progressive: :has() unsupported → harmless nesting). */
+  .admin-table-wrap:has(.admin-table--cards) {
+    overflow: visible;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .admin-table--cards,
+  .admin-table--cards tbody {
+    display: block;
+    inline-size: 100%;
+  }
+  /* keep headers for a11y but visually hide (labels move onto each cell) */
+  .admin-table--cards thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .admin-table--cards tr {
+    display: block;
+    position: relative;
+    border: 1px solid var(--border, #e8e4dc);
+    border-radius: var(--radius-lg, 14px);
+    background: var(--surface, #fff);
+    box-shadow: var(--shadow-sm);
+    padding: 0.85rem 0.95rem;
+    margin-block-end: 0.75rem;
+  }
+  .admin-table--cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.28rem 0;
+    border: none;
+    /* override any inline `white-space: nowrap` so long values wrap instead of
+       overflowing the card (this is partly the RTL sideways-scroll bug's cause). */
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: end;
+    min-block-size: 30px;
+  }
+  .admin-table--cards td > * {
+    min-inline-size: 0;
+  }
+  /* the field label, from data-label */
+  .admin-table--cards td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted, #8a8477);
+    text-align: start;
+  }
+  .admin-table--cards td[data-label=""]::before {
+    content: none;
+  }
+  /* the primary identifier: full-width prominent title */
+  .admin-table--cards td.admin-card-cell--title {
+    display: block;
+    text-align: start;
+    font-size: 1rem;
+    font-weight: 700;
+    padding-block: 0 0.45rem;
+    margin-block-end: 0.35rem;
+    border-bottom: 1px solid var(--border, #e8e4dc);
+  }
+  .admin-table--cards td.admin-card-cell--title::before {
+    content: none;
+  }
+  /* an actions cell: controls stack full-width, ≥44px */
+  .admin-table--cards td.admin-card-cell--actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding-block-start: 0.55rem;
+  }
+  .admin-table--cards td.admin-card-cell--actions::before {
+    content: none;
+  }
+  .admin-table--cards td.admin-card-cell--actions .admin-btn,
+  .admin-table--cards td.admin-card-cell--actions .admin-btn-primary,
+  .admin-table--cards td.admin-card-cell--actions .admin-select,
+  .admin-table--cards td.admin-card-cell--actions .admin-input {
+    flex: 1 1 auto;
+    min-block-size: 44px;
+  }
+  .admin-table--cards tr.admin-card-row:active {
+    background: var(--brand-bg, #fdf8ec);
+  }
+
+  /* Modal drawers become a full-screen sheet on mobile (mirrors the chat back). */
+  .admin-modal-backdrop--sheet {
+    padding: 0;
+    align-items: stretch;
+  }
+  .admin-modal-backdrop--sheet .admin-modal {
+    max-inline-size: 100% !important;
+    inline-size: 100% !important;
+    max-block-size: 100dvh !important;
+    block-size: 100dvh !important;
+    border-radius: 0 !important;
+  }
+}
+
 .admin-badge {
   display: inline-block;
   padding: 0.1rem 0.5rem;
@@ -890,6 +1030,7 @@ button:disabled,
   .auth-form input,
   .auth-form select,
   .admin-input,
+  .admin-inline-input,
   .admin-select {
     font-size: 16px; /* <16px triggers iOS auto-zoom on focus */
     min-block-size: 44px;
@@ -897,8 +1038,13 @@ button:disabled,
 
   .auth-submit,
   .admin-btn,
-  .admin-btn-primary {
+  .admin-btn-primary,
+  .admin-toggle {
     min-block-size: 44px;
+  }
+  .admin-toggle {
+    display: inline-flex;
+    align-items: center;
   }
 
   .auth-card {

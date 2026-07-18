@@ -287,7 +287,7 @@ export default function AdminDiscountsPage() {
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("discounts.empty")}</p>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--cards">
             <thead>
               <tr>
                 <th>{t("discounts.columns.label")}</th>
@@ -302,17 +302,17 @@ export default function AdminDiscountsPage() {
             <tbody>
               {discounts.map((d) => (
                 <tr key={d.id} style={d.isActive ? undefined : { opacity: 0.55 }}>
-                  <td style={{ fontWeight: 600 }}>{d.label || "—"}</td>
-                  <td>{scopeLabel(d)}</td>
-                  <td>{valueLabel(d)}</td>
-                  <td>{d.productIds.length === 0 ? t("discounts.allProducts") : d.productIds.length}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>{dateRange(d)}</td>
-                  <td>
+                  <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>{d.label || "—"}</td>
+                  <td data-label={t("discounts.columns.scope")}>{scopeLabel(d)}</td>
+                  <td data-label={t("discounts.columns.value")}>{valueLabel(d)}</td>
+                  <td data-label={t("discounts.columns.products")}>{d.productIds.length === 0 ? t("discounts.allProducts") : d.productIds.length}</td>
+                  <td data-label={t("discounts.columns.window")} style={{ whiteSpace: "nowrap" }}>{dateRange(d)}</td>
+                  <td data-label={t("discounts.columns.status")}>
                     <span className={`admin-stock-badge ${d.isActive ? "admin-stock-badge--low" : "admin-stock-badge--out"}`}>
                       {d.isActive ? t("discounts.active") : t("discounts.inactive")}
                     </span>
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td className="admin-card-cell--actions" style={{ whiteSpace: "nowrap" }}>
                     <button type="button" className="admin-btn" disabled={busyId === d.id} onClick={() => openEdit(d)}>
                       {t("discounts.edit")}
                     </button>{" "}

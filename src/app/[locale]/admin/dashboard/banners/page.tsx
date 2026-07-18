@@ -221,7 +221,7 @@ export default function AdminBannersPage() {
         <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "3rem 0" }}>{t("banners.empty")}</p>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table admin-table--cards">
             <thead>
               <tr>
                 <th>{t("banners.columns.title")}</th>
@@ -235,25 +235,25 @@ export default function AdminBannersPage() {
             <tbody>
               {banners.map((b) => (
                 <tr key={b.id} style={b.isActive ? undefined : { opacity: 0.55 }}>
-                  <td style={{ fontWeight: 600, maxWidth: "260px" }}>
+                  <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>
                     {b.title}
                     {b.body ? (
                       <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}>{b.body}</div>
                     ) : null}
                   </td>
-                  <td>{scopeLabel(b)}</td>
-                  <td>{b.priority}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td data-label={t("discounts.columns.scope")}>{scopeLabel(b)}</td>
+                  <td data-label={t("banners.columns.priority")}>{b.priority}</td>
+                  <td data-label={t("discounts.columns.window")} style={{ whiteSpace: "nowrap" }}>
                     {(b.startsAt ? new Date(b.startsAt).toLocaleDateString(locale) : "—") +
                       " → " +
                       (b.endsAt ? new Date(b.endsAt).toLocaleDateString(locale) : "—")}
                   </td>
-                  <td>
+                  <td data-label={t("discounts.columns.status")}>
                     <span className={`admin-stock-badge ${b.isActive ? "admin-stock-badge--low" : "admin-stock-badge--out"}`}>
                       {b.isActive ? t("discounts.active") : t("discounts.inactive")}
                     </span>
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td className="admin-card-cell--actions" style={{ whiteSpace: "nowrap" }}>
                     <button type="button" className="admin-btn" disabled={busyId === b.id} onClick={() => openEdit(b)}>
                       {t("discounts.edit")}
                     </button>{" "}
