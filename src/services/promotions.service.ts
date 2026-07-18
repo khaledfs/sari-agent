@@ -13,6 +13,20 @@ import { round2 } from "@/services/pricing.service";
  * for the customer; totals can never go negative.
  */
 
+/**
+ * Default cap on repeated gift tiers when a promotion doesn't set its own
+ * `maxTiers`. A "buy 10 → 1 free" promo therefore gives at most 10 free units
+ * (i.e. once the customer buys 100), which bounds runaway gifts from a
+ * mis-configured promo while never biting normal wholesale quantities.
+ */
+export const DEFAULT_MAX_GIFT_TIERS = 10;
+
+/** Clamp a promotion's configured maxTiers to a positive integer, else the default. */
+export function resolveMaxGiftTiers(raw: number | null | undefined): number {
+  const n = Math.floor(Number(raw));
+  return Number.isInteger(n) && n >= 1 ? n : DEFAULT_MAX_GIFT_TIERS;
+}
+
 export type PromotionLike = {
   id: string;
   kind: PromotionKind;
@@ -23,6 +37,8 @@ export type PromotionLike = {
   buyMinQty?: number | null;
   giftProductId?: string | null;
   giftQty?: number | null;
+  /** gift only: cap on repeated tiers; null/absent → DEFAULT_MAX_GIFT_TIERS. */
+  maxTiers?: number | null;
   threshold?: number | null;
   discountType?: "percent" | "fixed" | null;
   value?: number | null;
@@ -86,9 +102,18 @@ export function promotionApplies(promotion: PromotionLike, ctx: PromotionContext
   return true; // global
 }
 
-function giftFromPromotion(p: PromotionLike, reason: "gift" | "minOrderGift"): PromotionGift | null {
+/**
+ * Builds the gift line. `tiers` multiplies the per-tier `giftQty` (gift kind
+ * repeats once per full multiple of buyMinQty); minOrderGift always passes 1.
+ */
+function giftFromPromotion(
+  p: PromotionLike,
+  reason: "gift" | "minOrderGift",
+  tiers = 1
+): PromotionGift | null {
   const productId = p.giftProductId ? String(p.giftProductId) : "";
-  const qty = Math.floor(Number(p.giftQty ?? 0));
+  const perTier = Math.floor(Number(p.giftQty ?? 0));
+  const qty = perTier * Math.max(0, Math.floor(tiers));
   if (!productId || qty < 1) return null;
   return { productId, qty, promotionId: p.id, reason };
 }
@@ -133,8 +158,12 @@ export function evaluatePromotions(
       const buyId = p.buyProductId ? String(p.buyProductId) : "";
       const minQty = Math.max(1, Math.floor(Number(p.buyMinQty ?? 1)));
       if (!buyId) continue;
-      if ((qtyByProduct.get(buyId) ?? 0) >= minQty) {
-        const gift = giftFromPromotion(p, "gift");
+      const buyQty = qtyByProduct.get(buyId) ?? 0;
+      if (buyQty >= minQty) {
+        // Gift repeats once per full multiple of the threshold, capped at maxTiers.
+        // Partial tiers earn nothing (buy 19 on a 10-promo → 1 tier, not 2).
+        const tiers = Math.min(Math.floor(buyQty / minQty), resolveMaxGiftTiers(p.maxTiers));
+        const gift = giftFromPromotion(p, "gift", tiers);
         if (gift) {
           const existing = giftByProduct.get(gift.productId);
           if (!existing || gift.qty > existing.qty) giftByProduct.set(gift.productId, gift);
@@ -202,6 +231,7 @@ type PromotionLeanDoc = {
   buyMinQty?: number | null;
   giftProductId?: unknown;
   giftQty?: number | null;
+  maxTiers?: number | null;
   threshold?: number | null;
   discountType?: "percent" | "fixed" | null;
   value?: number | null;
@@ -221,6 +251,7 @@ export function promotionDocToLike(d: PromotionLeanDoc): PromotionLike {
     buyMinQty: d.buyMinQty ?? null,
     giftProductId: d.giftProductId ? String(d.giftProductId) : null,
     giftQty: d.giftQty ?? null,
+    maxTiers: d.maxTiers ?? null,
     threshold: d.threshold ?? null,
     discountType: d.discountType ?? null,
     value: d.value ?? null,

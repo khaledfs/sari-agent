@@ -10,6 +10,7 @@ vi.mock("@/lib/jwt", () => ({
 
 import { validatePromotionInput } from "@/lib/admin-promotions";
 import {
+  DEFAULT_MAX_GIFT_TIERS,
   evaluatePromotions,
   promotionApplies,
   type CartItemInput,
@@ -96,6 +97,59 @@ describe("gift kind (buy X qty >= N -> gift Y × M)", () => {
   it("different trigger product does not qualify", () => {
     const items: CartItemInput[] = [{ productId: PRODUCT_B, quantity: 50 }];
     expect(evaluatePromotions([giftPromo("p1")], items, 100, ctx).gifts).toEqual([]);
+  });
+});
+
+describe("gift kind — tier multiplication (buy N → gift repeats per full N)", () => {
+  const promo10to1 = (extra: Partial<PromotionLike> = {}) =>
+    giftPromo("p1", { buyMinQty: 10, giftQty: 1, ...extra });
+  const giftQtyFor = (promo: PromotionLike, buyQty: number) =>
+    evaluatePromotions([promo], cartWithA(buyQty), 100, ctx).gifts[0]?.qty ?? 0;
+
+  it("multiplies once per full threshold multiple: 10→1, 20→2, 25→2, 30→3", () => {
+    expect(giftQtyFor(promo10to1(), 10)).toBe(1);
+    expect(giftQtyFor(promo10to1(), 20)).toBe(2);
+    expect(giftQtyFor(promo10to1(), 25)).toBe(2);
+    expect(giftQtyFor(promo10to1(), 30)).toBe(3);
+  });
+
+  it("partial tier earns no extra gift: buy 19 on a 10-promo → 1", () => {
+    expect(giftQtyFor(promo10to1(), 19)).toBe(1);
+  });
+
+  it("below the first threshold earns nothing", () => {
+    expect(evaluatePromotions([promo10to1()], cartWithA(9), 100, ctx).gifts).toEqual([]);
+  });
+
+  it("giftQty per tier multiplies too: buy 20 on a 10→2 promo → 4", () => {
+    expect(giftQtyFor(promo10to1({ giftQty: 2 }), 20)).toBe(4);
+  });
+
+  it("maxTiers caps the repeats: 10→1 cap 5, buy 100 → 5 (not 10)", () => {
+    expect(giftQtyFor(promo10to1({ maxTiers: 5 }), 100)).toBe(5);
+  });
+
+  it("defaults to DEFAULT_MAX_GIFT_TIERS when maxTiers is unset: buy 1000 on 10→1 → 10", () => {
+    expect(giftQtyFor(promo10to1({ maxTiers: null }), 1000)).toBe(DEFAULT_MAX_GIFT_TIERS);
+  });
+
+  it("tiers count summed quantities across duplicate cart lines", () => {
+    const items: CartItemInput[] = [
+      { productId: PRODUCT_A, quantity: 12 },
+      { productId: PRODUCT_A, quantity: 8 },
+    ]; // 20 total → 2 tiers
+    expect(evaluatePromotions([promo10to1()], items, 100, ctx).gifts[0]?.qty).toBe(2);
+  });
+
+  it("does not alter unrelated order-discount selection", () => {
+    const result = evaluatePromotions(
+      [promo10to1(), orderDiscountPromo("p3", { value: 10 })],
+      cartWithA(20),
+      400,
+      ctx
+    );
+    expect(result.gifts[0]?.qty).toBe(2);
+    expect(result.orderDiscount).toMatchObject({ promotionId: "p3", amountOff: 40 });
   });
 });
 
@@ -218,6 +272,14 @@ describe("validatePromotionInput", () => {
       giftQty: 2,
     });
     expect(doc).toMatchObject({ kind: "gift", buyMinQty: 5, giftQty: 2, threshold: null });
+  });
+
+  it("gift maxTiers: defaults when absent, honored when set, rejected above the cap", () => {
+    const base = { kind: "gift", scope: "global", buyProductId: PRODUCT_A, giftProductId: GIFT_X, buyMinQty: 10, giftQty: 1 } as const;
+    expect(validatePromotionInput({ ...base }).maxTiers).toBe(DEFAULT_MAX_GIFT_TIERS);
+    expect(validatePromotionInput({ ...base, maxTiers: 5 }).maxTiers).toBe(5);
+    expect(() => validatePromotionInput({ ...base, maxTiers: 0 })).toThrow("maxTiers must be an integer of at least 1.");
+    expect(() => validatePromotionInput({ ...base, maxTiers: 101 })).toThrow("maxTiers cannot exceed 100.");
   });
 
   it("threshold kinds require threshold > 0", () => {

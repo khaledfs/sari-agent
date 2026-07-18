@@ -563,6 +563,60 @@ async function promotionsSection(customerCookie, adminCookie) {
   } catch (err) {
     report("promo: deactivated -> gift gone from new cart", false, String(err));
   }
+
+  // ---- gift-tier multiplication: a "buy 10 -> 1 free" promo repeats per full 10 ----
+  let tierPromoId = null;
+  try {
+    const { body: created } = await jsonFetch("/api/admin/promotions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({
+        label: SMOKE_LABEL,
+        kind: "gift",
+        scope: "global",
+        buyProductId: paid.id,
+        buyMinQty: 10,
+        giftProductId: gift.id,
+        giftQty: 1,
+        maxTiers: 5,
+      }),
+    });
+    tierPromoId = created?.data?.id ?? null;
+
+    // Cart 20 of the trigger -> floor(20 / 10) = 2 gift units.
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    const { body: cart } = await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: paid.id, quantity: 20 }),
+    });
+    const cartGift = (cart?.data?.promotions?.gifts ?? []).find((g) => g.promotionId === tierPromoId);
+    report(
+      "promo(tier): buy 20 on a 10->1 promo -> 2 gift units in the cart",
+      cartGift?.productId === gift.id && cartGift?.qty === 2,
+      JSON.stringify(cart?.data?.promotions?.gifts ?? [])
+    );
+
+    // Place the order -> the gift line carries the multiplied quantity (2), price 0.
+    const { body: order } = await jsonFetch("/api/orders", { method: "POST", headers: { Cookie: customerCookie } });
+    const orderGift = (order?.data?.items ?? []).find((i) => i.isGift === true && i.promotionId === tierPromoId);
+    report(
+      "promo(tier): placed order carries the multiplied gift quantity (2)",
+      orderGift?.price === 0 && orderGift?.quantity === 2,
+      `gift=${JSON.stringify(orderGift ?? null)}`
+    );
+  } catch (err) {
+    report("promo(tier): buy 20 on a 10->1 promo -> 2 gift units in the cart", false, String(err));
+  } finally {
+    if (tierPromoId) {
+      await jsonFetch(`/api/admin/promotions/${tierPromoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: adminCookie },
+        body: JSON.stringify({ isActive: false }),
+      });
+    }
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+  }
 }
 
 // ---------- banners section (Phase 4) ----------

@@ -847,7 +847,7 @@
         "minOrderGift": "Min-order gift"
       },
       "rules": {
-        "gift": "Buy {minQty}+ of the trigger product → {giftQty} gift unit(s)",
+        "gift": "Buy {minQty} of the trigger → {giftQty} gift (repeats per {minQty}, max {maxTiers}×)",
         "minOrderGift": "Subtotal ≥ ₪{threshold} → {giftQty} gift unit(s)",
         "orderDiscount": "Subtotal ≥ ₪{threshold} → {value} off the order"
       },
@@ -856,6 +856,8 @@
         "buyMinQty": "Minimum quantity (N)",
         "giftProduct": "Gift product (get Y)",
         "giftQty": "Gift quantity (M)",
+        "maxTiers": "Max gift repeats",
+        "maxTiersHint": "The gift repeats once per full {minQty} bought — buy {example} → {exampleGifts} gift unit(s). Capped at {maxTiers} repeats.",
         "threshold": "Order subtotal threshold (₪)",
         "saveError": "Failed to save promotion."
       }

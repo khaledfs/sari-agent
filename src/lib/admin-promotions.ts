@@ -5,8 +5,12 @@ import { assertRuleWithinScope } from "@/lib/admin-pricing";
 import { connectDB } from "@/lib/db";
 import { CUSTOMER_MEMORY_BUSINESS_TYPES } from "@/models/customer-memory.model";
 import { PROMOTION_KINDS, PROMOTION_SCOPES, PromotionModel } from "@/models/promotion.model";
+import { DEFAULT_MAX_GIFT_TIERS } from "@/services/promotions.service";
 
 /** Admin CRUD + validation for promotions (gift / orderDiscount / minOrderGift). */
+
+/** Upper bound the admin can set for gift-tier repeats (guards against runaway config). */
+export const MAX_GIFT_TIERS_CAP = 100;
 
 export type AdminPromotionRow = {
   id: string;
@@ -18,6 +22,7 @@ export type AdminPromotionRow = {
   buyMinQty: number | null;
   giftProductId: string | null;
   giftQty: number | null;
+  maxTiers: number | null;
   threshold: number | null;
   discountType: string | null;
   value: number | null;
@@ -39,6 +44,7 @@ export function validatePromotionInput(input: Record<string, unknown>): {
   buyMinQty: number | null;
   giftProductId: string | null;
   giftQty: number | null;
+  maxTiers: number | null;
   threshold: number | null;
   discountType: string | null;
   value: number | null;
@@ -80,6 +86,7 @@ export function validatePromotionInput(input: Record<string, unknown>): {
     buyMinQty: null as number | null,
     giftProductId: null as string | null,
     giftQty: null as number | null,
+    maxTiers: null as number | null,
     threshold: null as number | null,
     discountType: null as string | null,
     value: null as number | null,
@@ -103,6 +110,16 @@ export function validatePromotionInput(input: Record<string, unknown>): {
     base.giftProductId = giftProductId;
     base.buyMinQty = positiveInt(input.buyMinQty, "buyMinQty must be an integer of at least 1.");
     base.giftQty = positiveInt(input.giftQty, "giftQty must be an integer of at least 1.");
+    // Optional tier cap: absent → engine default; explicit must be 1..MAX_GIFT_TIERS_CAP.
+    if (input.maxTiers === undefined || input.maxTiers === null || input.maxTiers === "") {
+      base.maxTiers = DEFAULT_MAX_GIFT_TIERS;
+    } else {
+      const tiers = positiveInt(input.maxTiers, "maxTiers must be an integer of at least 1.");
+      if (tiers > MAX_GIFT_TIERS_CAP) {
+        throw new Error(`maxTiers cannot exceed ${MAX_GIFT_TIERS_CAP}.`);
+      }
+      base.maxTiers = tiers;
+    }
     return base;
   }
 
@@ -149,6 +166,7 @@ type PromotionLeanDoc = {
   buyMinQty?: number | null;
   giftProductId?: mongoose.Types.ObjectId | null;
   giftQty?: number | null;
+  maxTiers?: number | null;
   threshold?: number | null;
   discountType?: string | null;
   value?: number | null;
@@ -168,6 +186,7 @@ function toRow(d: PromotionLeanDoc): AdminPromotionRow {
     buyMinQty: d.buyMinQty ?? null,
     giftProductId: d.giftProductId ? String(d.giftProductId) : null,
     giftQty: d.giftQty ?? null,
+    maxTiers: d.maxTiers ?? null,
     threshold: d.threshold ?? null,
     discountType: d.discountType ?? null,
     value: d.value ?? null,
@@ -228,6 +247,7 @@ export async function updateAdminPromotion(
     giftProductId:
       patch.giftProductId !== undefined ? patch.giftProductId : existing.giftProductId ? String(existing.giftProductId) : null,
     giftQty: patch.giftQty !== undefined ? patch.giftQty : existing.giftQty,
+    maxTiers: patch.maxTiers !== undefined ? patch.maxTiers : existing.maxTiers,
     threshold: patch.threshold !== undefined ? patch.threshold : existing.threshold,
     discountType: patch.discountType !== undefined ? patch.discountType : existing.discountType,
     value: patch.value !== undefined ? patch.value : existing.value,

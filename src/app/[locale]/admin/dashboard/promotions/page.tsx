@@ -15,6 +15,7 @@ type PromotionRow = {
   buyMinQty: number | null;
   giftProductId: string | null;
   giftQty: number | null;
+  maxTiers: number | null;
   threshold: number | null;
   discountType: string | null;
   value: number | null;
@@ -40,6 +41,7 @@ type FormState = {
   buyMinQty: string;
   giftProduct: ProductOption | null;
   giftQty: string;
+  maxTiers: string;
   threshold: string;
   discountType: string;
   value: string;
@@ -57,6 +59,7 @@ const EMPTY_FORM: FormState = {
   buyMinQty: "1",
   giftProduct: null,
   giftQty: "1",
+  maxTiers: "10",
   threshold: "",
   discountType: "percent",
   value: "",
@@ -214,6 +217,7 @@ export default function AdminPromotionsPage() {
       buyMinQty: p.buyMinQty !== null ? String(p.buyMinQty) : "1",
       giftProduct: p.giftProductId ? { id: p.giftProductId, name: p.giftProductId, sku: "" } : null,
       giftQty: p.giftQty !== null ? String(p.giftQty) : "1",
+      maxTiers: p.maxTiers !== null ? String(p.maxTiers) : "10",
       threshold: p.threshold !== null ? String(p.threshold) : "",
       discountType: p.discountType ?? "percent",
       value: p.value !== null ? String(p.value) : "",
@@ -242,6 +246,7 @@ export default function AdminPromotionsPage() {
         body.buyMinQty = Number(form.buyMinQty);
         body.giftProductId = form.giftProduct?.id ?? null;
         body.giftQty = Number(form.giftQty);
+        body.maxTiers = Number(form.maxTiers);
       } else if (form.kind === "minOrderGift") {
         body.threshold = Number(form.threshold);
         body.giftProductId = form.giftProduct?.id ?? null;
@@ -299,7 +304,11 @@ export default function AdminPromotionsPage() {
 
   function ruleSummary(p: PromotionRow) {
     if (p.kind === "gift") {
-      return t("promotions.rules.gift", { minQty: p.buyMinQty ?? 1, giftQty: p.giftQty ?? 1 });
+      return t("promotions.rules.gift", {
+        minQty: p.buyMinQty ?? 1,
+        giftQty: p.giftQty ?? 1,
+        maxTiers: p.maxTiers ?? 10,
+      });
     }
     if (p.kind === "minOrderGift") {
       return t("promotions.rules.minOrderGift", { threshold: p.threshold ?? 0, giftQty: p.giftQty ?? 1 });
@@ -453,10 +462,25 @@ export default function AdminPromotionsPage() {
                   onSelect={(p) => setForm((f) => ({ ...f, buyProduct: p }))}
                   onClear={() => setForm((f) => ({ ...f, buyProduct: null }))}
                 />
-                <label className="admin-field">
-                  <span>{t("promotions.form.buyMinQty")}</span>
-                  <input className="admin-input" type="number" step="1" min="1" value={form.buyMinQty} onChange={(e) => setForm((f) => ({ ...f, buyMinQty: e.target.value }))} />
-                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <label className="admin-field">
+                    <span>{t("promotions.form.buyMinQty")}</span>
+                    <input className="admin-input" type="number" step="1" min="1" value={form.buyMinQty} onChange={(e) => setForm((f) => ({ ...f, buyMinQty: e.target.value }))} />
+                  </label>
+                  <label className="admin-field">
+                    <span>{t("promotions.form.maxTiers")}</span>
+                    <input className="admin-input" type="number" step="1" min="1" max="100" value={form.maxTiers} onChange={(e) => setForm((f) => ({ ...f, maxTiers: e.target.value }))} />
+                  </label>
+                </div>
+                <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", margin: "-0.25rem 0 0.5rem" }}>
+                  {t("promotions.form.maxTiersHint", {
+                    minQty: Number(form.buyMinQty) || 1,
+                    giftQty: Number(form.giftQty) || 1,
+                    example: (Number(form.buyMinQty) || 1) * 2,
+                    exampleGifts: (Number(form.giftQty) || 1) * 2,
+                    maxTiers: Number(form.maxTiers) || 10,
+                  })}
+                </p>
               </>
             ) : null}
 

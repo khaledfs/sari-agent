@@ -848,7 +848,7 @@
         "minOrderGift": "מתנה בהזמנת מינימום"
       },
       "rules": {
-        "gift": "קנייה של {minQty}+ ממוצר הטריגר → {giftQty} יח׳ מתנה",
+        "gift": "קנייה של {minQty} ממוצר הטריגר → {giftQty} יח׳ מתנה (חוזר לכל {minQty}, עד {maxTiers}×)",
         "minOrderGift": "סכום ביניים ≥ ₪{threshold} → {giftQty} יח׳ מתנה",
         "orderDiscount": "סכום ביניים ≥ ₪{threshold} → {value} הנחה על ההזמנה"
       },
@@ -857,6 +857,8 @@
         "buyMinQty": "כמות מינימום (N)",
         "giftProduct": "מוצר מתנה (קבל Y)",
         "giftQty": "כמות מתנה (M)",
+        "maxTiers": "מקסימום חזרות מתנה",
+        "maxTiersHint": "המתנה חוזרת פעם אחת לכל {minQty} שנקנים — קנייה של {example} → {exampleGifts} יח׳ מתנה. מוגבל ל-{maxTiers} חזרות.",
         "threshold": "סף סכום הזמנה (₪)",
         "saveError": "שמירת המבצע נכשלה."
       }

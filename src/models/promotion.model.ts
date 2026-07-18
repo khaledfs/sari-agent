@@ -8,9 +8,11 @@ export type PromotionScope = (typeof PROMOTION_SCOPES)[number];
 
 /**
  * One promotion. Kind-specific fields (flat, validated in admin-promotions):
- * - gift:         buy buyProductId with qty >= buyMinQty → giftProductId × giftQty free
+ * - gift:         buy buyProductId with qty >= buyMinQty → giftProductId × giftQty free.
+ *                 The gift REPEATS once per full multiple of buyMinQty in the cart
+ *                 (floor(qty / buyMinQty) tiers), capped at maxTiers.
  * - orderDiscount: subtotal >= threshold → percent|fixed off the order total
- * - minOrderGift:  subtotal >= threshold → giftProductId × giftQty free
+ * - minOrderGift:  subtotal >= threshold → giftProductId × giftQty free (single, not tiered)
  */
 const promotionSchema = new Schema(
   {
@@ -41,6 +43,8 @@ const promotionSchema = new Schema(
     buyMinQty: { type: Number, default: null },
     giftProductId: { type: Schema.Types.ObjectId, default: null },
     giftQty: { type: Number, default: null },
+    /** gift only: cap on repeated tiers (floor(qty/buyMinQty)); null → engine default. */
+    maxTiers: { type: Number, default: null },
 
     // orderDiscount / minOrderGift
     threshold: { type: Number, default: null },

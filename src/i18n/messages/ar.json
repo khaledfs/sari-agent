@@ -850,7 +850,7 @@
         "minOrderGift": "هدية عند حد أدنى"
       },
       "rules": {
-        "gift": "شراء {minQty}+ من منتج التفعيل → {giftQty} وحدة هدية",
+        "gift": "شراء {minQty} من منتج التفعيل → {giftQty} وحدة هدية (يتكرر لكل {minQty}، حتى {maxTiers}×)",
         "minOrderGift": "المجموع ≥ ₪{threshold} → {giftQty} وحدة هدية",
         "orderDiscount": "المجموع ≥ ₪{threshold} → خصم {value} على الطلب"
       },
@@ -859,6 +859,8 @@
         "buyMinQty": "الحد الأدنى للكمية (N)",
         "giftProduct": "منتج الهدية (احصل على Y)",
         "giftQty": "كمية الهدية (M)",
+        "maxTiers": "أقصى تكرار للهدية",
+        "maxTiersHint": "تتكرر الهدية مرة لكل {minQty} يُشترى — شراء {example} → {exampleGifts} وحدة هدية. بحد أقصى {maxTiers} تكرارات.",
         "threshold": "حد المجموع للطلب (₪)",
         "saveError": "فشل حفظ العرض."
       }
