@@ -45,10 +45,28 @@ vi.mock("@/lib/openai", () => ({
 
 import {
   createAgentToolContext,
+  detectReplyLanguage,
   executeTool,
   MAX_TOOL_ITERATIONS,
   runAssistantAgentTurn,
 } from "@/services/assistant-agent.service";
+
+describe("detectReplyLanguage (deterministic reply-language pin)", () => {
+  it("detects the dominant script of the message", () => {
+    expect(detectReplyLanguage("What white flour do you carry?")).toBe("English");
+    expect(detectReplyLanguage("هل عندكم سكر؟ ما السعر؟")).toBe("Arabic");
+    expect(detectReplyLanguage("بدي سميد ناعم")).toBe("Arabic");
+    expect(detectReplyLanguage("כמה עולה סוכר?")).toBe("Hebrew");
+  });
+  it("falls back to Hebrew for empty/scriptless input", () => {
+    expect(detectReplyLanguage("")).toBe("Hebrew");
+    expect(detectReplyLanguage("123 ??? 45")).toBe("Hebrew");
+  });
+  it("picks the majority script in a mixed message", () => {
+    // mostly-Latin with one Hebrew product word → English reply
+    expect(detectReplyLanguage("add two bags of קמח please now")).toBe("English");
+  });
+});
 import { normalizeAssistantText } from "@/services/assistant-normalization.service";
 
 const USER = "6a0000000000000000000001";
