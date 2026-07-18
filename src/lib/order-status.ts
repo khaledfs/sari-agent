@@ -33,3 +33,17 @@ export function isReceiptAvailable(status: string): boolean {
   const s = String(status ?? "").trim().toLowerCase();
   return s === "out_for_delivery" || s === "delivered";
 }
+
+/** Agent-paid orders at approval-or-later owe an in-person collection. */
+export const COLLECTIBLE_ORDER_STATUSES = ["confirmed", "packed", "out_for_delivery", "delivered"] as const;
+
+/**
+ * Collection rule (shared, server + client): an agent-paid order is COLLECTIBLE
+ * once it is approved OR at any later stage (confirmed → packed →
+ * out_for_delivery → delivered). NOT while "pending", NEVER when "cancelled".
+ * A delivered, uncollected order is collectible.
+ */
+export function isOrderCollectible(status: string): boolean {
+  const s = String(status ?? "").trim().toLowerCase();
+  return (COLLECTIBLE_ORDER_STATUSES as readonly string[]).includes(s);
+}

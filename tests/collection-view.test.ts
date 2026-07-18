@@ -42,6 +42,36 @@ describe("buildCollectionViewRows", () => {
     expect(rows[0]).toMatchObject({ state: "collectible", taskId: "task-a", amountMinor: 88800 });
   });
 
+  it("a DELIVERED order with NO task is collectible by status (the bug fix), live amount, taskId null", () => {
+    const rows = buildCollectionViewRows(
+      [{ orderId: ORDER_A, total: 1280, status: "delivered", customerId: CUST_1, createdAt: "2026-01-05T00:00:00.000Z" }],
+      [], // task was never created (seed/smoke direct-insert)
+      names
+    );
+    expect(rows[0]).toMatchObject({
+      state: "collectible", // NOT "pending" — state follows the order status
+      orderStatus: "delivered",
+      taskId: null,
+      amountMinor: 128000,
+      createdAt: "2026-01-05T00:00:00.000Z", // ORDER date → meaningful age, not 0d
+    });
+  });
+
+  it("state follows order status across confirmed/packed/out_for_delivery even without a task", () => {
+    const rows = buildCollectionViewRows(
+      ["confirmed", "packed", "out_for_delivery"].map((status, i) => ({
+        orderId: [ORDER_A, ORDER_B, ORDER_C][i],
+        total: 10,
+        status,
+        customerId: CUST_1,
+        createdAt: "2026-07-01T00:00:00.000Z",
+      })),
+      [],
+      names
+    );
+    expect(rows.map((r) => r.state)).toEqual(["collectible", "collectible", "collectible"]);
+  });
+
   it("orders whose task is collected or cancelled are dropped", () => {
     const rows = buildCollectionViewRows(
       [

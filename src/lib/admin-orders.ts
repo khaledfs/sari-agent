@@ -28,7 +28,7 @@ import type { JwtPayload } from "@/types/session";
 // Status vocabulary lives in the client-safe module (Work Order Issue 1) so
 // server AND client share ONE list; re-exported here for existing importers.
 export { ADMIN_ORDER_STATUSES, type AdminOrderStatus } from "@/lib/order-status";
-import { ADMIN_ORDER_STATUSES } from "@/lib/order-status";
+import { ADMIN_ORDER_STATUSES, isOrderCollectible } from "@/lib/order-status";
 
 export type AdminOrderRow = {
   id: string;
@@ -429,8 +429,11 @@ export async function updateAdminOrderStatus(orderId: string, status: string): P
       // committed at payment, so this is a no-op there (idempotent stamp).
       await commitOrderStock(orderId);
     }
-    if (next === "confirmed" && o.paymentMethod === "agent") {
-      // Approved agent order → the assigned agent (or admin) collects in person.
+    if (isOrderCollectible(next) && o.paymentMethod === "agent") {
+      // Agent order at approval-or-later (confirmed…delivered) → the assigned
+      // agent (or admin) collects in person. Idempotent: a task is created once;
+      // this also covers an order that jumped straight to a later status without
+      // passing through "confirmed" (the trigger's previous gap).
       await createCollectionTaskForOrder({ _id: o._id, userId: o.userId, total: o.total, status: o.status });
     }
     if (next === "cancelled" && previous.status.toLowerCase() !== "cancelled") {

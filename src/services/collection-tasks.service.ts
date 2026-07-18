@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import { CollectionTaskModel } from "@/models/collection-task.model";
 import { OrderModel } from "@/models/order.model";
 import { UserModel } from "@/models/user.model";
+import { isOrderCollectible } from "@/lib/order-status";
 import { CANCELLED_STATUS_RX } from "@/services/admin-overview.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { postLedgerEntry } from "@/services/ledger.service";
@@ -56,7 +57,7 @@ export async function createCollectionTaskForOrder(order: OrderForTask): Promise
     | null;
   const agentId = customer?.assignedAgentId ?? null;
 
-  await CollectionTaskModel.updateOne(
+  const res = await CollectionTaskModel.updateOne(
     { orderId: order._id },
     {
       $setOnInsert: {
@@ -70,15 +71,49 @@ export async function createCollectionTaskForOrder(order: OrderForTask): Promise
     { upsert: true }
   ).exec();
 
-  // Reuse the existing order-updated event (admin + owner). Live agent push would
-  // need the agent's channel added to an event's routing — a follow-up, not built.
-  publishRealtimeEvent({
-    type: "order.status_changed",
-    orderId: String(order._id),
-    userId: String(order.userId),
-    status: order.status,
-    previousStatus: order.status,
-  });
+  // Only ping the UI when a task was ACTUALLY created — the trigger now fires on
+  // every collectible transition (confirmed…delivered), so later transitions
+  // hit the existing task and must not spam redundant refresh events.
+  if ((res.upsertedCount ?? 0) > 0) {
+    publishRealtimeEvent({
+      type: "order.status_changed",
+      orderId: String(order._id),
+      userId: String(order.userId),
+      status: order.status,
+      previousStatus: order.status,
+    });
+  }
+}
+
+/**
+ * Read-path safety net: bulk-idempotently ensures a task exists for every
+ * collectible agent order that lacks one (seed/smoke direct-inserts, or an order
+ * that jumped straight to a later status). Unique orderId → never a second task;
+ * no realtime event (this runs inside a GET).
+ */
+async function ensureCollectionTasks(
+  missing: Array<{ orderId: mongoose.Types.ObjectId; userId: mongoose.Types.ObjectId; total: number }>,
+  agentByCustomer: Map<string, mongoose.Types.ObjectId | null>
+): Promise<void> {
+  if (missing.length === 0) return;
+  await CollectionTaskModel.bulkWrite(
+    missing.map((o) => ({
+      updateOne: {
+        filter: { orderId: o.orderId },
+        update: {
+          $setOnInsert: {
+            orderId: o.orderId,
+            customerId: o.userId,
+            agentId: agentByCustomer.get(String(o.userId)) ?? null,
+            amountMinor: toMinorUnitsInt(o.total),
+            status: "open",
+          },
+        },
+        upsert: true,
+      },
+    })),
+    { ordered: false }
+  );
 }
 
 /** Cancels the open task for a cancelled order (idempotent). */
@@ -141,10 +176,12 @@ export async function listOpenCollections(scope: ActorScope): Promise<Collection
 
 /**
  * Agent-facing collections view: every agent-paid order that still owes an
- * in-person collection, from the ORDER (the source of truth for state + the
- * live amount). Two states:
- *   - "pending"     — order not yet approved, no task yet → not yet collectible;
- *   - "collectible" — an open collection task exists → the agent can collect.
+ * in-person collection, from the ORDER (the source of truth). Two states,
+ * derived from the ORDER STATUS (never from whether a task row happens to
+ * exist yet):
+ *   - "pending"     — order still "pending" (pre-approval) → not yet collectible;
+ *   - "collectible" — order is approval-or-later (confirmed…delivered) → the
+ *                     agent can collect (a task is ensured so the action works).
  * Orders whose task is already collected/cancelled are dropped. Oldest-first
  * (agents work the oldest outstanding first).
  */
@@ -174,17 +211,20 @@ export function buildCollectionViewRows(
   for (const o of orders) {
     const task = taskByOrder.get(o.orderId);
     if (task && task.status !== "open") continue; // collected/cancelled → no longer owed
-    const collectible = Boolean(task);
+    // State is decided by the ORDER STATUS, not by whether a task row exists yet.
+    const collectible = isOrderCollectible(o.status);
     rows.push({
       taskId: task ? task.taskId : null,
       orderId: o.orderId,
       orderNumber: o.orderId.slice(-8).toUpperCase(),
       customerId: o.customerId,
       customerName: customerNameById.get(o.customerId) ?? "",
-      // Collectible → the task snapshot (what "collect" posts); pending → live order total.
-      amountMinor: collectible ? task!.amountMinor : Math.round(Number(Number(o.total).toFixed(2)) * 100),
+      // The task snapshot when present (what "collect" posts); else the live total.
+      amountMinor: task ? task.amountMinor : Math.round(Number(Number(o.total).toFixed(2)) * 100),
       orderStatus: o.status,
       state: collectible ? "collectible" : "pending",
+      // ORDER's created date, so the UI's age is meaningful (NOT the task's
+      // creation moment — a lazily-ensured task must not make an old order read 0d).
       createdAt: o.createdAt,
     });
   }
@@ -210,14 +250,33 @@ export async function listCollectionsView(scope: ActorScope): Promise<Collection
 
   const orderIds = orders.map((o) => o._id);
   const customerIds = [...new Set(orders.map((o) => String(o.userId)))];
-  const [tasks, customers] = await Promise.all([
+  const loadTasks = () =>
     CollectionTaskModel.find({ orderId: { $in: orderIds } }, { orderId: 1, amountMinor: 1, status: 1 }).lean().exec() as Promise<
       Array<{ _id: mongoose.Types.ObjectId; orderId: mongoose.Types.ObjectId; amountMinor: number; status: string }>
-    >,
-    UserModel.find({ _id: { $in: customerIds } }, { businessName: 1 }).lean().exec() as Promise<
-      Array<{ _id: unknown; businessName?: string }>
+    >;
+  const [initialTasks, customers] = await Promise.all([
+    loadTasks(),
+    UserModel.find({ _id: { $in: customerIds } }, { businessName: 1, assignedAgentId: 1 }).lean().exec() as Promise<
+      Array<{ _id: unknown; businessName?: string; assignedAgentId?: mongoose.Types.ObjectId | null }>
     >,
   ]);
+  let tasks = initialTasks;
+
+  // Self-heal: any collectible-status order without a task (seed/smoke direct
+  // insert, or a status that bypassed the creation trigger) gets one now, so
+  // the collect action is actually available. Idempotent; then re-read.
+  const haveTask = new Set(tasks.map((t) => String(t.orderId)));
+  const agentByCustomer = new Map<string, mongoose.Types.ObjectId | null>(
+    customers.map((c) => [String(c._id), c.assignedAgentId ?? null])
+  );
+  const missing = orders.filter((o) => isOrderCollectible(o.status ?? "") && !haveTask.has(String(o._id)));
+  if (missing.length > 0) {
+    await ensureCollectionTasks(
+      missing.map((o) => ({ orderId: o._id, userId: o.userId, total: o.total })),
+      agentByCustomer
+    );
+    tasks = await loadTasks();
+  }
 
   const viewOrders: ViewOrder[] = orders.map((o) => ({
     orderId: String(o._id),

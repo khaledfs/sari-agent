@@ -2083,6 +2083,17 @@ async function paymentSection(customerCookie, adminCookie) {
     stockNow = await productStock(product.id);
     report("pay(agent): double dispatch does NOT decrement again", stockNow === 50 - QTY, `stock=${stockNow}`);
 
+    // Advance to DELIVERED — the row must STAY collectible with its task
+    // (regression guard for the "delivered shows not-yet-collectible" bug).
+    await setOrderStatus(agentOrder.id, "delivered");
+    const { body: delivView } = await jsonFetch("/api/admin/collections", { headers: { Cookie: adminCookie } });
+    const delivRow = (delivView?.data ?? []).find((r) => r.orderId === agentOrder.id);
+    report(
+      "pay(agent): delivered order stays collectible with a task (not stuck pending)",
+      delivRow?.state === "collectible" && Boolean(delivRow?.taskId) && delivRow?.orderStatus === "delivered",
+      `state=${delivRow?.state}, task=${Boolean(delivRow?.taskId)}, status=${delivRow?.orderStatus}`
+    );
+
     // Collect -> ledger payment by the actor; balance returns to pre-order level.
     if (task) {
       await jsonFetch(`/api/admin/collections/${task.taskId}/collect`, {
@@ -2102,6 +2113,11 @@ async function paymentSection(customerCookie, adminCookie) {
       });
       const balanceAfterTwice = await ledgerBalance();
       report("pay(agent): double collect posts NO second payment", balanceAfterTwice === balance0, `balance=${balanceAfterTwice}`);
+
+      // Collected order leaves the collections list.
+      const { body: afterCollectView } = await jsonFetch("/api/admin/collections", { headers: { Cookie: adminCookie } });
+      const stillListed = (afterCollectView?.data ?? []).some((r) => r.orderId === agentOrder.id);
+      report("pay(agent): collected order leaves the collections list", !stillListed, `stillListed=${stillListed}`);
     }
 
     // Cancel -> stock returned once + reversal; offset the credit to restore the seed ledger.
