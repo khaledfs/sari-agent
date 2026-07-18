@@ -8,23 +8,26 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 
 type CollectionRow = {
-  taskId: string;
+  taskId: string | null;
   orderId: string;
   orderNumber: string;
   customerId: string;
   customerName: string;
   amountMinor: number;
-  status: string;
   orderStatus: string;
+  state: "collectible" | "pending";
   createdAt: string;
 };
 
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string };
 
+const KNOWN_STATUSES = ["pending", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled"] as const;
+
 /**
- * Open cash/cheque collections (payment feature): an agent sees their own
- * customers' tasks, the admin sees all (incl. unassigned). Marking collected
- * posts the ledger payment with the actor recorded — via the shared path.
+ * Cash/cheque collections (payment feature): an agent sees their own customers'
+ * agent-paid orders, the admin sees all. Rows are "collectible" (an open task
+ * exists → mark-collected posts the ledger payment with the actor recorded) or
+ * "pending" (order not yet approved → not yet collectible). Oldest-first.
  */
 export default function CollectionsPage() {
   const t = useTranslations("adminDashboard");
@@ -61,7 +64,7 @@ export default function CollectionsPage() {
     void load();
   }, [load]);
 
-  // Live: new confirmed agent orders / status changes refresh the list.
+  // Live: new confirmed agent orders / status changes / collections refresh the list.
   useRealtimeRefetch(["order.status_changed", "ledger.entry_created"], load);
 
   async function markCollected(taskId: string) {
@@ -90,12 +93,15 @@ export default function CollectionsPage() {
     return `₪${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n / 100)}`;
   }
 
-  function formatDate(iso: string) {
-    try {
-      return new Date(iso).toLocaleDateString(locale, { dateStyle: "medium" });
-    } catch {
-      return iso;
-    }
+  function statusLabel(s: string) {
+    return (KNOWN_STATUSES as readonly string[]).includes(s) ? t(`orders.status.${s}`) : s;
+  }
+
+  function ageLabel(iso: string) {
+    if (!iso) return "";
+    const ms = Date.now() - new Date(iso).getTime();
+    const days = Math.max(0, Math.floor(ms / 86_400_000));
+    return t("collections.ageDays", { days });
   }
 
   return (
@@ -125,27 +131,35 @@ export default function CollectionsPage() {
                 <th>{t("collections.columns.order")}</th>
                 <th>{t("collections.columns.amount")}</th>
                 <th>{t("collections.columns.delivery")}</th>
-                <th>{t("collections.columns.created")}</th>
+                <th>{t("collections.columns.age")}</th>
                 <th aria-label={t("collections.markCollected")} />
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.taskId}>
+                <tr key={r.orderId} style={r.state === "pending" ? { opacity: 0.7 } : undefined}>
                   <td style={{ fontWeight: 600 }}>{r.customerName}</td>
                   <td dir="ltr">#{r.orderNumber}</td>
                   <td>{money(r.amountMinor)}</td>
-                  <td>{r.orderStatus}</td>
-                  <td>{formatDate(r.createdAt)}</td>
+                  <td>{statusLabel(r.orderStatus)}</td>
+                  <td>{ageLabel(r.createdAt)}</td>
                   <td>
-                    <button
-                      type="button"
-                      className="admin-btn-primary"
-                      disabled={busyId === r.taskId}
-                      onClick={() => void markCollected(r.taskId)}
-                    >
-                      {busyId === r.taskId ? t("collections.collecting") : t("collections.markCollected")}
-                    </button>
+                    {r.state === "collectible" && r.taskId ? (
+                      <button
+                        type="button"
+                        className="admin-btn-primary"
+                        disabled={busyId === r.taskId}
+                        onClick={() => void markCollected(r.taskId!)}
+                      >
+                        {busyId === r.taskId
+                          ? t("collections.collecting")
+                          : t("collections.collectFrom", { amount: money(r.amountMinor) })}
+                      </button>
+                    ) : (
+                      <span className="admin-stock-badge" style={{ opacity: 0.85 }}>
+                        {t("collections.notCollectible")}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

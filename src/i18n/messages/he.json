@@ -882,7 +882,19 @@
       "unitsSold": "{count} יחידות",
       "lowStock": "מלאי נמוך",
       "noLowStock": "אין מוצר במעקב עם מלאי נמוך.",
-      "newestCustomers": "לקוחות חדשים"
+      "newestCustomers": "לקוחות חדשים",
+      "agents": {
+        "title": "ביצועי סוכנים (30 ימים אחרונים)",
+        "openCount": "{count} פתוחות",
+        "columns": {
+          "name": "סוכן",
+          "customers": "לקוחות",
+          "orders": "הזמנות",
+          "revenue": "הכנסה",
+          "outstanding": "לגבייה",
+          "collected": "נגבה"
+        }
+      }
     },
     "reports": {
       "title": "דוחות",
@@ -1013,17 +1025,22 @@
     },
     "collections": {
       "title": "גבייה",
-      "subtitle": "הזמנות בתשלום דרך הסוכן שממתינות לגבייה.",
+      "subtitle": "הזמנות בתשלום דרך הסוכן שממתינות לגבייה, מהישנות ביותר.",
       "loading": "טוען משימות גבייה…",
       "empty": "אין משימות גבייה פתוחות.",
       "error": "טעינת הגבייה נכשלה.",
       "markCollected": "סמן כנגבה",
+      "collectFrom": "גבה {amount}",
       "collecting": "רושם…",
+      "notCollectible": "עדיין לא ניתן לגבייה",
+      "ageDays": "{days} ימים",
+      "badgeLabel": "{count} לגבייה",
       "columns": {
         "customer": "לקוח",
         "order": "הזמנה",
         "amount": "סכום",
         "delivery": "סטטוס משלוח",
+        "age": "גיל",
         "created": "נוצר"
       }
     }

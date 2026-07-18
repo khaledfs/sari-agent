@@ -527,17 +527,22 @@
     },
     "collections": {
       "title": "Collections",
-      "subtitle": "Agent-paid orders awaiting in-person collection.",
+      "subtitle": "Agent-paid orders awaiting in-person collection, oldest first.",
       "loading": "Loading collections…",
       "empty": "No open collections.",
       "error": "Failed to load collections.",
       "markCollected": "Mark collected",
+      "collectFrom": "Collect {amount}",
       "collecting": "Recording…",
+      "notCollectible": "Not yet collectible",
+      "ageDays": "{days}d",
+      "badgeLabel": "{count} to collect",
       "columns": {
         "customer": "Customer",
         "order": "Order",
         "amount": "Amount",
         "delivery": "Delivery status",
+        "age": "Age",
         "created": "Created"
       }
     },
@@ -881,7 +886,19 @@
       "unitsSold": "{count} units",
       "lowStock": "Low stock",
       "noLowStock": "No tracked product is low on stock.",
-      "newestCustomers": "Newest customers"
+      "newestCustomers": "Newest customers",
+      "agents": {
+        "title": "Agent performance (last 30 days)",
+        "openCount": "{count} open",
+        "columns": {
+          "name": "Agent",
+          "customers": "Customers",
+          "orders": "Orders",
+          "revenue": "Revenue",
+          "outstanding": "Outstanding",
+          "collected": "Collected"
+        }
+      }
     },
     "reports": {
       "title": "Reports",

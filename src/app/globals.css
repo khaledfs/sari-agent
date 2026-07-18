@@ -436,6 +436,25 @@ button:disabled,
   line-height: 1.4;
 }
 
+/* Count badge on a hub card (e.g. open collections) — logical positioning, RTL-safe. */
+.admin-hub-badge {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-end: 0.5rem;
+  min-inline-size: 1.25rem;
+  block-size: 1.25rem;
+  padding-inline: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--text-on-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 @keyframes admin-spin {
   to { transform: rotate(360deg); }
 }

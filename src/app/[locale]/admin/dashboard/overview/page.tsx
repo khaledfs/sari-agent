@@ -16,6 +16,17 @@ type AdminOverview = {
   lowStock: Array<{ id: string; name: string; sku: string; stock: number; lowStockThreshold: number }>;
   newestCustomers: Array<{ id: string; businessName: string; phoneNumber: string; createdAt: string }>;
   weeklyRevenue: Array<{ weekStart: string; revenue: number }>;
+  agentPerformance: Array<{
+    agentId: string;
+    agentName: string;
+    routeLabel: string;
+    customerCount: number;
+    orders: number;
+    revenue: number;
+    openCollectionsCount: number;
+    outstandingMinor: number;
+    collectedMinor: number;
+  }>;
 };
 
 const KNOWN_STATUSES = ["pending", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled"] as const;
@@ -85,6 +96,10 @@ export default function AdminOverviewPage() {
 
   function statusLabel(s: string) {
     return (KNOWN_STATUSES as readonly string[]).includes(s) ? t(`orders.status.${s}`) : s;
+  }
+
+  function money(minor: number) {
+    return `₪${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(minor / 100)}`;
   }
 
   const maxStatusCount = Math.max(...(data?.ordersByStatus ?? []).map((s) => s.count), 1);
@@ -235,6 +250,51 @@ export default function AdminOverviewPage() {
               )}
             </section>
           </div>
+
+          {data.agentPerformance.length > 0 ? (
+            <section className="admin-panel" style={{ marginBlockStart: "1.25rem" }}>
+              <h2 className="admin-panel__title">{t("overview.agents.title")}</h2>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>{t("overview.agents.columns.name")}</th>
+                      <th>{t("overview.agents.columns.customers")}</th>
+                      <th>{t("overview.agents.columns.orders")}</th>
+                      <th>{t("overview.agents.columns.revenue")}</th>
+                      <th>{t("overview.agents.columns.outstanding")}</th>
+                      <th>{t("overview.agents.columns.collected")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.agentPerformance.map((a) => (
+                      <tr key={a.agentId}>
+                        <td>
+                          <span style={{ fontWeight: 600 }}>{a.agentName}</span>
+                          {a.routeLabel ? (
+                            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{a.routeLabel}</div>
+                          ) : null}
+                        </td>
+                        <td>{a.customerCount}</td>
+                        <td>{a.orders}</td>
+                        <td>₪{a.revenue.toLocaleString(locale)}</td>
+                        <td>
+                          {money(a.outstandingMinor)}
+                          {a.openCollectionsCount > 0 ? (
+                            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                              {" "}
+                              ({t("overview.agents.openCount", { count: a.openCollectionsCount })})
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>{money(a.collectedMinor)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
         </>
       ) : null}
     </div>

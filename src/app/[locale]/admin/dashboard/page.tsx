@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+
+import { useRealtimeRefetch } from "@/components/realtime/realtime-provider";
 
 import { useConsoleAuth } from "./admin-auth-context";
 
@@ -30,6 +33,35 @@ export default function AdminDashboardPage() {
   const t = useTranslations("adminDashboard");
   const { role } = useConsoleAuth();
 
+  const [openCollections, setOpenCollections] = useState(0);
+  // Best-effort count for the badge — never blocks the hub. Async boundary is
+  // explicit so setState never runs synchronously inside the effect body.
+  const fetchCollectible = useCallback(async (): Promise<number | null> => {
+    try {
+      const res = await fetch("/api/admin/collections/count");
+      if (res.status !== 200) return null;
+      const json = (await res.json()) as { data?: { collectible?: number } };
+      return json.data?.collectible ?? 0;
+    } catch {
+      return null;
+    }
+  }, []);
+  const refreshBadge = useCallback(async () => {
+    const n = await fetchCollectible();
+    if (n !== null) setOpenCollections(n);
+  }, [fetchCollectible]);
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const n = await fetchCollectible();
+      if (active && n !== null) setOpenCollections(n);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchCollectible]);
+  useRealtimeRefetch(["order.status_changed", "ledger.entry_created"], refreshBadge);
+
   const visible = CARDS.filter((card) => !card.adminOnly || role === "admin");
 
   return (
@@ -43,12 +75,20 @@ export default function AdminDashboardPage() {
 
       <div className="admin-card-grid">
         {visible.map(({ key, icon, href }) => (
-          <Link key={key} href={`/${locale}${href}`} className="admin-card">
+          <Link key={key} href={`/${locale}${href}`} className="admin-card" style={{ position: "relative" }}>
             <span className="admin-card-icon">{icon}</span>
             <div className="admin-card-text">
               <span className="admin-card-title">{t(`hub.cards.${key}`)}</span>
               <span className="admin-card-desc">{t(`hub.cards.${key}Desc`)}</span>
             </div>
+            {key === "collections" && openCollections > 0 ? (
+              <span
+                className="admin-hub-badge"
+                aria-label={t("collections.badgeLabel", { count: openCollections })}
+              >
+                {openCollections > 99 ? "99+" : openCollections}
+              </span>
+            ) : null}
           </Link>
         ))}
       </div>

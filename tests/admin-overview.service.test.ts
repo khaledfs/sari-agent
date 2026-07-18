@@ -12,6 +12,7 @@ import {
   isLowStock,
   isRevenueCountedStatus,
   lastEightWeekStarts,
+  rollUpAgentPerformance,
   startOfDay,
   weekBucketIndex,
 } from "@/services/admin-overview.service";
@@ -84,5 +85,68 @@ describe("isLowStock predicate", () => {
     expect(isLowStock(0, 10)).toBe(true);
     expect(isLowStock(10, 10)).toBe(true);
     expect(isLowStock(11, 10)).toBe(false);
+  });
+});
+
+describe("rollUpAgentPerformance (agent performance aggregation math)", () => {
+  const agents = [
+    { id: "agentA", businessName: "Agent A", routeLabel: "North" },
+    { id: "agentB", businessName: "Agent B", routeLabel: "" },
+  ];
+  const customers = [
+    { id: "c1", agentId: "agentA" },
+    { id: "c2", agentId: "agentA" },
+    { id: "c3", agentId: "agentB" },
+  ];
+
+  it("rolls orders/revenue up to the agent via the customer→agent map", () => {
+    const rows = rollUpAgentPerformance(
+      agents,
+      customers,
+      [
+        { customerId: "c1", orders: 3, revenue: 100 },
+        { customerId: "c2", orders: 2, revenue: 50 },
+        { customerId: "c3", orders: 1, revenue: 500 },
+      ],
+      [],
+      []
+    );
+    const a = rows.find((r) => r.agentId === "agentA")!;
+    expect(a).toMatchObject({ customerCount: 2, orders: 5, revenue: 150 });
+    const b = rows.find((r) => r.agentId === "agentB")!;
+    expect(b).toMatchObject({ customerCount: 1, orders: 1, revenue: 500 });
+  });
+
+  it("outstanding = Σ open task amounts; collected = Σ collected amounts", () => {
+    const rows = rollUpAgentPerformance(
+      agents,
+      customers,
+      [],
+      [{ agentId: "agentA", count: 2, outstandingMinor: 130000 }],
+      [{ agentId: "agentA", collectedMinor: 75000 }]
+    );
+    const a = rows.find((r) => r.agentId === "agentA")!;
+    expect(a).toMatchObject({ openCollectionsCount: 2, outstandingMinor: 130000, collectedMinor: 75000 });
+    const b = rows.find((r) => r.agentId === "agentB")!;
+    expect(b).toMatchObject({ openCollectionsCount: 0, outstandingMinor: 0, collectedMinor: 0 });
+  });
+
+  it("sorts by revenue descending", () => {
+    const rows = rollUpAgentPerformance(
+      agents,
+      customers,
+      [
+        { customerId: "c1", orders: 1, revenue: 10 },
+        { customerId: "c3", orders: 1, revenue: 999 },
+      ],
+      [],
+      []
+    );
+    expect(rows.map((r) => r.agentId)).toEqual(["agentB", "agentA"]);
+  });
+
+  it("an agent with no customers/orders/collections yields all zeros", () => {
+    const rows = rollUpAgentPerformance([{ id: "solo", businessName: "Solo", routeLabel: "" }], [], [], [], []);
+    expect(rows[0]).toMatchObject({ customerCount: 0, orders: 0, revenue: 0, outstandingMinor: 0, collectedMinor: 0 });
   });
 });

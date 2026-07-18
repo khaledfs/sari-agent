@@ -884,7 +884,19 @@
       "unitsSold": "{count} وحدات",
       "lowStock": "مخزون منخفض",
       "noLowStock": "لا يوجد منتج متتبَّع بمخزون منخفض.",
-      "newestCustomers": "أحدث العملاء"
+      "newestCustomers": "أحدث العملاء",
+      "agents": {
+        "title": "أداء الوكلاء (آخر 30 يوماً)",
+        "openCount": "{count} مفتوحة",
+        "columns": {
+          "name": "الوكيل",
+          "customers": "العملاء",
+          "orders": "الطلبات",
+          "revenue": "الإيراد",
+          "outstanding": "مستحق التحصيل",
+          "collected": "المُحصَّل"
+        }
+      }
     },
     "reports": {
       "title": "التقارير",
@@ -1015,17 +1027,22 @@
     },
     "collections": {
       "title": "التحصيل",
-      "subtitle": "طلبات مدفوعة عبر الوكيل بانتظار التحصيل الشخصي.",
+      "subtitle": "طلبات مدفوعة عبر الوكيل بانتظار التحصيل الشخصي، الأقدم أولاً.",
       "loading": "جارٍ تحميل مهام التحصيل…",
       "empty": "لا توجد مهام تحصيل مفتوحة.",
       "error": "فشل تحميل التحصيل.",
       "markCollected": "تسجيل كمُحصَّل",
+      "collectFrom": "حصّل {amount}",
       "collecting": "جارٍ التسجيل…",
+      "notCollectible": "غير قابل للتحصيل بعد",
+      "ageDays": "{days} يوم",
+      "badgeLabel": "{count} للتحصيل",
       "columns": {
         "customer": "العميل",
         "order": "الطلب",
         "amount": "المبلغ",
         "delivery": "حالة التوصيل",
+        "age": "العمر",
         "created": "أُنشئت"
       }
     }

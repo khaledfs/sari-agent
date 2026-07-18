@@ -1608,6 +1608,83 @@ async function agentSection(customerCookie, adminCookie) {
       report("agent: can update own customer's order status (restored)", up1.status === 200, `got ${up1.status}`);
     }
 
+    // 5b. Agent collections view + admin agent-performance overview (this feature).
+    try {
+      const { body: prodBody } = await jsonFetch("/api/admin/products?page=1", { headers: { Cookie: adminCookie } });
+      const collProduct = (prodBody?.data?.items ?? []).find((p) => p.isActive && p.price > 1) ?? null;
+      if (collProduct) {
+        await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+        await jsonFetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: customerCookie },
+          body: JSON.stringify({ productId: collProduct.id, quantity: 2 }),
+        });
+        const { body: ord } = await jsonFetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: customerCookie },
+          body: JSON.stringify({ paymentMethod: "agent" }),
+        });
+        const collOrderId = ord?.data?.id ?? null;
+        const collTotalMinor = Math.round((ord?.data?.total ?? 0) * 100);
+
+        // Pending agent order -> the agent sees it as not-yet-collectible (no task yet).
+        const { body: pendView } = await jsonFetch("/api/admin/collections", { headers: { Cookie: agentCookie } });
+        const pendRow = (pendView?.data ?? []).find((r) => r.orderId === collOrderId);
+        report(
+          "agent(collections): pending agent order is not-yet-collectible",
+          pendRow?.state === "pending" && pendRow?.taskId === null,
+          `state=${pendRow?.state}, task=${pendRow?.taskId}`
+        );
+
+        // Confirm -> collectible row for the AGENT with the server amount.
+        await jsonFetch(`/api/admin/orders/${collOrderId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Cookie: adminCookie },
+          body: JSON.stringify({ status: "confirmed" }),
+        });
+        const { body: collView } = await jsonFetch("/api/admin/collections", { headers: { Cookie: agentCookie } });
+        const collRow = (collView?.data ?? []).find((r) => r.orderId === collOrderId);
+        report(
+          "agent(collections): confirmed -> collectible row scoped to the agent",
+          collRow?.state === "collectible" && collRow?.amountMinor === collTotalMinor && Boolean(collRow?.taskId),
+          `state=${collRow?.state}, amt=${collRow?.amountMinor} vs ${collTotalMinor}`
+        );
+
+        // Badge count (agent-scoped) reflects the open task.
+        const { body: countBody } = await jsonFetch("/api/admin/collections/count", { headers: { Cookie: agentCookie } });
+        report(
+          "agent(collections): badge count includes the open task",
+          (countBody?.data?.collectible ?? 0) >= 1,
+          `count=${countBody?.data?.collectible}`
+        );
+
+        // Admin overview carries the agent-performance table; the agent's does NOT.
+        const { body: adminOv } = await jsonFetch("/api/admin/overview", { headers: { Cookie: adminCookie } });
+        const perf = (adminOv?.data?.agentPerformance ?? []).find((a) => a.agentId === agentId);
+        report(
+          "overview(admin): agent-performance row present (customers + outstanding)",
+          Boolean(perf) && perf.customerCount >= 1 && perf.outstandingMinor >= collTotalMinor,
+          `row=${JSON.stringify(perf ?? null)}`
+        );
+        const { body: agentOv } = await jsonFetch("/api/admin/overview", { headers: { Cookie: agentCookie } });
+        report(
+          "overview(agent): agent-performance is admin-only (empty for agents)",
+          (agentOv?.data?.agentPerformance ?? []).length === 0,
+          `len=${agentOv?.data?.agentPerformance?.length}`
+        );
+
+        // Cleanup: cancel the order (charge + reversal net to 0; task -> cancelled).
+        await jsonFetch(`/api/admin/orders/${collOrderId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Cookie: adminCookie },
+          body: JSON.stringify({ status: "cancelled" }),
+        });
+        await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+      }
+    } catch (err) {
+      report("agent(collections): view + performance flow", false, String(err));
+    }
+
     // 6. Cross-scope access -> 404 (no existence leak).
     const { res: crossRes } = await jsonFetch(`/api/admin/customers/${otherCustomerId}`, {
       headers: { Cookie: agentCookie },

@@ -1,10 +1,11 @@
 import mongoose, { isValidObjectId } from "mongoose";
 
-import { assertCanActOnCustomer, type ActorScope } from "@/lib/actor-scope";
+import { assertCanActOnCustomer, scopedCustomerObjectIds, type ActorScope } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
 import { CollectionTaskModel } from "@/models/collection-task.model";
 import { OrderModel } from "@/models/order.model";
 import { UserModel } from "@/models/user.model";
+import { CANCELLED_STATUS_RX } from "@/services/admin-overview.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
 import { postLedgerEntry } from "@/services/ledger.service";
 
@@ -136,6 +137,113 @@ export async function listOpenCollections(scope: ActorScope): Promise<Collection
     orderStatus: statusById.get(String(t.orderId)) ?? "",
     createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : "",
   }));
+}
+
+/**
+ * Agent-facing collections view: every agent-paid order that still owes an
+ * in-person collection, from the ORDER (the source of truth for state + the
+ * live amount). Two states:
+ *   - "pending"     — order not yet approved, no task yet → not yet collectible;
+ *   - "collectible" — an open collection task exists → the agent can collect.
+ * Orders whose task is already collected/cancelled are dropped. Oldest-first
+ * (agents work the oldest outstanding first).
+ */
+export type CollectionViewRow = {
+  taskId: string | null;
+  orderId: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  amountMinor: number;
+  orderStatus: string;
+  state: "collectible" | "pending";
+  createdAt: string;
+};
+
+type ViewOrder = { orderId: string; total: number; status: string; customerId: string; createdAt: string };
+type ViewTask = { orderId: string; taskId: string; amountMinor: number; status: string };
+
+/** Pure row builder (unit-tested). `orders` must already be oldest-first. */
+export function buildCollectionViewRows(
+  orders: ViewOrder[],
+  tasks: ViewTask[],
+  customerNameById: Map<string, string>
+): CollectionViewRow[] {
+  const taskByOrder = new Map(tasks.map((t) => [t.orderId, t]));
+  const rows: CollectionViewRow[] = [];
+  for (const o of orders) {
+    const task = taskByOrder.get(o.orderId);
+    if (task && task.status !== "open") continue; // collected/cancelled → no longer owed
+    const collectible = Boolean(task);
+    rows.push({
+      taskId: task ? task.taskId : null,
+      orderId: o.orderId,
+      orderNumber: o.orderId.slice(-8).toUpperCase(),
+      customerId: o.customerId,
+      customerName: customerNameById.get(o.customerId) ?? "",
+      // Collectible → the task snapshot (what "collect" posts); pending → live order total.
+      amountMinor: collectible ? task!.amountMinor : Math.round(Number(Number(o.total).toFixed(2)) * 100),
+      orderStatus: o.status,
+      state: collectible ? "collectible" : "pending",
+      createdAt: o.createdAt,
+    });
+  }
+  return rows;
+}
+
+/** Scoped collections view — agent: own customers only; admin: everyone. */
+export async function listCollectionsView(scope: ActorScope): Promise<CollectionViewRow[]> {
+  await connectDB();
+  const scopedIds = scopedCustomerObjectIds(scope);
+  const scopeMatch: Record<string, unknown> = scopedIds ? { userId: { $in: scopedIds } } : {};
+  if (scopedIds && scopedIds.length === 0) return []; // agent with no customers
+
+  const orders = (await OrderModel.find(
+    { ...scopeMatch, paymentMethod: "agent", status: { $not: CANCELLED_STATUS_RX } },
+    { total: 1, status: 1, userId: 1, createdAt: 1 }
+  )
+    .sort({ createdAt: 1 })
+    .limit(500)
+    .lean()
+    .exec()) as Array<{ _id: mongoose.Types.ObjectId; total: number; status: string; userId: mongoose.Types.ObjectId; createdAt?: Date }>;
+  if (orders.length === 0) return [];
+
+  const orderIds = orders.map((o) => o._id);
+  const customerIds = [...new Set(orders.map((o) => String(o.userId)))];
+  const [tasks, customers] = await Promise.all([
+    CollectionTaskModel.find({ orderId: { $in: orderIds } }, { orderId: 1, amountMinor: 1, status: 1 }).lean().exec() as Promise<
+      Array<{ _id: mongoose.Types.ObjectId; orderId: mongoose.Types.ObjectId; amountMinor: number; status: string }>
+    >,
+    UserModel.find({ _id: { $in: customerIds } }, { businessName: 1 }).lean().exec() as Promise<
+      Array<{ _id: unknown; businessName?: string }>
+    >,
+  ]);
+
+  const viewOrders: ViewOrder[] = orders.map((o) => ({
+    orderId: String(o._id),
+    total: o.total,
+    status: o.status ?? "",
+    customerId: String(o.userId),
+    createdAt: o.createdAt instanceof Date ? o.createdAt.toISOString() : "",
+  }));
+  const viewTasks: ViewTask[] = tasks.map((t) => ({
+    orderId: String(t.orderId),
+    taskId: String(t._id),
+    amountMinor: t.amountMinor,
+    status: t.status,
+  }));
+  const nameById = new Map(customers.map((c) => [String(c._id), c.businessName ?? ""]));
+  return buildCollectionViewRows(viewOrders, viewTasks, nameById);
+}
+
+/** Count of OPEN (collectible) tasks in the actor's scope — for the nav badge. */
+export async function countOpenCollections(scope: ActorScope): Promise<number> {
+  await connectDB();
+  const filter =
+    scope.role === "admin"
+      ? { status: "open" }
+      : { status: "open", agentId: new mongoose.Types.ObjectId(scope.userId) };
+  return CollectionTaskModel.countDocuments(filter).exec();
 }
 
 /**
