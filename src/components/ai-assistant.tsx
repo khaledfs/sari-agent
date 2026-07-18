@@ -462,11 +462,13 @@ export function AIAssistant() {
                 <h3 className="ds-ai-title">{t("title")}</h3>
                 <p className="ds-ai-subtitle">{customerName || t("subtitle")}</p>
               </div>
+              {/* כפתור שיחה חדשה, בינתיים מושבת 
               <button type="button" className="ds-ai-head-btn" onClick={newConversation} aria-label={t("newConversation")}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-              </button>
+              </button>*/}
+              
               <button type="button" className="ds-ai-head-btn" onClick={close} aria-label={t("close")}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 6 6 18M6 6l12 12" />

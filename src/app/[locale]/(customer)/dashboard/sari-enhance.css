@@ -2039,25 +2039,20 @@
    Measured pairs are documented in DEV_NOTES §23.
    ══════════════════════════════════════════ */
 
-/* Header icon buttons (new conversation ＋ / close ✕): gold icon on the pale
-   gold-tint surface + a solid gold boundary so the control reads on the white
-   header. The SVGs use stroke=currentColor, so `color` gold makes both icons
-   visible; hover inverts to a gold fill with a cream icon. */
+/* Header icon buttons (new conversation ＋ / close ✕): filled gold-tint surface
+   + a SOLID gold boundary so the control reads on the white header (the faint
+   0.25-alpha border was invisible). Icon #4a4639 on #fdf8ec = 8.7:1; the
+   1.5px #a67c00 ring = 3.9:1 on the white header (≥3:1). */
 .ds-ai-head-btn {
   background: var(--brand-bg, #fdf8ec);
   border: 1.5px solid var(--brand, #a67c00);
-  color: #a67c00;
+  color: var(--text-secondary, #4a4639);
 }
 
 .ds-ai-head-btn:hover:not(:disabled) {
-  background: #a67c00;
-  border-color: #a67c00;
-  color: #fdf8ec;
-}
-
-.ds-ai-head-btn:focus-visible {
-  outline: 2px solid #a67c00;
-  outline-offset: 2px;
+  background: var(--brand-lighter, #fdf6e3);
+  border-color: var(--brand-hover, #8b6800);
+  color: var(--text-primary, #1a1814);
 }
 
 .ds-ai-head-btn:active:not(:disabled) {
