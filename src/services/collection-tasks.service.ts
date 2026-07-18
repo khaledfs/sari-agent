@@ -8,7 +8,12 @@ import { UserModel } from "@/models/user.model";
 import { isOrderCollectible } from "@/lib/order-status";
 import { CANCELLED_STATUS_RX } from "@/services/admin-overview.service";
 import { publishRealtimeEvent } from "@/services/event-bus.service";
-import { postLedgerEntry } from "@/services/ledger.service";
+import {
+  countOrderPayments,
+  postLedgerEntry,
+  sumOrderPayments,
+  sumPaymentsByOrder,
+} from "@/services/ledger.service";
 
 /**
  * Agent cash/cheque collection tasks (payment feature).
@@ -191,7 +196,10 @@ export type CollectionViewRow = {
   orderNumber: string;
   customerId: string;
   customerName: string;
+  /** OWED NOW (outstanding) for collectible rows; the live total for pending. */
   amountMinor: number;
+  /** Already paid against this order (partial payments). */
+  paidMinor: number;
   orderStatus: string;
   state: "collectible" | "pending";
   createdAt: string;
@@ -204,7 +212,8 @@ type ViewTask = { orderId: string; taskId: string; amountMinor: number; status: 
 export function buildCollectionViewRows(
   orders: ViewOrder[],
   tasks: ViewTask[],
-  customerNameById: Map<string, string>
+  customerNameById: Map<string, string>,
+  paidByOrder: Map<string, number> = new Map()
 ): CollectionViewRow[] {
   const taskByOrder = new Map(tasks.map((t) => [t.orderId, t]));
   const rows: CollectionViewRow[] = [];
@@ -213,14 +222,20 @@ export function buildCollectionViewRows(
     if (task && task.status !== "open") continue; // collected/cancelled → no longer owed
     // State is decided by the ORDER STATUS, not by whether a task row exists yet.
     const collectible = isOrderCollectible(o.status);
+    const fullAmount = task ? task.amountMinor : Math.round(Number(Number(o.total).toFixed(2)) * 100);
+    const paid = paidByOrder.get(o.orderId) ?? 0;
+    const outstanding = collectionOutstanding(fullAmount, paid);
+    // Fully paid via any path → settled → drop from the owed list.
+    if (collectible && outstanding <= 0) continue;
     rows.push({
       taskId: task ? task.taskId : null,
       orderId: o.orderId,
       orderNumber: o.orderId.slice(-8).toUpperCase(),
       customerId: o.customerId,
       customerName: customerNameById.get(o.customerId) ?? "",
-      // The task snapshot when present (what "collect" posts); else the live total.
-      amountMinor: task ? task.amountMinor : Math.round(Number(Number(o.total).toFixed(2)) * 100),
+      // Collectible → what's STILL owed; pending → the live total.
+      amountMinor: collectible ? outstanding : fullAmount,
+      paidMinor: paid,
       orderStatus: o.status,
       state: collectible ? "collectible" : "pending",
       // ORDER's created date, so the UI's age is meaningful (NOT the task's
@@ -292,7 +307,9 @@ export async function listCollectionsView(scope: ActorScope): Promise<Collection
     status: t.status,
   }));
   const nameById = new Map(customers.map((c) => [String(c._id), c.businessName ?? ""]));
-  return buildCollectionViewRows(viewOrders, viewTasks, nameById);
+  // Derived outstanding: Σ payments per order (one aggregation, no N+1).
+  const paidByOrder = await sumPaymentsByOrder(orderIds.map((id) => String(id)));
+  return buildCollectionViewRows(viewOrders, viewTasks, nameById, paidByOrder);
 }
 
 /** Count of OPEN (collectible) tasks in the actor's scope — for the nav badge. */
@@ -305,54 +322,54 @@ export async function countOpenCollections(scope: ActorScope): Promise<number> {
   return CollectionTaskModel.countDocuments(filter).exec();
 }
 
-/**
- * Marks a task collected → posts the ledger `payment` (agent/admin as actor)
- * through the shared path. Cross-scope task → "…not found." (404). Idempotent:
- * collecting twice posts one payment (order-id idempotency key) and won't flip
- * an already-collected task again.
- */
-export async function markCollectionCollected(
-  scope: ActorScope,
-  taskId: string,
-  note?: string
-): Promise<{ ok: boolean }> {
-  if (!isValidObjectId(taskId)) throw new Error("Collection task not found.");
-  await connectDB();
-  const task = (await CollectionTaskModel.findById(taskId).lean().exec()) as
-    | {
-        _id: mongoose.Types.ObjectId;
-        orderId: mongoose.Types.ObjectId;
-        customerId: mongoose.Types.ObjectId;
-        amountMinor: number;
-        status: string;
-      }
-    | null;
-  if (!task) throw new Error("Collection task not found.");
+// ---------------------------------------------------------------------------
+// Unified collection settlement (single money path — see DEV_NOTES).
+// ---------------------------------------------------------------------------
 
-  // Scope: an agent may only collect for their own customers; cross-scope 404.
-  try {
-    assertCanActOnCustomer(scope, String(task.customerId));
-  } catch {
-    throw new Error("Collection task not found.");
+export const COLLECTION_OVERPAY_MESSAGE = "Payment exceeds the outstanding amount.";
+export const COLLECTION_CHEQUE_MESSAGE = "Cheque number and date are required.";
+export const COLLECTION_PAYMENT_INVALID_CODE = "COLLECTION_PAYMENT_INVALID";
+
+/** Remaining owed on a collection (pure, unit-tested). Never negative. */
+export function collectionOutstanding(amountMinor: number, paidMinor: number): number {
+  return Math.max(0, Math.round(amountMinor) - Math.round(paidMinor));
+}
+
+/** Amount validity for a collection payment (pure, unit-tested). Overpay disallowed. */
+export function validateCollectionPaymentAmount(amountMinor: number, outstandingMinor: number): void {
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+    throw new Error("Amount must be a positive whole number of agorot.");
   }
+  if (amountMinor > outstandingMinor) {
+    throw new Error(COLLECTION_OVERPAY_MESSAGE);
+  }
+}
 
-  if (task.status === "collected") return { ok: true }; // idempotent
-  if (task.status !== "open") throw new Error("Collection task is not open.");
+export type CollectionPaymentInput = {
+  /** agorot; defaults to the full outstanding (a partial payment ≤ outstanding is allowed). */
+  amountMinor?: number;
+  method?: "cash" | "cheque";
+  chequeNumber?: string;
+  chequeDate?: string; // ISO
+  chequeBank?: string;
+  note?: string;
+};
 
-  // Reuse the ONE ledger writer — amount from the task (server), never client.
-  const posted = await postLedgerEntry({
-    userId: String(task.customerId),
-    type: "payment",
-    amountMinor: task.amountMinor,
-    description: `Agent collection #${String(task.orderId).slice(-8).toUpperCase()}`,
-    orderId: String(task.orderId),
-    idempotencyKey: `collection:${String(task.orderId)}`,
-    actor: { userId: scope.userId, role: scope.role },
-    onDuplicate: "ignore",
-  });
+export type CollectionPaymentResult = {
+  ok: boolean;
+  paidMinor: number;
+  outstandingMinor: number;
+  settled: boolean;
+  duplicate?: boolean;
+};
 
+async function settleTask(
+  taskId: mongoose.Types.ObjectId,
+  scope: ActorScope,
+  note?: string
+): Promise<void> {
   await CollectionTaskModel.updateOne(
-    { _id: task._id, status: "open" },
+    { _id: taskId, status: "open" },
     {
       $set: {
         status: "collected",
@@ -362,7 +379,153 @@ export async function markCollectionCollected(
       },
     }
   ).exec();
+}
 
+/**
+ * THE single money path for settling a collection. A payment is recorded ONCE,
+ * anchored to the order; the outstanding is DERIVED from posted payments against
+ * the order (`amount − Σ payments`), so the ledger and the collections view can
+ * never disagree or double-count:
+ * - overpay is rejected (amount ≤ outstanding), so once the debt is paid via
+ *   EITHER path (collect button or a ledger payment for the order) a second full
+ *   payment is impossible;
+ * - the idempotency key `collection:<orderId>:p<seq>` is serialized by the unique
+ *   ledger index, so concurrent double-submits collapse to one payment.
+ * Partial payments leave the task open at the reduced outstanding.
+ */
+export async function recordCollectionPayment(
+  scope: ActorScope,
+  taskId: string,
+  input: CollectionPaymentInput = {}
+): Promise<CollectionPaymentResult> {
+  if (!isValidObjectId(taskId)) throw new Error("Collection task not found.");
+  await connectDB();
+  const task = (await CollectionTaskModel.findById(taskId).lean().exec()) as
+    | { _id: mongoose.Types.ObjectId; orderId: mongoose.Types.ObjectId; customerId: mongoose.Types.ObjectId; amountMinor: number; status: string }
+    | null;
+  if (!task) throw new Error("Collection task not found.");
+  try {
+    assertCanActOnCustomer(scope, String(task.customerId));
+  } catch {
+    throw new Error("Collection task not found."); // no existence leak
+  }
+  if (task.status === "cancelled") throw new Error("Collection task is not open.");
+
+  const orderId = String(task.orderId);
+  const paid = await sumOrderPayments(orderId);
+  const outstanding = collectionOutstanding(task.amountMinor, paid);
+
+  // Already fully settled (paid via the other path) → idempotent no-op; never a
+  // second payment. Ensure the task status reflects the derived truth.
+  if (outstanding <= 0) {
+    if (task.status !== "collected") await settleTask(task._id, scope, input.note);
+    return { ok: true, paidMinor: 0, outstandingMinor: 0, settled: true };
+  }
+
+  const amount = Number.isFinite(input.amountMinor as number) ? Math.trunc(Number(input.amountMinor)) : outstanding;
+  validateCollectionPaymentAmount(amount, outstanding);
+
+  const method: "cash" | "cheque" = input.method === "cheque" ? "cheque" : "cash";
+  let cheque: { number?: string; date?: Date; bank?: string } | undefined;
+  if (method === "cheque") {
+    const number = (input.chequeNumber ?? "").trim();
+    const date = input.chequeDate ? new Date(input.chequeDate) : null;
+    if (!number || !date || Number.isNaN(date.getTime())) throw new Error(COLLECTION_CHEQUE_MESSAGE);
+    cheque = {
+      number: number.slice(0, 60),
+      date,
+      ...(input.chequeBank?.trim() ? { bank: input.chequeBank.trim().slice(0, 120) } : {}),
+    };
+  }
+
+  const seq = await countOrderPayments(orderId);
+  const posted = await postLedgerEntry({
+    userId: String(task.customerId),
+    type: "payment",
+    amountMinor: amount,
+    description: `Agent collection #${orderId.slice(-8).toUpperCase()}${method === "cheque" ? ` — cheque ${cheque!.number}` : ""}`,
+    orderId,
+    paymentMethod: method,
+    ...(cheque ? { cheque } : {}),
+    idempotencyKey: `collection:${orderId}:p${seq}`,
+    actor: { userId: scope.userId, role: scope.role },
+    onDuplicate: "ignore",
+  });
+
+  // A concurrent submit already claimed this slot → no new money was posted.
+  if (!posted.created) {
+    const p = await sumOrderPayments(orderId);
+    const o = collectionOutstanding(task.amountMinor, p);
+    if (o <= 0 && task.status !== "collected") await settleTask(task._id, scope, input.note);
+    return { ok: true, paidMinor: 0, outstandingMinor: o, settled: o <= 0, duplicate: true };
+  }
+
+  const newOutstanding = collectionOutstanding(task.amountMinor, paid + amount);
+  if (newOutstanding <= 0) {
+    await settleTask(task._id, scope, input.note);
+  } else if (input.note) {
+    await CollectionTaskModel.updateOne({ _id: task._id }, { $set: { note: String(input.note).slice(0, 500) } }).exec();
+  }
+
+  // Both the collections view and the ledger view refetch on ledger.entry_created.
   publishRealtimeEvent({ type: "ledger.entry_created", userId: String(task.customerId), entryId: posted.entryId });
-  return { ok: true };
+  return { ok: true, paidMinor: amount, outstandingMinor: newOutstanding, settled: newOutstanding <= 0 };
+}
+
+/**
+ * Backward-compatible "mark collected": a full cash payment for the remaining
+ * outstanding through the unified path (idempotent, never double-posts).
+ */
+export async function markCollectionCollected(
+  scope: ActorScope,
+  taskId: string,
+  note?: string
+): Promise<{ ok: boolean }> {
+  const r = await recordCollectionPayment(scope, taskId, { method: "cash", note });
+  return { ok: r.ok };
+}
+
+/**
+ * Open collections for one customer with their live outstanding — powers the
+ * admin ledger form's "which order does this payment settle" selector and the
+ * guard that forbids an unlinked payment while collections are open.
+ */
+export async function getOpenCollectionsForCustomer(
+  customerId: string
+): Promise<Array<{ taskId: string; orderId: string; orderNumber: string; outstandingMinor: number }>> {
+  if (!isValidObjectId(customerId)) return [];
+  await connectDB();
+  const tasks = (await CollectionTaskModel.find(
+    { customerId: new mongoose.Types.ObjectId(customerId), status: "open" },
+    { orderId: 1, amountMinor: 1 }
+  )
+    .sort({ createdAt: 1 })
+    .lean()
+    .exec()) as Array<{ _id: mongoose.Types.ObjectId; orderId: mongoose.Types.ObjectId; amountMinor: number }>;
+  if (tasks.length === 0) return [];
+  const paidByOrder = await sumPaymentsByOrder(tasks.map((t) => String(t.orderId)));
+  return tasks
+    .map((t) => {
+      const orderId = String(t.orderId);
+      return {
+        taskId: String(t._id),
+        orderId,
+        orderNumber: orderId.slice(-8).toUpperCase(),
+        outstandingMinor: collectionOutstanding(t.amountMinor, paidByOrder.get(orderId) ?? 0),
+      };
+    })
+    .filter((c) => c.outstandingMinor > 0);
+}
+
+/** Finds the open collection task for an order (used by the ledger payment path). */
+export async function findOpenTaskIdForOrder(orderId: string): Promise<string | null> {
+  if (!isValidObjectId(orderId)) return null;
+  await connectDB();
+  const task = await CollectionTaskModel.findOne(
+    { orderId: new mongoose.Types.ObjectId(orderId), status: "open" },
+    { _id: 1 }
+  )
+    .lean()
+    .exec();
+  return task ? String(task._id) : null;
 }

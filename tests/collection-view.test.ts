@@ -3,7 +3,29 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/db", () => ({ connectDB: vi.fn(async () => undefined) }));
 vi.mock("@/lib/jwt", () => ({ signAuthToken: vi.fn(), verifyAuthToken: vi.fn() }));
 
-import { buildCollectionViewRows } from "@/services/collection-tasks.service";
+import {
+  buildCollectionViewRows,
+  collectionOutstanding,
+  validateCollectionPaymentAmount,
+  COLLECTION_OVERPAY_MESSAGE,
+} from "@/services/collection-tasks.service";
+
+describe("collectionOutstanding + validateCollectionPaymentAmount (unified payment guards)", () => {
+  it("outstanding = amount − paid, never negative", () => {
+    expect(collectionOutstanding(2500000, 0)).toBe(2500000);
+    expect(collectionOutstanding(2500000, 1000000)).toBe(1500000); // partial
+    expect(collectionOutstanding(2500000, 2500000)).toBe(0); // fully paid
+    expect(collectionOutstanding(2500000, 9999999)).toBe(0); // never below zero
+  });
+
+  it("accepts a payment up to the outstanding, rejects overpay and non-positive", () => {
+    expect(() => validateCollectionPaymentAmount(1000000, 2500000)).not.toThrow(); // partial ok
+    expect(() => validateCollectionPaymentAmount(2500000, 2500000)).not.toThrow(); // exact ok
+    expect(() => validateCollectionPaymentAmount(2500001, 2500000)).toThrow(COLLECTION_OVERPAY_MESSAGE);
+    expect(() => validateCollectionPaymentAmount(0, 2500000)).toThrow(/positive whole number/);
+    expect(() => validateCollectionPaymentAmount(1.5, 2500000)).toThrow(/positive whole number/);
+  });
+});
 
 const ORDER_A = "64a000000000000000000001";
 const ORDER_B = "64a000000000000000000002";
@@ -55,6 +77,24 @@ describe("buildCollectionViewRows", () => {
       amountMinor: 128000,
       createdAt: "2026-01-05T00:00:00.000Z", // ORDER date → meaningful age, not 0d
     });
+  });
+
+  it("derives outstanding from payments — partial shows the remainder, fully-paid is dropped", () => {
+    const orders = [
+      { orderId: ORDER_A, total: 100, status: "delivered", customerId: CUST_1, createdAt: "2026-07-01T00:00:00.000Z" }, // 10000
+      { orderId: ORDER_B, total: 50, status: "confirmed", customerId: CUST_2, createdAt: "2026-07-02T00:00:00.000Z" }, // 5000
+    ];
+    const tasks = [
+      { orderId: ORDER_A, taskId: "ta", amountMinor: 10000, status: "open" },
+      { orderId: ORDER_B, taskId: "tb", amountMinor: 5000, status: "open" },
+    ];
+    const paid = new Map([
+      [ORDER_A, 4000], // partial → remaining 6000
+      [ORDER_B, 5000], // fully paid → dropped
+    ]);
+    const rows = buildCollectionViewRows(orders, tasks, names, paid);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ orderId: ORDER_A, state: "collectible", amountMinor: 6000, paidMinor: 4000 });
   });
 
   it("state follows order status across confirmed/packed/out_for_delivery even without a task", () => {

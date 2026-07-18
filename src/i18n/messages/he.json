@@ -615,7 +615,10 @@
         "description": "תיאור",
         "record": "רישום תנועה",
         "recording": "רושם…",
-        "invalid": "יש להזין סכום חיובי ותיאור."
+        "invalid": "יש להזין סכום חיובי ותיאור.",
+        "order": "מסלק הזמנה",
+        "selectOrder": "בחר איזו הזמנה התשלום מסלק.",
+        "selectOrderOption": "— בחר הזמנה —"
       },
       "memoryReadOnly": "לקריאה בלבד — נוצר על ידי העוזר",
       "noMemory": "אין עדיין זיכרון AI ללקוח זה.",
@@ -1037,6 +1040,23 @@
       "notCollectible": "עדיין לא ניתן לגבייה",
       "ageDays": "{days} ימים",
       "badgeLabel": "{count} לגבייה",
+      "paidSoFar": "שולם {amount}",
+      "form": {
+        "title": "רישום גבייה",
+        "outstanding": "יתרה לתשלום {amount}",
+        "amount": "סכום שהתקבל (₪)",
+        "method": "אמצעי תשלום",
+        "cash": "מזומן",
+        "cheque": "המחאה",
+        "chequeNumber": "מספר המחאה",
+        "chequeDate": "תאריך המחאה",
+        "chequeBank": "בנק (אופציונלי)",
+        "note": "הערה (אופציונלי)",
+        "record": "רשום תשלום",
+        "amountInvalid": "הזן סכום חיובי.",
+        "overpay": "הסכום לא יכול לעלות על היתרה {amount}.",
+        "chequeRequired": "מספר ותאריך המחאה נדרשים."
+      },
       "columns": {
         "customer": "לקוח",
         "order": "הזמנה",

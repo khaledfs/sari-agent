@@ -17,6 +17,8 @@ export const LEDGER_CURRENCY = "ILS";
 /** Entry types an admin may record manually. */
 export const ADMIN_POSTABLE_TYPES = ["payment", "credit", "adjustment"] as const;
 
+export type LedgerCheque = { number: string | null; date: string | null; bank: string | null };
+
 export type LedgerEntryView = {
   id: string;
   type: LedgerEntryType;
@@ -28,6 +30,9 @@ export type LedgerEntryView = {
   status: "posted" | "void";
   createdAt: string;
   createdByRole: string | null;
+  /** Payment method + cheque metadata (present on cheque/cash payments). */
+  paymentMethod: "cash" | "cheque" | null;
+  cheque: LedgerCheque | null;
   /** Balance in agorot AFTER this entry (chronological), posted entries only. */
   balanceAfterMinor: number;
 };
@@ -56,6 +61,10 @@ type EntryLean = {
   status: "posted" | "void";
   createdAt: Date;
   createdByRole?: string;
+  paymentMethod?: "cash" | "cheque" | null;
+  chequeNumber?: string;
+  chequeDate?: Date;
+  chequeBank?: string;
 };
 
 /** Major → minor units without float drift (string-based, exported for tests). */
@@ -110,6 +119,7 @@ export function computeRunningBalances(entries: EntryLean[]): Array<EntryLean & 
 }
 
 function toView(entry: EntryLean & { balanceAfterMinor: number }): LedgerEntryView {
+  const hasCheque = Boolean(entry.chequeNumber || entry.chequeDate || entry.chequeBank);
   return {
     id: String(entry._id),
     type: entry.type,
@@ -121,6 +131,14 @@ function toView(entry: EntryLean & { balanceAfterMinor: number }): LedgerEntryVi
     status: entry.status,
     createdAt: entry.createdAt.toISOString(),
     createdByRole: entry.createdByRole ?? null,
+    paymentMethod: entry.paymentMethod ?? null,
+    cheque: hasCheque
+      ? {
+          number: entry.chequeNumber ?? null,
+          date: entry.chequeDate ? entry.chequeDate.toISOString() : null,
+          bank: entry.chequeBank ?? null,
+        }
+      : null,
     balanceAfterMinor: entry.balanceAfterMinor,
   };
 }
@@ -214,12 +232,66 @@ export type PostLedgerEntryInput = {
   orderId?: string;
   idempotencyKey?: string;
   actor?: { userId: string; role: string };
+  /** Payment method + cheque metadata (additive; set on collection payments). */
+  paymentMethod?: "cash" | "cheque";
+  cheque?: { number?: string; date?: Date; bank?: string };
   /** "ignore" = replay-safe no-op on duplicate key (order paths); "error" = reject. */
   onDuplicate?: "ignore" | "error";
   session?: mongoose.ClientSession;
   /** Skip the realtime publish (used inside transactions — publish after commit). */
   deferPublish?: boolean;
 };
+
+/**
+ * Sum of POSTED `payment` credits recorded against one order (agorot). This is
+ * the single source for a collection's settled amount — a task's outstanding is
+ * `taskAmount − sumOrderPayments(orderId)`, so ledger and collections agree by
+ * construction and can never double-count.
+ */
+export async function sumOrderPayments(orderId: string): Promise<number> {
+  if (!isValidObjectId(orderId)) return 0;
+  await connectDB();
+  const rows = await LedgerEntryModel.aggregate<{ _id: null; paid: number }>([
+    {
+      $match: {
+        orderId: new mongoose.Types.ObjectId(orderId),
+        type: "payment",
+        status: "posted",
+      },
+    },
+    { $group: { _id: null, paid: { $sum: "$creditMinor" } } },
+  ]).exec();
+  return rows[0]?.paid ?? 0;
+}
+
+/** Count of posted payment entries against one order (drives the idempotency seq). */
+export async function countOrderPayments(orderId: string): Promise<number> {
+  if (!isValidObjectId(orderId)) return 0;
+  await connectDB();
+  return LedgerEntryModel.countDocuments({
+    orderId: new mongoose.Types.ObjectId(orderId),
+    type: "payment",
+    status: "posted",
+  }).exec();
+}
+
+/** Payments-per-order map for a set of orders (one aggregation, no N+1). */
+export async function sumPaymentsByOrder(orderIds: string[]): Promise<Map<string, number>> {
+  const valid = orderIds.filter((id) => isValidObjectId(id));
+  if (valid.length === 0) return new Map();
+  await connectDB();
+  const rows = await LedgerEntryModel.aggregate<{ _id: mongoose.Types.ObjectId; paid: number }>([
+    {
+      $match: {
+        orderId: { $in: valid.map((id) => new mongoose.Types.ObjectId(id)) },
+        type: "payment",
+        status: "posted",
+      },
+    },
+    { $group: { _id: "$orderId", paid: { $sum: "$creditMinor" } } },
+  ]).exec();
+  return new Map(rows.map((r) => [String(r._id), r.paid]));
+}
 
 function isDuplicateKeyError(error: unknown): boolean {
   return Boolean(error && typeof error === "object" && (error as { code?: number }).code === 11000);
@@ -255,6 +327,10 @@ export async function postLedgerEntry(input: PostLedgerEntryInput): Promise<{ en
     description,
     ...sides,
     currency: LEDGER_CURRENCY,
+    ...(input.paymentMethod ? { paymentMethod: input.paymentMethod } : {}),
+    ...(input.cheque?.number ? { chequeNumber: input.cheque.number } : {}),
+    ...(input.cheque?.date ? { chequeDate: input.cheque.date } : {}),
+    ...(input.cheque?.bank ? { chequeBank: input.cheque.bank } : {}),
     ...(input.actor ? { createdByUserId: input.actor.userId, createdByRole: input.actor.role } : {}),
     status: "posted" as const,
     idempotencyKey,

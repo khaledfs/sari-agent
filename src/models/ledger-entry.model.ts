@@ -73,6 +73,16 @@ const ledgerEntrySchema = new Schema(
       required: true,
       default: "ILS",
     },
+    /** Payment method (additive) — set on `payment` entries. */
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "cheque", null],
+      default: undefined,
+    },
+    /** Cheque metadata (additive) — set when paymentMethod === "cheque". */
+    chequeNumber: { type: String, trim: true, maxlength: 60, default: undefined },
+    chequeDate: { type: Date, default: undefined },
+    chequeBank: { type: String, trim: true, maxlength: 120, default: undefined },
     createdByUserId: {
       type: String,
       default: undefined,

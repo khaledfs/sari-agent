@@ -617,7 +617,10 @@
         "description": "الوصف",
         "record": "تسجيل الحركة",
         "recording": "جارٍ التسجيل…",
-        "invalid": "أدخل مبلغًا موجبًا ووصفًا."
+        "invalid": "أدخل مبلغًا موجبًا ووصفًا.",
+        "order": "يسدد الطلب",
+        "selectOrder": "اختر الطلب الذي تسدده هذه الدفعة.",
+        "selectOrderOption": "— اختر الطلب —"
       },
       "memoryReadOnly": "للقراءة فقط — من إنشاء المساعد",
       "noMemory": "لا توجد ذاكرة AI لهذا العميل بعد.",
@@ -1039,6 +1042,23 @@
       "notCollectible": "غير قابل للتحصيل بعد",
       "ageDays": "{days} يوم",
       "badgeLabel": "{count} للتحصيل",
+      "paidSoFar": "مدفوع {amount}",
+      "form": {
+        "title": "تسجيل تحصيل",
+        "outstanding": "المتبقي {amount}",
+        "amount": "المبلغ المستلم (₪)",
+        "method": "طريقة الدفع",
+        "cash": "نقداً",
+        "cheque": "شيك",
+        "chequeNumber": "رقم الشيك",
+        "chequeDate": "تاريخ الشيك",
+        "chequeBank": "البنك (اختياري)",
+        "note": "ملاحظة (اختياري)",
+        "record": "تسجيل الدفعة",
+        "amountInvalid": "أدخل مبلغاً موجباً.",
+        "overpay": "لا يمكن أن يتجاوز المبلغ المتبقي {amount}.",
+        "chequeRequired": "رقم وتاريخ الشيك مطلوبان."
+      },
       "columns": {
         "customer": "العميل",
         "order": "الطلب",

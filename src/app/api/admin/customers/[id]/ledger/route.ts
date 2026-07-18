@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { mapAdminRouteError } from "@/lib/admin-route-errors";
 
 import { getAdminCustomerLedger, postAdminLedgerEntry } from "@/lib/admin-ledger";
+import { getOpenCollectionsForCustomer } from "@/services/collection-tasks.service";
 
 function mapError(error: unknown, fallback: string) {
   return mapAdminRouteError(error, fallback);
@@ -14,11 +15,14 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     const url = new URL(req.url);
     const page = Number(url.searchParams.get("page") ?? "1");
     const pageSize = Number(url.searchParams.get("pageSize") ?? "25");
-    const data = await getAdminCustomerLedger(id, {
+    // getAdminCustomerLedger asserts scope first; the open-collections list (for
+    // the "which order does this payment settle" selector) is same-customer.
+    const ledger = await getAdminCustomerLedger(id, {
       page: Number.isFinite(page) ? page : 1,
       pageSize: Number.isFinite(pageSize) ? pageSize : 25,
     });
-    return NextResponse.json({ success: true, data });
+    const openCollections = await getOpenCollectionsForCustomer(id);
+    return NextResponse.json({ success: true, data: { ...ledger, openCollections } });
   } catch (error) {
     return mapError(error, "Failed to load ledger.");
   }

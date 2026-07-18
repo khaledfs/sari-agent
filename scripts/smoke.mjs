@@ -2260,6 +2260,162 @@ async function paymentSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- unified ledger + collections (double-count regression) ----------
+
+async function unifiedPaymentSection(customerCookie, adminCookie) {
+  if (!customerCookie || !adminCookie) {
+    console.log("WARN  unified payment section skipped — needs both logins");
+    return;
+  }
+  let customerId = null;
+  try {
+    const { body } = await jsonFetch(`/api/admin/customers?search=${encodeURIComponent(SMOKE_CUSTOMER_PHONE)}`, {
+      headers: { Cookie: adminCookie },
+    });
+    customerId = body?.data?.items?.[0]?.id ?? null;
+  } catch {
+    /* reported below */
+  }
+  let product = null;
+  try {
+    const { body } = await jsonFetch("/api/admin/products?page=1", { headers: { Cookie: adminCookie } });
+    product = (body?.data?.items ?? []).find((p) => p.isActive && p.price > 1) ?? null;
+  } catch {
+    /* reported below */
+  }
+  if (!customerId || !product) {
+    report("unified: staged customer + product", false, `customer=${Boolean(customerId)} product=${Boolean(product)}`);
+    return;
+  }
+
+  const balance = async () =>
+    (await jsonFetch("/api/account/ledger", { headers: { Cookie: customerCookie } })).body?.data?.summary
+      ?.currentBalanceMinor ?? 0;
+  const setStatus = (oid, s) =>
+    jsonFetch(`/api/admin/orders/${oid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ status: s }),
+    });
+  const ledgerPost = (body) =>
+    jsonFetch(`/api/admin/customers/${customerId}/ledger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify(body),
+    });
+  const collectionsRow = async (orderId) => {
+    const { body } = await jsonFetch("/api/admin/collections", { headers: { Cookie: adminCookie } });
+    return (body?.data ?? []).find((r) => r.orderId === orderId) ?? null;
+  };
+  const makeAgentOrder = async (qty) => {
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+    await jsonFetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ productId: product.id, quantity: qty }),
+    });
+    const { body } = await jsonFetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: customerCookie },
+      body: JSON.stringify({ paymentMethod: "agent" }),
+    });
+    return body?.data ?? null;
+  };
+  const restore = async (orderId, offsetMinor) => {
+    await setStatus(orderId, "cancelled");
+    if (offsetMinor && offsetMinor !== 0) {
+      await ledgerPost({ type: "adjustment", amount: Math.abs(offsetMinor) / 100, description: "SMOKE unified restore (auto)" });
+    }
+  };
+
+  // ===== Scenario 1: THE double-count. Ledger payment settles the collection;
+  //       clicking "collect" afterwards must be a NO-OP (no phantom credit). =====
+  try {
+    const o1 = await makeAgentOrder(2);
+    const total1 = Math.round((o1?.total ?? 0) * 100);
+    await setStatus(o1.id, "confirmed");
+    const task1 = await collectionsRow(o1.id);
+    const base = await balance(); // owes the order_charge
+
+    // Record the payment in the LEDGER, linked to the order (the reported flow).
+    const { res: payRes } = await ledgerPost({ type: "payment", amount: o1.total, description: "SMOKE unified", orderId: o1.id, method: "cash" });
+    const afterPay = await balance();
+    report(
+      "unified: ledger payment (linked) settles by exactly the amount",
+      payRes.status === 200 && base - afterPay === total1,
+      `status=${payRes.status}, delta=${base - afterPay}, expected=${total1}`
+    );
+    report("unified: paid order LEAVES collections (settled)", (await collectionsRow(o1.id)) === null, "");
+
+    // Now the double-count path: click collect on the (already-settled) task.
+    if (task1?.taskId) {
+      await jsonFetch(`/api/admin/collections/${task1.taskId}/collect`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: adminCookie }, body: "{}" });
+    }
+    const afterDouble = await balance();
+    report(
+      "unified: collect after a ledger payment is a NO-OP (no phantom credit)",
+      afterDouble === afterPay,
+      `afterDouble=${afterDouble}, afterPay=${afterPay}`
+    );
+    await restore(o1.id, total1); // charge − payment − reversal = −total1 → offset back
+  } catch (err) {
+    report("unified: double-count scenario", false, String(err));
+  }
+
+  // ===== Scenario 2: partial payment leaves the correct outstanding =====
+  try {
+    const o2 = await makeAgentOrder(2);
+    const total2 = Math.round((o2?.total ?? 0) * 100);
+    await setStatus(o2.id, "confirmed");
+    const task2 = await collectionsRow(o2.id);
+    const half = Math.floor(total2 / 2);
+    await jsonFetch(`/api/admin/collections/${task2.taskId}/collect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ amountMinor: half, method: "cash" }),
+    });
+    const partialRow = await collectionsRow(o2.id);
+    report(
+      "unified: partial payment leaves the remaining outstanding, task open",
+      partialRow?.state === "collectible" && partialRow?.amountMinor === total2 - half && partialRow?.paidMinor === half,
+      `outstanding=${partialRow?.amountMinor}, expected=${total2 - half}, paid=${partialRow?.paidMinor}`
+    );
+    // Overpay guard: try to pay more than the remaining → 400.
+    const { res: overRes } = await jsonFetch(`/api/admin/collections/${task2.taskId}/collect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ amountMinor: total2, method: "cash" }),
+    });
+    report("unified: overpay is rejected (400)", overRes.status === 400, `got ${overRes.status}`);
+    // Pay the rest (cheque) → settled + cheque metadata persists.
+    await jsonFetch(`/api/admin/collections/${task2.taskId}/collect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
+      body: JSON.stringify({ amountMinor: total2 - half, method: "cheque", chequeNumber: "SMK-123", chequeDate: new Date().toISOString(), chequeBank: "SMOKE Bank" }),
+    });
+    report("unified: paying the remainder settles the task", (await collectionsRow(o2.id)) === null, "");
+    const { body: led } = await jsonFetch("/api/account/ledger?page=1", { headers: { Cookie: customerCookie } });
+    const chequeEntry = (led?.data?.entries ?? []).find((e) => e.cheque && e.cheque.number === "SMK-123");
+    report("unified: cheque metadata persists on the ledger entry", Boolean(chequeEntry) && chequeEntry.paymentMethod === "cheque", `entry=${Boolean(chequeEntry)}`);
+    await restore(o2.id, total2);
+  } catch (err) {
+    report("unified: partial + cheque scenario", false, String(err));
+  }
+
+  // ===== Scenario 3: an UNLINKED payment while collections are open is refused =====
+  try {
+    const o3 = await makeAgentOrder(2);
+    await setStatus(o3.id, "confirmed");
+    const { res: unlinkedRes } = await ledgerPost({ type: "payment", amount: o3.total, description: "SMOKE unlinked" });
+    report("unified: unlinked payment while collections open -> 400", unlinkedRes.status === 400, `got ${unlinkedRes.status}`);
+    await restore(o3.id, 0); // no payment posted, cancel reversal nets the charge to 0
+  } catch (err) {
+    report("unified: unlinked-payment guard", false, String(err));
+  } finally {
+    await jsonFetch("/api/cart/clear", { method: "POST", headers: { Cookie: customerCookie } });
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -2286,6 +2442,7 @@ async function main() {
   await agentSection(cookie, adminCookie);
   await adjustmentSection(cookie, adminCookie);
   await paymentSection(cookie, adminCookie);
+  await unifiedPaymentSection(cookie, adminCookie);
   await aiAssistantSection(cookie, adminCookie);
 
   console.log(`\n${passed} passed, ${failed} failed`);

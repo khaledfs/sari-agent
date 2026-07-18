@@ -67,6 +67,8 @@ type LedgerEntry = {
   balanceAfterMinor: number;
 };
 
+type OpenCollection = { taskId: string; orderId: string; orderNumber: string; outstandingMinor: number };
+
 type LedgerData = {
   entries: LedgerEntry[];
   page: number;
@@ -74,6 +76,7 @@ type LedgerData = {
   total: number;
   hasMore: boolean;
   summary: { currentBalanceMinor: number; currency: string; lastEntryAt: string | null };
+  openCollections?: OpenCollection[];
 };
 
 const TABS = ["overview", "orders", "ledger", "memory", "notes", "pricing"] as const;
@@ -150,7 +153,16 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
   const [ledger, setLedger] = useState<LedgerData | null>(null);
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [ledgerError, setLedgerError] = useState("");
-  const [entryForm, setEntryForm] = useState({ type: "payment", amount: "", description: "" });
+  const [entryForm, setEntryForm] = useState({
+    type: "payment",
+    amount: "",
+    description: "",
+    orderId: "",
+    method: "cash" as "cash" | "cheque",
+    chequeNumber: "",
+    chequeDate: "",
+    chequeBank: "",
+  });
   const [posting, setPosting] = useState(false);
 
   const loadLedger = useCallback(async () => {
@@ -184,49 +196,59 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
   async function recordEntry() {
     if (!ledger || posting) return;
     const amount = Number(entryForm.amount);
-    const description = entryForm.description.trim();
-    if (!Number.isFinite(amount) || amount <= 0 || !description) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       setLedgerError(t("customers.ledgerForm.invalid"));
+      return;
+    }
+    const description = entryForm.description.trim();
+    const isPayment = entryForm.type === "payment";
+    const hasOpenCollections = (ledger.openCollections?.length ?? 0) > 0;
+    // A payment while collections are open MUST name the order it settles — this
+    // is what makes ledger + collections one money path (no double-count).
+    if (isPayment && hasOpenCollections && !entryForm.orderId) {
+      setLedgerError(t("customers.ledgerForm.selectOrder"));
+      return;
+    }
+    if (!isPayment && !description) {
+      setLedgerError(t("customers.ledgerForm.invalid"));
+      return;
+    }
+    if (isPayment && entryForm.method === "cheque" && (!entryForm.chequeNumber.trim() || !entryForm.chequeDate)) {
+      setLedgerError(t("collections.form.chequeRequired"));
       return;
     }
     setPosting(true);
     setLedgerError("");
-    const prev = ledger;
-    const amountMinor = Math.round(amount * 100);
-    const isDebit = entryForm.type === "adjustment";
-    const optimistic: LedgerEntry = {
-      id: `optimistic-${Date.now()}`,
-      type: entryForm.type as LedgerEntry["type"],
-      orderId: null,
-      description,
-      debitMinor: isDebit ? amountMinor : 0,
-      creditMinor: isDebit ? 0 : amountMinor,
-      status: "posted",
-      createdAt: new Date().toISOString(),
-      balanceAfterMinor:
-        ledger.summary.currentBalanceMinor + (isDebit ? amountMinor : -amountMinor),
-    };
-    setLedger({
-      ...ledger,
-      entries: [optimistic, ...ledger.entries],
-      summary: { ...ledger.summary, currentBalanceMinor: optimistic.balanceAfterMinor },
-    });
+    const body: Record<string, unknown> = isPayment
+      ? {
+          type: "payment",
+          amount,
+          description: description || undefined,
+          ...(entryForm.orderId ? { orderId: entryForm.orderId } : {}),
+          method: entryForm.method,
+          ...(entryForm.method === "cheque"
+            ? {
+                chequeNumber: entryForm.chequeNumber.trim(),
+                chequeDate: new Date(`${entryForm.chequeDate}T00:00:00`).toISOString(),
+                chequeBank: entryForm.chequeBank.trim() || undefined,
+              }
+            : {}),
+        }
+      : { type: entryForm.type, amount, description };
     try {
       const res = await fetch(`/api/admin/customers/${id}/ledger`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: entryForm.type, amount, description }),
+        body: JSON.stringify(body),
       });
       const json = (await res.json()) as ApiEnvelope<{ entryId: string }>;
       if (res.status === 200 && json.success) {
-        setEntryForm({ type: entryForm.type, amount: "", description: "" });
-        await loadLedger(); // authoritative rows + running balances
+        setEntryForm((f) => ({ ...f, amount: "", description: "", orderId: "", chequeNumber: "", chequeDate: "", chequeBank: "" }));
+        await loadLedger(); // authoritative rows + running balances + open collections
         return;
       }
-      setLedger(prev);
       setLedgerError(json.message ?? t("customers.error"));
     } catch {
-      setLedger(prev);
       setLedgerError(t("customers.error"));
     } finally {
       setPosting(false);
@@ -542,6 +564,62 @@ export default function AdminCustomerDetailPage({ params }: { params: Promise<{ 
                         onChange={(e) => setEntryForm((f) => ({ ...f, amount: e.target.value }))}
                       />
                     </label>
+                    {entryForm.type === "payment" ? (
+                      <>
+                        {(ledger.openCollections?.length ?? 0) > 0 ? (
+                          <label className="admin-field" style={{ marginBottom: 0 }}>
+                            <span>{t("customers.ledgerForm.order")}</span>
+                            <select
+                              className="admin-select"
+                              value={entryForm.orderId}
+                              onChange={(e) => {
+                                const orderId = e.target.value;
+                                const outstanding = (ledger.openCollections ?? []).find((c) => c.orderId === orderId)?.outstandingMinor;
+                                setEntryForm((f) => ({
+                                  ...f,
+                                  orderId,
+                                  amount: orderId && typeof outstanding === "number" ? (outstanding / 100).toFixed(2) : f.amount,
+                                }));
+                              }}
+                            >
+                              <option value="">{t("customers.ledgerForm.selectOrderOption")}</option>
+                              {(ledger.openCollections ?? []).map((c) => (
+                                <option key={c.orderId} value={c.orderId}>
+                                  #{c.orderNumber} · {formatMinorUnits(locale, c.outstandingMinor)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
+                        <label className="admin-field" style={{ marginBottom: 0 }}>
+                          <span>{t("collections.form.method")}</span>
+                          <select
+                            className="admin-select"
+                            value={entryForm.method}
+                            onChange={(e) => setEntryForm((f) => ({ ...f, method: e.target.value as "cash" | "cheque" }))}
+                          >
+                            <option value="cash">{t("collections.form.cash")}</option>
+                            <option value="cheque">{t("collections.form.cheque")}</option>
+                          </select>
+                        </label>
+                        {entryForm.method === "cheque" ? (
+                          <>
+                            <label className="admin-field" style={{ marginBottom: 0 }}>
+                              <span>{t("collections.form.chequeNumber")}</span>
+                              <input className="admin-input" value={entryForm.chequeNumber} maxLength={60} onChange={(e) => setEntryForm((f) => ({ ...f, chequeNumber: e.target.value }))} />
+                            </label>
+                            <label className="admin-field" style={{ marginBottom: 0 }}>
+                              <span>{t("collections.form.chequeDate")}</span>
+                              <input className="admin-input" type="date" value={entryForm.chequeDate} onChange={(e) => setEntryForm((f) => ({ ...f, chequeDate: e.target.value }))} />
+                            </label>
+                            <label className="admin-field" style={{ marginBottom: 0 }}>
+                              <span>{t("collections.form.chequeBank")}</span>
+                              <input className="admin-input" value={entryForm.chequeBank} maxLength={120} onChange={(e) => setEntryForm((f) => ({ ...f, chequeBank: e.target.value }))} />
+                            </label>
+                          </>
+                        ) : null}
+                      </>
+                    ) : null}
                     <label className="admin-field" style={{ marginBottom: 0, flex: 1 }}>
                       <span>{t("customers.ledgerForm.description")}</span>
                       <input
