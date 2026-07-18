@@ -36,6 +36,26 @@ export type CatalogPage = {
 
 export const CATALOG_MAX_PAGE_SIZE = 50;
 
+export const CATALOG_SORT_OPTIONS = ["default", "price_asc", "price_desc"] as const;
+export type CatalogSortOption = (typeof CATALOG_SORT_OPTIONS)[number];
+
+/**
+ * Mongo sort spec for a catalog-browse sort option (pure, unit-tested). Price
+ * sort is by BASE price (`product.price`) — the browse page comes from the
+ * base-priced tagged cache, so per-customer overrides can't reorder it here
+ * without breaking the cache; the search path sorts by the customer price.
+ */
+export function resolveCatalogSort(sort: string | undefined): Record<string, 1 | -1> {
+  switch (sort) {
+    case "price_asc":
+      return { price: 1, _id: 1 };
+    case "price_desc":
+      return { price: -1, _id: 1 };
+    default:
+      return { createdAt: -1, _id: -1 };
+  }
+}
+
 function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -86,7 +106,7 @@ function toCatalogProduct(p: ProductLeanForCatalog): CatalogProduct {
  * the TTL bounds staleness if neither fires.
  */
 const fetchCatalogPageCached = unstable_cache(
-  async (category: string, search: string, page: number, pageSize: number): Promise<CatalogPage> => {
+  async (category: string, search: string, page: number, pageSize: number, sort: string): Promise<CatalogPage> => {
     await connectDB();
     const filter: Record<string, unknown> = { isActive: true };
     if (category) filter.category = category;
@@ -97,7 +117,7 @@ const fetchCatalogPageCached = unstable_cache(
     const [total, docs] = await Promise.all([
       ProductModel.countDocuments(filter).exec(),
       ProductModel.find(filter)
-        .sort({ createdAt: -1, _id: -1 })
+        .sort(resolveCatalogSort(sort))
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .lean()
@@ -120,13 +140,15 @@ export async function listCatalogProducts(params: {
   search?: string;
   page?: number;
   pageSize?: number;
+  sort?: string;
 }): Promise<CatalogPage> {
   const page = Math.max(1, Math.floor(params.page ?? 1));
   const pageSize = Math.min(
     CATALOG_MAX_PAGE_SIZE,
     Math.max(1, Math.floor(params.pageSize ?? CATALOG_MAX_PAGE_SIZE))
   );
-  return fetchCatalogPageCached(params.category?.trim() ?? "", params.search?.trim() ?? "", page, pageSize);
+  const sort = (CATALOG_SORT_OPTIONS as readonly string[]).includes(params.sort ?? "") ? params.sort! : "default";
+  return fetchCatalogPageCached(params.category?.trim() ?? "", params.search?.trim() ?? "", page, pageSize, sort);
 }
 
 const createProductSchema = z.object({

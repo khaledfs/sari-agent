@@ -217,6 +217,12 @@
     "outOfStock": "אזל מהמלאי",
     "loadMore": "טען עוד",
     "didYouMean": "התכוונת ל:",
+    "sort": {
+      "label": "מיין לפי",
+      "default": "התאמה מיטבית",
+      "priceAsc": "מחיר: מהנמוך לגבוה",
+      "priceDesc": "מחיר: מהגבוה לנמוך"
+    },
     "actions": {
       "addToCart": "הוסף לעגלה",
       "adding": "מוסיף…"

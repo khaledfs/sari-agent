@@ -217,6 +217,12 @@
     "outOfStock": "نفد من المخزون",
     "loadMore": "تحميل المزيد",
     "didYouMean": "هل تقصد:",
+    "sort": {
+      "label": "ترتيب حسب",
+      "default": "الأنسب",
+      "priceAsc": "السعر: من الأقل للأعلى",
+      "priceDesc": "السعر: من الأعلى للأقل"
+    },
     "actions": {
       "addToCart": "أضف إلى السلة",
       "adding": "جارٍ الإضافة…"

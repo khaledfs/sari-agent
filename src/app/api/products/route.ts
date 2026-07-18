@@ -14,6 +14,7 @@ export async function GET(req: Request) {
       search: url.searchParams.get("search") ?? undefined,
       page: Number(url.searchParams.get("page") ?? "1") || 1,
       pageSize: Number(url.searchParams.get("pageSize") ?? "") || undefined,
+      sort: url.searchParams.get("sort") ?? undefined,
     });
     const userId = await getAuthenticatedUserId();
     const priced = await applyCustomerPricesToProducts(catalog.items, userId);

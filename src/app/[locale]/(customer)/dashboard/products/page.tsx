@@ -88,6 +88,7 @@ export default function ProductsPage() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searchMeta, setSearchMeta] = useState<{ page: number; hasMore: boolean } | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc">("default");
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -257,11 +258,13 @@ export default function ProductsPage() {
 
   // Smart multilingual search (/api/products/search): normalization + synonyms
   // (סמיד→סולת, flour→קמח), ranking, and typo suggestions — server-side, paginated.
-  const fetchSearchPage = useCallback(async (query: string, page: number, append: boolean, silent = false) => {
+  const fetchSearchPage = useCallback(
+    async (query: string, page: number, append: boolean, silent = false, sort = "default") => {
     if (append) setLoadingMore(true);
     else if (!silent) setCatalogLoading(true);
     try {
       const params = new URLSearchParams({ query, page: String(page) });
+      if (sort && sort !== "default") params.set("sort", sort);
       const res = await fetch(`/api/products/search?${params.toString()}`);
       const payload = (await res.json()) as {
         success?: boolean;
@@ -291,26 +294,28 @@ export default function ProductsPage() {
     }
   }, []);
 
-  // Debounced (300ms): refetch page 1 whenever the search term changes.
-  // Clearing the input resets the grid back to normal browsing.
+  // Debounced (300ms): refetch page 1 whenever the search term OR the sort
+  // changes. The sort PERSISTS across Load More pages of the same search; it
+  // resets to default when the search is cleared (a sensible new-search reset).
   useEffect(() => {
     if (!searchActive) {
       setSearchResults([]);
       setSearchMeta(null);
       setSuggestions([]);
       setCatalogLoading(false);
+      setSortBy("default");
       return;
     }
     const timer = setTimeout(() => {
-      void fetchSearchPage(qNorm, 1, false);
+      void fetchSearchPage(qNorm, 1, false, false, sortBy);
     }, 300);
     return () => clearTimeout(timer);
-  }, [qNorm, searchActive, fetchSearchPage]);
+  }, [qNorm, searchActive, sortBy, fetchSearchPage]);
 
   // Live catalog updates: refresh active search results silently (stale data
   // stays visible; no skeleton flash).
   useRealtimeRefetch(["product.updated", "inventory.updated"], () => {
-    if (searchActive) void fetchSearchPage(qNorm, 1, false, true);
+    if (searchActive) void fetchSearchPage(qNorm, 1, false, true, sortBy);
   });
 
   const filteredCategories = useMemo(() => {
@@ -522,9 +527,24 @@ export default function ProductsPage() {
 
       {searchActive ? (
         <section className="ds-mb-md" aria-labelledby="catalog-products-heading">
-          <h2 id="catalog-products-heading" className="ds-section-title">
-            {t("title")}
-          </h2>
+          <div className="ds-sort-row">
+            <h2 id="catalog-products-heading" className="ds-section-title" style={{ marginBottom: 0 }}>
+              {t("title")}
+            </h2>
+            <label className="ds-sort-control">
+              <span className="ds-text-small">{t("sort.label")}</span>
+              <select
+                className="ds-sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")}
+                aria-label={t("sort.label")}
+              >
+                <option value="default">{t("sort.default")}</option>
+                <option value="price_asc">{t("sort.priceAsc")}</option>
+                <option value="price_desc">{t("sort.priceDesc")}</option>
+              </select>
+            </label>
+          </div>
 
           {catalogLoading ? (
             <ul className="ds-skeleton-grid" aria-hidden="true">
@@ -629,7 +649,7 @@ export default function ProductsPage() {
                 variant="secondary"
                 block
                 disabled={loadingMore}
-                onClick={() => void fetchSearchPage(qNorm, searchMeta.page + 1, true)}
+                onClick={() => void fetchSearchPage(qNorm, searchMeta.page + 1, true, false, sortBy)}
               >
                 {loadingMore ? t("messages.loading") : t("loadMore")}
               </Button>

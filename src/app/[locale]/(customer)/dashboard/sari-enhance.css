@@ -1968,6 +1968,37 @@
   cursor: pointer;
 }
 
+/* Sort control above the search results — logical properties → RTL-safe. */
+.ds-sort-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-block-end: 0.75rem;
+}
+.ds-sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.ds-sort-select {
+  font: inherit;
+  font-size: 16px; /* ≥16px → no iOS zoom on focus */
+  min-block-size: 44px;
+  padding-block: 0.35rem;
+  padding-inline: 0.6rem;
+  border: 1px solid var(--border, #e8e4dc);
+  border-radius: var(--radius, 10px);
+  background: var(--surface, #fff);
+  color: var(--text-primary, #1a1814);
+  cursor: pointer;
+}
+.ds-sort-select:focus-visible {
+  outline: 2px solid var(--brand, #a67c00);
+  outline-offset: 1px;
+}
+
 .ds-search-suggest__chip:hover {
   background: var(--brand-lighter, #fdf6e3);
 }

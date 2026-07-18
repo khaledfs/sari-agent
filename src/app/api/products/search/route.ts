@@ -33,6 +33,7 @@ export async function GET(req: Request) {
       },
       page: Number(url.searchParams.get("page") ?? "1") || 1,
       pageSize: numberParam("pageSize"),
+      sort: url.searchParams.get("sort") ?? undefined,
       userId,
     });
     return NextResponse.json({ success: true, data });

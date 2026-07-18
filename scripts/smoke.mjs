@@ -2416,6 +2416,37 @@ async function unifiedPaymentSection(customerCookie, adminCookie) {
   }
 }
 
+// ---------- catalog search price sort ----------
+
+async function catalogSortSection(customerCookie) {
+  if (!customerCookie) {
+    console.log("WARN  catalog sort section skipped — needs a customer login");
+    return;
+  }
+  const q = encodeURIComponent("קמח"); // flour — many matches, varied prices
+  const fetchSort = async (sort) => {
+    const { body } = await jsonFetch(`/api/products/search?query=${q}${sort ? `&sort=${sort}` : ""}`, {
+      headers: { Cookie: customerCookie },
+    });
+    return body?.data?.products ?? [];
+  };
+  const asc = await fetchSort("price_asc");
+  report("catalog(sort): search returns multiple results", asc.length >= 2, `count=${asc.length}`);
+  if (asc.length >= 2) {
+    const first = asc[0].price;
+    const last = asc[asc.length - 1].price;
+    report("catalog(sort): price-asc first ≤ last (by customer price)", first <= last, `first=${first}, last=${last}`);
+    // monotonic non-decreasing across the whole page
+    const monotonic = asc.every((p, i) => i === 0 || asc[i - 1].price <= p.price);
+    report("catalog(sort): price-asc page is non-decreasing", monotonic, "");
+  }
+  const desc = await fetchSort("price_desc");
+  if (desc.length >= 2) {
+    report("catalog(sort): price-desc first ≥ last", desc[0].price >= desc[desc.length - 1].price, `first=${desc[0].price}, last=${desc[desc.length - 1].price}`);
+    report("catalog(sort): asc cheapest ≤ desc most-expensive (cheapest overall first)", asc[0].price <= desc[0].price, `asc0=${asc[0].price}, desc0=${desc[0].price}`);
+  }
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -2426,6 +2457,7 @@ async function main() {
 
   const cookie = await loginSeededCustomer();
   await checkCartWithCookie(cookie);
+  await catalogSortSection(cookie);
   await checkAdminOrdersUnauthenticated();
   await checkPaymentOptions(cookie);
   await checkCollectionsUnauthenticated();

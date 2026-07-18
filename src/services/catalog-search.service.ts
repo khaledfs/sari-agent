@@ -34,14 +34,38 @@ export type CatalogSearchFilters = {
   inStockOnly?: boolean;
 };
 
+export const CATALOG_SEARCH_SORT_OPTIONS = ["default", "price_asc", "price_desc"] as const;
+export type CatalogSearchSort = (typeof CATALOG_SEARCH_SORT_OPTIONS)[number];
+
 export type CatalogSearchParams = {
   query: string;
   filters?: CatalogSearchFilters;
   page?: number;
   pageSize?: number;
+  /** default = relevance ranking; price_asc/desc sort by the CUSTOMER's price. */
+  sort?: string;
   /** Per-customer pricing context (null = base prices). */
   userId?: string | null;
 };
+
+/**
+ * Sorts docs by a resolved price (pure, unit-tested). `priceOf` returns the
+ * price to sort on — the search path passes the CUSTOMER price. Deterministic
+ * id tiebreak keeps pagination stable when two products share a price.
+ */
+export function sortByCatalogPrice<T extends { _id: unknown }>(
+  docs: T[],
+  direction: "price_asc" | "price_desc",
+  priceOf: (doc: T) => number
+): T[] {
+  const dir = direction === "price_desc" ? -1 : 1;
+  return [...docs].sort((a, b) => {
+    const pa = priceOf(a);
+    const pb = priceOf(b);
+    if (pa !== pb) return (pa - pb) * dir;
+    return String(a._id).localeCompare(String(b._id));
+  });
+}
 
 export type CatalogSearchProduct = {
   _id: string;
@@ -252,20 +276,42 @@ export async function searchCatalog(params: CatalogSearchParams): Promise<Catalo
     }
   }
 
-  // Step 4 — deterministic ranking, then in-memory pagination of the pool.
+  // Step 4 — deterministic relevance ranking of the pool.
   const ranked = [...pool.values()]
     .map((doc) => ({ doc, score: scoreProduct(doc, rawQuery, normalizedQuery, tokens) }))
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score || String(a.doc._id).localeCompare(String(b.doc._id)));
 
-  const total = ranked.length;
-  const pageDocs = ranked.slice((page - 1) * pageSize, page * pageSize).map((r) => r.doc);
+  const rankedDocs = ranked.map((r) => r.doc);
+  const total = rankedDocs.length;
 
-  // Per-customer pricing on the returned page only (same engine as /api/products).
-  const breakdowns = await computePricesForProducts(
-    pageDocs as unknown as Parameters<typeof computePricesForProducts>[0],
-    params.userId ?? null
-  );
+  // Price sort respects the PER-CUSTOMER price: the whole ranked pool (≤200) is
+  // priced, then sorted, so the cheapest OVERALL comes first across pagination —
+  // not just the cheapest on page 1. Default keeps relevance order + prices the
+  // page only. Reuse the pool pricing for the page to avoid a second query.
+  const sort = (CATALOG_SEARCH_SORT_OPTIONS as readonly string[]).includes(params.sort ?? "")
+    ? (params.sort as CatalogSearchSort)
+    : "default";
+  let orderedDocs = rankedDocs;
+  let poolBreakdowns: Awaited<ReturnType<typeof computePricesForProducts>> | null = null;
+  if (sort === "price_asc" || sort === "price_desc") {
+    poolBreakdowns = await computePricesForProducts(
+      rankedDocs as unknown as Parameters<typeof computePricesForProducts>[0],
+      params.userId ?? null
+    );
+    const priceOf = (doc: ProductDoc) => poolBreakdowns!.get(String(doc._id))?.final ?? doc.price;
+    orderedDocs = sortByCatalogPrice(rankedDocs, sort, priceOf);
+  }
+
+  const pageDocs = orderedDocs.slice((page - 1) * pageSize, page * pageSize);
+
+  // Per-customer pricing for the page (reuse the pool pricing when we sorted by price).
+  const breakdowns =
+    poolBreakdowns ??
+    (await computePricesForProducts(
+      pageDocs as unknown as Parameters<typeof computePricesForProducts>[0],
+      params.userId ?? null
+    ));
 
   const products: CatalogSearchProduct[] = pageDocs.map((doc) => {
     const id = String(doc._id);

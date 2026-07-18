@@ -217,6 +217,12 @@
     "outOfStock": "Out of stock",
     "loadMore": "Load more",
     "didYouMean": "Did you mean:",
+    "sort": {
+      "label": "Sort by",
+      "default": "Best match",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low"
+    },
     "actions": {
       "addToCart": "Add to cart",
       "adding": "Adding…"
