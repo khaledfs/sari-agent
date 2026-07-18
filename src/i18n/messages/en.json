@@ -1043,7 +1043,23 @@
         "customers": "Customers",
         "orders30d": "Orders (30d)",
         "revenue30d": "Revenue (30d)",
-        "lastActivity": "Last activity"
+        "lastActivity": "Last activity",
+        "actions": "Actions"
+      },
+      "remove": "Remove",
+      "removedBadge": "Removed",
+      "removedOn": "Removed {date}",
+      "removeModal": {
+        "title": "Remove this agent?",
+        "body": "{name} will be removed. This is not a deletion — their order, ledger, and message history stays intact.",
+        "effectAccess": "They can no longer sign in, and any active session ends on their next action.",
+        "effectCustomers": "Their {count} customer(s) and any open collection tasks move as you choose below.",
+        "effectHistory": "Past orders and payments keep their original agent — nothing is rewritten.",
+        "reassignLabel": "Reassign their customers to",
+        "unassign": "No agent (leave unassigned)",
+        "confirm": "Remove agent",
+        "removing": "Removing…",
+        "cancel": "Cancel"
       },
       "form": {
         "name": "Full name",

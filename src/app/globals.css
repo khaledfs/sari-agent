@@ -670,6 +670,11 @@ html[dir="rtl"] .admin-card-go {
   background: var(--surface-3);
 }
 
+.admin-badge-danger {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
 .admin-back-link {
   display: inline-block;
   font-size: 0.875rem;
@@ -777,6 +782,23 @@ html[dir="rtl"] .admin-card-go {
 
 .admin-btn:disabled,
 .admin-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Destructive action (remove agent) — danger-tinted outline that fills on hover. */
+.admin-btn-danger {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.admin-btn-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--surface);
+}
+
+.admin-btn-danger:disabled {
   opacity: 0.55;
   cursor: default;
 }

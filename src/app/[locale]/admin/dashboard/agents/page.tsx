@@ -15,6 +15,15 @@ type AgentRow = {
   orders30d: number;
   revenue30d: number;
   lastActivityAt: string | null;
+  removed: boolean;
+  removedAt: string | null;
+};
+
+type RemoveResult = {
+  removedAgentId: string;
+  reassignedTo: string | null;
+  customersReassigned: number;
+  openTasksReassigned: number;
 };
 
 type ApiEnvelope<T> = { success?: boolean; data?: T; message?: string; code?: string };
@@ -31,6 +40,10 @@ export default function AdminAgentsPage() {
   const [creating, setCreating] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({ businessName: "", email: "", phoneNumber: "", password: "", routeLabel: "" });
+  // Remove-agent flow: the agent pending removal + the reassignment choice.
+  const [removeTarget, setRemoveTarget] = useState<AgentRow | null>(null);
+  const [reassignTo, setReassignTo] = useState("");
+  const [removing, setRemoving] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -84,6 +97,39 @@ export default function AdminAgentsPage() {
       setCreating(false);
     }
   }
+
+  function openRemove(agent: AgentRow) {
+    setError("");
+    setReassignTo(""); // default: unassign
+    setRemoveTarget(agent);
+  }
+
+  async function removeAgent() {
+    if (!removeTarget) return;
+    setRemoving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/agents/${removeTarget.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reassignToAgentId: reassignTo || null }),
+      });
+      const json = (await res.json()) as ApiEnvelope<RemoveResult>;
+      if (res.status === 200 && json.success) {
+        setRemoveTarget(null);
+        await load();
+        return;
+      }
+      setError(json.message ?? t("agents.error"));
+    } catch {
+      setError(t("agents.error"));
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  // Active agents that can receive a reassignment (never the one being removed).
+  const reassignChoices = agents.filter((a) => !a.removed && a.id !== removeTarget?.id);
 
   function formatDate(iso: string | null) {
     if (!iso) return "—";
@@ -158,6 +204,7 @@ export default function AdminAgentsPage() {
                 <th>{t("agents.columns.orders30d")}</th>
                 <th>{t("agents.columns.revenue30d")}</th>
                 <th>{t("agents.columns.lastActivity")}</th>
+                <th>{t("agents.columns.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -165,6 +212,11 @@ export default function AdminAgentsPage() {
                 <tr key={agent.id}>
                   <td className="admin-card-cell--title" style={{ fontWeight: 600 }}>
                     {agent.businessName}
+                    {agent.removed ? (
+                      <span className="admin-badge admin-badge-danger" style={{ marginInlineStart: "0.5rem" }}>
+                        {t("agents.removedBadge")}
+                      </span>
+                    ) : null}
                     <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 400 }} dir="ltr">
                       {agent.phoneNumber} · {agent.email}
                     </div>
@@ -174,12 +226,61 @@ export default function AdminAgentsPage() {
                   <td data-label={t("agents.columns.orders30d")}>{agent.orders30d}</td>
                   <td data-label={t("agents.columns.revenue30d")}>₪{agent.revenue30d.toLocaleString(locale)}</td>
                   <td data-label={t("agents.columns.lastActivity")} style={{ whiteSpace: "nowrap" }}>{formatDate(agent.lastActivityAt)}</td>
+                  <td data-label={t("agents.columns.actions")} className="admin-card-cell--actions">
+                    {agent.removed ? (
+                      <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                        {t("agents.removedOn", { date: formatDate(agent.removedAt) })}
+                      </span>
+                    ) : (
+                      <button type="button" className="admin-btn admin-btn-danger" onClick={() => openRemove(agent)}>
+                        {t("agents.remove")}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {removeTarget ? (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true" aria-label={t("agents.removeModal.title")}>
+          <div className="admin-modal">
+            <h2 style={{ fontSize: "1.15rem", marginBottom: "0.75rem" }}>{t("agents.removeModal.title")}</h2>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+              {t("agents.removeModal.body", { name: removeTarget.businessName })}
+            </p>
+            <ul style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0 0 1rem", paddingInlineStart: "1.1rem" }}>
+              <li>{t("agents.removeModal.effectAccess")}</li>
+              <li>{t("agents.removeModal.effectCustomers", { count: removeTarget.customerCount })}</li>
+              <li>{t("agents.removeModal.effectHistory")}</li>
+            </ul>
+
+            <label className="admin-field">
+              <span>{t("agents.removeModal.reassignLabel")}</span>
+              <select className="admin-select" value={reassignTo} onChange={(e) => setReassignTo(e.target.value)}>
+                <option value="">{t("agents.removeModal.unassign")}</option>
+                {reassignChoices.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.businessName}
+                    {a.routeLabel ? ` · ${a.routeLabel}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginBlockStart: "0.5rem" }}>
+              <button type="button" className="admin-btn" disabled={removing} onClick={() => setRemoveTarget(null)}>
+                {t("agents.removeModal.cancel")}
+              </button>
+              <button type="button" className="admin-btn admin-btn-danger" disabled={removing} onClick={() => void removeAgent()}>
+                {removing ? t("agents.removeModal.removing") : t("agents.removeModal.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

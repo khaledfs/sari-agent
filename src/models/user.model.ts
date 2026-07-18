@@ -48,6 +48,30 @@ const userSchema = new Schema(
       maxlength: 120,
       default: undefined,
     },
+    /**
+     * Agent lifecycle — soft removal ("fire the agent"). AGENTS only.
+     * "active" (or missing, on unmigrated docs) = normal. "removed" = fired:
+     * the user document and ALL history (orders, ledger, messages) stay intact,
+     * but login is refused and the per-request scope resolver denies access on
+     * the next call (session dies without a hard logout). Never a hard delete —
+     * every reference to the agent by id still resolves. Additive: existing
+     * agents have no value and read as active.
+     */
+    agentStatus: {
+      type: String,
+      enum: ["active", "removed"],
+      default: "active",
+    },
+    /** Set when an agent is removed (audit). */
+    removedAt: {
+      type: Date,
+      default: undefined,
+    },
+    /** Admin who removed the agent (audit). */
+    removedByUserId: {
+      type: String,
+      default: undefined,
+    },
     isVerified: {
       type: Boolean,
       default: false,

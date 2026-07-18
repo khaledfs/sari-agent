@@ -228,6 +228,11 @@ export async function loginAdmin(input: { identifier: string; password: string }
   if (user.role !== "admin" && user.role !== "agent") {
     throw new Error("Access denied.");
   }
+  // A removed (fired) agent can no longer sign in — the account is soft-retired,
+  // not deleted. Same "Access denied." the per-request scope resolver returns.
+  if (user.role === "agent" && (user as { agentStatus?: string }).agentStatus === "removed") {
+    throw new Error("Access denied.");
+  }
 
   const userId = String((user as { _id: unknown })._id);
   const token = signAuthToken({ userId, role: user.role });

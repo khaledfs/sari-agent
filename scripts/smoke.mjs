@@ -2447,6 +2447,70 @@ async function catalogSortSection(customerCookie) {
   }
 }
 
+// Remove-agent GUARD RAILS (non-destructive). The full destructive happy-path
+// (create → assign → remove → reassign → session death) is proven in a
+// git-ignored probe that hard-cleans its fixtures; the committed suite must stay
+// self-restoring, so here we only exercise the pre-mutation guards against the
+// PERSISTENT smoke agent — no agent is actually removed.
+async function removeAgentSection(adminCookie) {
+  if (!adminCookie) {
+    console.log("WARN  remove-agent section skipped — needs an admin login");
+    return;
+  }
+  const NONEXISTENT = "000000000000000000000000";
+  // Find an active agent + a customer id (both must exist for the guard checks).
+  const { body: agentsBody } = await jsonFetch("/api/admin/agents", { headers: { Cookie: adminCookie } });
+  const activeAgent = (agentsBody?.data ?? []).find((a) => !a.removed) ?? null;
+  const { body: custBody } = await jsonFetch("/api/admin/customers?page=1", { headers: { Cookie: adminCookie } });
+  const someCustomerId = custBody?.data?.items?.[0]?.id ?? null;
+  if (!activeAgent || !someCustomerId) {
+    report("remove-agent: fixtures present", false, `agent=${Boolean(activeAgent)}, customer=${Boolean(someCustomerId)}`);
+    return;
+  }
+  const agentId = activeAgent.id;
+
+  // 1. Unauthenticated DELETE -> 401 (auth fails before any mutation).
+  const unauth = await fetch(`${BASE_URL}/api/admin/agents/${agentId}`, { method: "DELETE" });
+  report("remove-agent: unauthenticated -> 401", unauth.status === 401, `got ${unauth.status}`);
+
+  // 2. Non-existent agent id -> 404.
+  const { res: missing } = await jsonFetch(`/api/admin/agents/${NONEXISTENT}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Cookie: adminCookie },
+    body: "{}",
+  });
+  report("remove-agent: non-existent agent -> 404", missing.status === 404, `got ${missing.status}`);
+
+  // 3. A customer id is not an agent -> 404 (role guard).
+  const { res: notAgent } = await jsonFetch(`/api/admin/agents/${someCustomerId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Cookie: adminCookie },
+    body: "{}",
+  });
+  report("remove-agent: a customer id is not an agent -> 404", notAgent.status === 404, `got ${notAgent.status}`);
+
+  // 4. Reassign-to-self -> 400 (rejected before the agent is touched).
+  const { res: self } = await jsonFetch(`/api/admin/agents/${agentId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Cookie: adminCookie },
+    body: JSON.stringify({ reassignToAgentId: agentId }),
+  });
+  report("remove-agent: reassign-to-self -> 400", self.status === 400, `got ${self.status}`);
+
+  // 5. Reassign target does not exist -> 404 (before any mutation).
+  const { res: badTarget } = await jsonFetch(`/api/admin/agents/${agentId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", Cookie: adminCookie },
+    body: JSON.stringify({ reassignToAgentId: NONEXISTENT }),
+  });
+  report("remove-agent: missing reassign target -> 404", badTarget.status === 404, `got ${badTarget.status}`);
+
+  // 6. The guarded agent is STILL active (nothing above removed it).
+  const { body: after } = await jsonFetch("/api/admin/agents", { headers: { Cookie: adminCookie } });
+  const stillActive = (after?.data ?? []).find((a) => a.id === agentId);
+  report("remove-agent: guards did not remove the agent", Boolean(stillActive) && stillActive.removed === false, `removed=${stillActive?.removed}`);
+}
+
 async function main() {
   console.log(`Smoke checks against ${BASE_URL}\n`);
 
@@ -2472,6 +2536,7 @@ async function main() {
   await receiptSection(cookie, adminCookie);
   await ledgerSection(cookie, adminCookie);
   await agentSection(cookie, adminCookie);
+  await removeAgentSection(adminCookie);
   await adjustmentSection(cookie, adminCookie);
   await paymentSection(cookie, adminCookie);
   await unifiedPaymentSection(cookie, adminCookie);

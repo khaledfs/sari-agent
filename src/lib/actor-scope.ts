@@ -30,8 +30,9 @@ export async function resolveActorScope(): Promise<ActorScope> {
 
   // Current role from the DB — a demoted/deleted user must lose access even
   // with a still-valid token.
-  const user = (await UserModel.findById(payload.userId).select("role").lean().exec()) as {
+  const user = (await UserModel.findById(payload.userId).select("role agentStatus").lean().exec()) as {
     role?: string;
+    agentStatus?: string;
   } | null;
   if (!user) {
     throw new Error("Not authenticated.");
@@ -40,6 +41,11 @@ export async function resolveActorScope(): Promise<ActorScope> {
     return { role: "admin", userId: payload.userId };
   }
   if (user.role !== "agent") {
+    throw new Error("Access denied.");
+  }
+  // A removed (fired) agent loses console access on the very next request —
+  // per-request check, mirroring the restricted-customer guard. No hard logout.
+  if (user.agentStatus === "removed") {
     throw new Error("Access denied.");
   }
 

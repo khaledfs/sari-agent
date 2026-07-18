@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 
 import { assertAdminOnly, resolveActorScope } from "@/lib/actor-scope";
 import { connectDB } from "@/lib/db";
+import { CollectionTaskModel } from "@/models/collection-task.model";
 import { MessageThreadModel } from "@/models/message.model";
 import { OrderModel } from "@/models/order.model";
 import { UserModel } from "@/models/user.model";
@@ -29,6 +30,18 @@ export type AdminAgentRow = {
   /** Latest order or message activity among their customers (ISO or null). */
   lastActivityAt: string | null;
   createdAt: string;
+  /** Soft-removal state — true = fired (no login, no scope), history kept. */
+  removed: boolean;
+  /** When the agent was removed (ISO), or null if active. */
+  removedAt: string | null;
+};
+
+export type RemoveAgentResult = {
+  removedAgentId: string;
+  /** Agent the customers/tasks moved to, or null when they were unassigned. */
+  reassignedTo: string | null;
+  customersReassigned: number;
+  openTasksReassigned: number;
 };
 
 export async function listAdminAgents(): Promise<AdminAgentRow[]> {
@@ -46,6 +59,8 @@ export async function listAdminAgents(): Promise<AdminAgentRow[]> {
     phoneNumber: string;
     routeLabel?: string;
     createdAt?: Date;
+    agentStatus?: string;
+    removedAt?: Date;
   }>;
   if (!agents.length) return [];
 
@@ -116,8 +131,31 @@ export async function listAdminAgents(): Promise<AdminAgentRow[]> {
       revenue30d: Math.round(revenue30d * 100) / 100,
       lastActivityAt: lastActivity ? lastActivity.toISOString() : null,
       createdAt: agent.createdAt instanceof Date ? agent.createdAt.toISOString() : "",
+      removed: agent.agentStatus === "removed",
+      removedAt: agent.removedAt instanceof Date ? agent.removedAt.toISOString() : null,
     };
   });
+}
+
+/**
+ * Validates a reassignment target's SHAPE (pure — no DB). Returns the target
+ * agent id, or null when the choice is "unassign" (empty/null). Throws with a
+ * stable message for an invalid id or an attempt to hand customers to the very
+ * agent being removed. DB existence/active checks happen in removeAdminAgent.
+ */
+export function assertReassignTargetShape(
+  agentId: string,
+  rawTarget: string | null | undefined,
+): string | null {
+  const target = rawTarget == null ? "" : String(rawTarget).trim();
+  if (target === "") return null; // unassign
+  if (!isValidObjectId(target)) {
+    throw new Error("Reassignment target not found.");
+  }
+  if (target === String(agentId)) {
+    throw new Error("Cannot reassign customers to the agent being removed.");
+  }
+  return target;
 }
 
 export async function createAdminAgent(input: Record<string, unknown>): Promise<AdminAgentRow> {
@@ -158,6 +196,74 @@ export async function createAdminAgent(input: Record<string, unknown>): Promise<
     revenue30d: 0,
     lastActivityAt: null,
     createdAt: new Date().toISOString(),
+    removed: false,
+    removedAt: null,
+  };
+}
+
+/**
+ * Removes (soft-fires) an agent — ADMIN-ONLY. Never a hard delete: the agent
+ * document and all history stay intact. In one call it (1) reassigns the
+ * agent's customers to another ACTIVE agent, or unassigns them (assignedAgentId
+ * = null); (2) hands the agent's OPEN collection tasks to the same target, or
+ * surfaces them to the admin (agentId = null — never dropped); (3) flips the
+ * agent to agentStatus "removed" so login is refused and the per-request scope
+ * resolver denies its session on the next request. Idempotent-safe: re-removing
+ * an already-removed agent just re-applies the (now empty) reassignment.
+ */
+export async function removeAdminAgent(
+  agentId: string,
+  input: { reassignToAgentId?: string | null },
+): Promise<RemoveAgentResult> {
+  const scope = await resolveActorScope();
+  assertAdminOnly(scope);
+  await connectDB();
+
+  if (!isValidObjectId(agentId)) throw new Error("Agent not found.");
+  const agent = (await UserModel.findById(agentId).select("role").lean().exec()) as {
+    role?: string;
+  } | null;
+  if (!agent || agent.role !== "agent") throw new Error("Agent not found.");
+
+  // Reassignment target: pure shape check first, then DB existence/active check.
+  const targetId = assertReassignTargetShape(agentId, input.reassignToAgentId);
+  let reassignTo: mongoose.Types.ObjectId | null = null;
+  if (targetId) {
+    const target = (await UserModel.findById(targetId).select("role agentStatus").lean().exec()) as {
+      role?: string;
+      agentStatus?: string;
+    } | null;
+    if (!target || target.role !== "agent") throw new Error("Reassignment target not found.");
+    if (target.agentStatus === "removed") throw new Error("Reassignment target is not active.");
+    reassignTo = new mongoose.Types.ObjectId(targetId);
+  }
+
+  const agentObjId = new mongoose.Types.ObjectId(agentId);
+
+  // 1) Move (or unassign) the removed agent's customers.
+  const customersRes = await UserModel.updateMany(
+    { role: "customer", assignedAgentId: agentObjId },
+    { $set: { assignedAgentId: reassignTo } },
+  ).exec();
+
+  // 2) Move (or surface to admin) the removed agent's OPEN collection tasks.
+  //    Collected/cancelled tasks are history and are left untouched.
+  const tasksRes = await CollectionTaskModel.updateMany(
+    { agentId: agentObjId, status: "open" },
+    { $set: { agentId: reassignTo } },
+  ).exec();
+
+  // 3) Soft-retire the agent (session dies on its next request; login refused).
+  await UserModel.updateOne(
+    { _id: agentObjId },
+    { $set: { agentStatus: "removed", removedAt: new Date(), removedByUserId: scope.userId } },
+  ).exec();
+
+  return {
+    removedAgentId: String(agentId),
+    reassignedTo: reassignTo ? String(reassignTo) : null,
+    customersReassigned: customersRes.modifiedCount ?? 0,
+    openTasksReassigned: tasksRes.modifiedCount ?? 0,
   };
 }
 
