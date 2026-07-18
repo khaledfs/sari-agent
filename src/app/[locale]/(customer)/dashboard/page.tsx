@@ -185,6 +185,12 @@ export default function DashboardPage() {
       const data = (json as { data?: unknown })?.data;
       return Array.isArray(data) ? data.length : 0;
     };
+    // The catalog endpoint is PAGINATED — its `data` is one page (≤50). The true
+    // catalog size is `meta.total` (active products); fall back to the page length.
+    const total = (json: unknown): number => {
+      const metaTotal = (json as { meta?: { total?: unknown } })?.meta?.total;
+      return typeof metaTotal === "number" ? metaTotal : num(json);
+    };
 
     (async () => {
       const safe = async (url: string) => {
@@ -209,7 +215,7 @@ export default function DashboardPage() {
       setStats({
         orders: num(ordersJson),
         favorites: num(favJson),
-        catalog: num(prodJson),
+        catalog: total(prodJson),
       });
 
       const freqData = (freqJson as { data?: SpotlightProduct[] })?.data;
